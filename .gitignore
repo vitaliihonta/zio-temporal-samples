@@ -1,0 +1,7 @@
+*.log
+.idea/
+target/
+version
+.sbt/
+
+venv/

@@ -1,0 +1,12 @@
+syntax = "proto2";
+
+package com.cryptocrabs.exchange;
+
+import "zio-temporal.proto";
+
+message ExchangeOrder {
+  required zio.temporal.protobuf.UUID id = 1;
+  required zio.temporal.protobuf.UUID sender = 2;
+  required zio.temporal.protobuf.UUID receiver = 3;
+  required zio.temporal.protobuf.BigDecimal amount = 4;
+}
