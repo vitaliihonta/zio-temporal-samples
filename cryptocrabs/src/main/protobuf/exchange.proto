@@ -4,9 +4,48 @@ package com.cryptocrabs.exchange;
 
 import "zio-temporal.proto";
 
-message ExchangeOrder {
+enum CryptoCurrency {
+  CrabsCoin = 0;
+  Garyeum = 1;
+  Snaily = 2;
+}
+
+enum ExchangeOrderStatus {
+  Created = 0;
+  Placed = 1;
+  Cancelled = 2;
+  Accepted = 3;
+  FoundsHeld = 4;
+  ConfirmedByBuyer = 5;
+  ConfirmedBySeller = 6;
+  Stuck = 7;
+  Completed = 8;
+}
+
+message ExchangeOrderRequest {
+  required zio.temporal.protobuf.UUID seller = 1;
+  required zio.temporal.protobuf.BigDecimal amount = 2;
+  required CryptoCurrency currency = 3;
+}
+
+message ExchangeOrderBuyerInfo {
+  required zio.temporal.protobuf.UUID buyerId = 1;
+  optional string screenshotUrl = 2;
+}
+
+message ExchangeOrderView {
   required zio.temporal.protobuf.UUID id = 1;
-  required zio.temporal.protobuf.UUID sender = 2;
-  required zio.temporal.protobuf.UUID receiver = 3;
-  required zio.temporal.protobuf.BigDecimal amount = 4;
+  optional zio.temporal.protobuf.UUID seller = 2;
+  optional zio.temporal.protobuf.BigDecimal amount = 3;
+  optional CryptoCurrency currency = 4;
+  required ExchangeOrderStatus status = 5;
+  optional ExchangeOrderBuyerInfo buyerInfo = 6;
+}
+
+message AcceptExchangeOrderSignal {
+  required zio.temporal.protobuf.UUID buyerId = 1;
+}
+
+message BuyerConfirmationSignal {
+  required string screenshotUrl = 1;
 }
