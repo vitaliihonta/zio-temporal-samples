@@ -10,7 +10,12 @@ import com.cryptocrabs.workflows.ProtoConverters.given
 
 import java.util.UUID
 import com.cryptocrabs.*
-import com.cryptocrabs.exchange.{ExchangeOrderRequest, ExchangeOrderView}
+import com.cryptocrabs.exchange.{
+  AcceptExchangeOrderSignal,
+  BuyerConfirmationSignal,
+  ExchangeOrderRequest,
+  ExchangeOrderView
+}
 
 object ExchangeClientService {
   val make: URLayer[ZWorkflowClient, ExchangeClientService] = ZLayer.fromFunction(new ExchangeClientService(_))
@@ -62,6 +67,36 @@ class ExchangeClientService(client: ZWorkflowClient) {
                   )
                   .orDieWith(_.error)
     } yield viewToModel(result)
+
+  def acceptOrder(orderId: UUID, buyerId: UUID): Task[Unit] =
+    for {
+      workflowStub <- client.newWorkflowStubProxy[ExchangeWorkflow](workflowId = orderId.toString)
+      _ <- ZWorkflowStub
+             .signal(
+               workflowStub.acceptExchangeOrder(AcceptExchangeOrderSignal(buyerId))
+             )
+             .orDieWith(_.error)
+    } yield ()
+
+  def buyerTransferConfirmation(orderId: UUID, screenshotUrl: String): Task[Unit] =
+    for {
+      workflowStub <- client.newWorkflowStubProxy[ExchangeWorkflow](workflowId = orderId.toString)
+      _ <- ZWorkflowStub
+             .signal(
+               workflowStub.buyerTransferConfirmation(BuyerConfirmationSignal(screenshotUrl))
+             )
+             .orDieWith(_.error)
+    } yield ()
+
+  def sellerTransferConfirmation(orderId: UUID): Task[Unit] =
+    for {
+      workflowStub <- client.newWorkflowStubProxy[ExchangeWorkflow](workflowId = orderId.toString)
+      _ <- ZWorkflowStub
+             .signal(
+               workflowStub.sellerTransferConfirmation()
+             )
+             .orDieWith(_.error)
+    } yield ()
 
   private def viewToModel(orderView: ExchangeOrderView): ExchangeOrder =
     ExchangeOrder(

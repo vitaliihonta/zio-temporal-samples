@@ -5,18 +5,23 @@ import zio.*
 import zio.temporal.*
 import zio.temporal.workflow.*
 import zio.temporal.state.*
+import zio.temporal.saga.ZSaga
 import org.slf4j.LoggerFactory
 import com.cryptocrabs.exchange.*
+
 import java.util.UUID
 import ProtoConverters.given
 import zio.temporal.protobuf.syntax.*
+
 import java.time.Instant
-import java.time.{Duration => JDuration}
+import java.time.Duration as JDuration
+import scala.util.Try
 
 enum ExchangeOrderStateDetails(
-  val isAccepted:         Boolean = false,
-  val isConfirmedByBuyer: Boolean = false,
-  val isConfirmedBySeller: Boolean = false) {
+  val isAccepted:          Boolean = false,
+  val isConfirmedByBuyer:  Boolean = false,
+  val isConfirmedBySeller: Boolean = false,
+  val isStuck: Boolean = false) {
 
   case Created
   case Cancelled
@@ -29,7 +34,7 @@ enum ExchangeOrderStateDetails(
       extends ExchangeOrderStateDetails(isConfirmedBySeller = true)
 
   case Completed(buyerId: UUID, screenshotUrl: String)
-  case Stuck(buyerId: UUID, screenshotUrl: String)
+  case Stuck(buyerId: UUID, screenshotUrl: String) extends ExchangeOrderStateDetails(isStuck = true)
 }
 
 case class ExchangeOrderState(
@@ -54,6 +59,54 @@ class ExchangeWorkflowImpl() extends ExchangeWorkflow {
 
   override def exchangeOrder(orderRequest: ExchangeOrderRequest): ExchangeOrderView = {
 
+    placeOrder(orderRequest)
+
+    val result = for {
+      _             <- placeOrder(orderRequest)
+      buyerId       <- waitUntilAcceptedOrCancelByTimeout()
+      _             <- holdFounds(buyerId)
+      screenshotUrl <- waitForBuyerConfirmationOrCancel()
+      _             <- waitForSellerConfirmationOrFail(buyerId, screenshotUrl)
+      _             <- transferFounds(buyerId, screenshotUrl)
+    } yield ()
+
+    result
+      .run()
+      .map(_ => stateToView())
+      .merge
+  }
+
+  override def acceptExchangeOrder(accepted: AcceptExchangeOrderSignal): Unit = {
+    logger.info("Order accepted!")
+    orderState.update(
+      _.copy(details = ExchangeOrderStateDetails.Accepted(accepted.buyerId.fromProto))
+    )
+  }
+
+  override def buyerTransferConfirmation(confirmed: BuyerConfirmationSignal): Unit = {
+    orderState.updateWhen {
+      case state @ ExchangeOrderState(_, _, _, _, ExchangeOrderStateDetails.FoundsHeld(buyerId)) =>
+        logger.info("Buyer confirmation received!")
+        state.copy(details = ExchangeOrderStateDetails.ConfirmedByBuyer(buyerId, confirmed.screenshotUrl))
+    }
+  }
+
+  override def sellerTransferConfirmation(): Unit = {
+    orderState.updateWhen {
+      case state @ ExchangeOrderState(_, _, _, _, ExchangeOrderStateDetails.ConfirmedByBuyer(buyerId, screenshotUrl)) =>
+        logger.info("Seller confirmation received!")
+        state.copy(details = ExchangeOrderStateDetails.ConfirmedBySeller(buyerId, screenshotUrl))
+    }
+  }
+
+  override def transactionState(): ExchangeOrderView =
+    stateToView()
+
+  // This allows to avoid using `return`
+  private type Result[+A] = ZSaga[ExchangeOrderView, A]
+  private def finishWorkflow: Result[Nothing] = ZSaga.fail(stateToView())
+
+  private def placeOrder(orderRequest: ExchangeOrderRequest): Result[Unit] = {
     logger.info(s"Received order id=$orderId")
 
     exchangeActivity.placeExchangeOrder(orderId, orderRequest)
@@ -66,104 +119,99 @@ class ExchangeWorkflowImpl() extends ExchangeWorkflow {
       details = ExchangeOrderStateDetails.Created
     )
 
+    ZSaga.succeed(())
+  }
+  // Returns buyerId
+  private def waitUntilAcceptedOrCancelByTimeout(): Result[UUID] = {
     logger.info("Waiting for order to be accepted")
-    ZWorkflow.awaitUntil(30.seconds) {
-      val state = orderState.snapshot
-      logger.info(s"Wait state=$state")
-      state.details.isAccepted
-    }
-
-    logger.info(s"Waiting finished ${orderState}")
-//    logger.info(s"Waiting finished with state=${orderState.snapshot}")
-    // timeout occurred
+    ZWorkflow.awaitUntil(30.seconds)(orderState.snapshot.details.isAccepted)
     orderState.snapshot.details match {
       case ExchangeOrderStateDetails.Accepted(buyerId) =>
         logger.info("Order accepted")
+        exchangeActivity.orderAccepted(orderId, buyerId)
+        ZSaga.succeed(buyerId)
+
+      case other =>
+        logger.info(s"Order cancelled by timeout $other")
         orderState.update(
-          _.copy(
-            details = ExchangeOrderStateDetails.Accepted(buyerId)
-          )
+          _.copy(details = ExchangeOrderStateDetails.Cancelled)
         )
+        finishWorkflow
+    }
+  }
 
-        exchangeActivity.holdCrypto(orderId)
-        orderState.update(
-          _.copy(
-            details = ExchangeOrderStateDetails.FoundsHeld(buyerId)
-          )
-        )
-
-        logger.info("Waiting for seller confirmation...")
-        ZWorkflow.awaitUntil(30.seconds)(orderState.snapshot.details.isConfirmedByBuyer)
-
-        orderState.snapshot.details match {
-          case ExchangeOrderStateDetails.ConfirmedByBuyer(buyerId, screenshotUrl) =>
-            logger.info("Seller confirmed")
-            orderState.update(
-              _.copy(
-                details = ExchangeOrderStateDetails.ConfirmedByBuyer(buyerId, screenshotUrl)
-              )
-            )
-
-            logger.info("Waiting for buyer confirmation...")
-
-            ZWorkflow.awaitUntil(30.seconds)(orderState.snapshot.details.isConfirmedByBuyer)
-            orderState.snapshot.details match {
-              case ExchangeOrderStateDetails.ConfirmedBySeller(buyerId, screenshotUrl) =>
-                logger.info("Buyer confirmed")
-                orderState.update(
-                  _.copy(
-                    details = ExchangeOrderStateDetails.ConfirmedBySeller(buyerId, screenshotUrl)
-                  )
-                )
-                exchangeActivity.transferCrypto(orderId)
-                logger.info("Crypto transferred")
-                orderState.update(
-                  _.copy(
-                    details = ExchangeOrderStateDetails.Completed(buyerId, screenshotUrl)
-                  )
-                )
-                stateToView()
-
-              case _ =>
-                logger.info("Received no confirmation from buyer, exchange stuck")
-                orderState.update(
-                  _.copy(
-                    details = ExchangeOrderStateDetails.Stuck(buyerId, screenshotUrl)
-                  )
-                )
-                stateToView()
-            }
-
-          case _ =>
-            logger.info("Waiting too long for buyer confirmation")
-            orderState.update(
-              _.copy(
-                details = ExchangeOrderStateDetails.Cancelled
-              )
-            )
-            // TODO: unhold money
-            stateToView()
+  private def holdFounds(buyerId: UUID): Result[Unit] = {
+    val hold = ZSaga
+      .make(
+        Try(exchangeActivity.holdCryptoFounds(orderId)).toEither
+      )(compensate = {
+        // Stuck orders should be manually resolved
+        if (!orderState.snapshot.details.isStuck) {
+          exchangeActivity.releaseCryptoFounds(orderId)
         }
+      })
+      .mapError(_ => stateToView())
 
+    hold.map { _ =>
+      orderState.update(
+        _.copy(
+          details = ExchangeOrderStateDetails.FoundsHeld(buyerId)
+        )
+      )
+    }
+  }
+
+  private def waitForBuyerConfirmationOrCancel(): Result[String] = {
+    logger.info("Waiting for buyer confirmation...")
+    ZWorkflow.awaitUntil(30.seconds)(orderState.snapshot.details.isConfirmedByBuyer)
+
+    orderState.snapshot.details match {
+      case ExchangeOrderStateDetails.ConfirmedByBuyer(buyerId, screenshotUrl) =>
+        logger.info("Buyer confirmed")
+        exchangeActivity.showBuyerConfirmation(orderId, screenshotUrl)
+        ZSaga.succeed(screenshotUrl)
       case _ =>
-        logger.info("Order cancelled by timeout")
+        logger.info("Waiting too long for buyer confirmation")
         orderState.update(
           _.copy(
             details = ExchangeOrderStateDetails.Cancelled
           )
         )
-        stateToView()
+        finishWorkflow
     }
   }
 
-  override def acceptExchangeOrder(accepted: AcceptExchangeOrderSignal): Unit = ???
+  private def waitForSellerConfirmationOrFail(buyerId: UUID, screenshotUrl: String): Result[Unit] = {
+    logger.info("Waiting for seller confirmation...")
+    ZWorkflow.awaitUntil(30.seconds)(orderState.snapshot.details.isConfirmedBySeller)
+    orderState.snapshot.details match {
+      case ExchangeOrderStateDetails.ConfirmedBySeller(buyerId, screenshotUrl) =>
+        logger.info("Seller confirmed")
+        ZSaga.succeed(())
+      case _ =>
+        logger.info("Received no confirmation from buyer, exchange stuck")
+        orderState.update(
+          _.copy(
+            details = ExchangeOrderStateDetails.Stuck(buyerId, screenshotUrl)
+          )
+        )
+        finishWorkflow
+    }
+  }
 
-  override def buyerTransferConfirmation(confirmed: BuyerConfirmationSignal): Unit = ???
-
-  override def sellerTransferConfirmation(): Unit = ???
-
-  override def transactionState(): ExchangeOrderView =
-    stateToView()
+  private def transferFounds(buyerId: UUID, screenshotUrl: String): Result[Unit] = {
+    ZSaga
+      .effect(exchangeActivity.transferCryptoFounds(orderId))
+      .mapError(_ => stateToView())
+      .map { _ =>
+        logger.info("Crypto transferred")
+        orderState.update(
+          _.copy(
+            details = ExchangeOrderStateDetails.Completed(buyerId, screenshotUrl)
+          )
+        )
+      }
+  }
 
   private def stateToView(): ExchangeOrderView = {
     orderState.toOption

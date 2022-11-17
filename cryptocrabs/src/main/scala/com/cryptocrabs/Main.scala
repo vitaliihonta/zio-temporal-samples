@@ -9,9 +9,12 @@ import zio.temporal.worker.ZWorkerFactory
 import zio.temporal.workflow.ZWorkflowClient
 import zio.temporal.workflow.ZWorkflowServiceStubs
 
+import java.util.UUID
+
 object Main extends ZIOAppDefault {
   override def run: ZIO[ZIOAppArgs with Scope, Any, Any] = {
     val exampleFlow = ZIO.serviceWithZIO[ExchangeClientService] { exchangeClient =>
+      val pause = ZIO.sleep(2.seconds)
       for {
         _      <- ZIO.logInfo(s"Going to create an exchange order")
         seller <- Random.nextUUID
@@ -26,6 +29,11 @@ object Main extends ZIOAppDefault {
 
           pollStatus.repeat(Schedule.spaced(5.seconds).unit).forkDaemon
         }
+        // Those steps are optional! Comment/uncomment them
+        _ <- pause *> Random.nextUUID.flatMap(exchangeClient.acceptOrder(orderId, _))
+        _ <- pause *> exchangeClient.buyerTransferConfirmation(orderId, "https://example.com")
+        _ <- pause *> exchangeClient.sellerTransferConfirmation(orderId)
+        // End optional steps
         result <- exchangeClient.waitForResult(orderId)
         _      <- poll.interrupt
         _      <- ZIO.logInfo(s"Exchange finished result=$result")
