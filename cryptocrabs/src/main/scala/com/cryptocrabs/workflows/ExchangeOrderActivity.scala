@@ -15,13 +15,13 @@ trait ExchangeOrderActivity {
 
   def orderAccepted(orderId: protobuf.UUID, buyerId: protobuf.UUID): Unit
 
-  def holdCryptoFounds(orderId: protobuf.UUID): Unit
+  def holdCryptoFunds(orderId: protobuf.UUID): Unit
 
-  def releaseCryptoFounds(orderId: protobuf.UUID): Unit
+  def releaseCryptoFunds(orderId: protobuf.UUID): Unit
 
   def showBuyerConfirmation(orderId: protobuf.UUID, screenshotUrl: String): Unit
 
-  def transferCryptoFounds(orderId: protobuf.UUID): Unit
+  def transferCryptoFunds(orderId: protobuf.UUID): Unit
 }
 
 object ExchangeOrderActivityImpl {
@@ -45,13 +45,13 @@ class ExchangeOrderActivityImpl()(using ZActivityOptions[Any]) extends ExchangeO
     }
   }
 
-  override def holdCryptoFounds(orderId: protobuf.UUID): Unit = {
+  override def holdCryptoFunds(orderId: protobuf.UUID): Unit = {
     ZActivity.run {
       ZIO.logInfo(s"Order ${orderId.fromProto} amount held for the buyer")
     }
   }
 
-  override def releaseCryptoFounds(orderId: protobuf.UUID): Unit = {
+  override def releaseCryptoFunds(orderId: protobuf.UUID): Unit = {
     ZActivity.run {
       ZIO.logInfo(s"Order ${orderId.fromProto} cancelled, founds released")
     }
@@ -63,7 +63,7 @@ class ExchangeOrderActivityImpl()(using ZActivityOptions[Any]) extends ExchangeO
     }
   }
 
-  override def transferCryptoFounds(orderId: protobuf.UUID): Unit = {
+  override def transferCryptoFunds(orderId: protobuf.UUID): Unit = {
     ZActivity.run {
       ZIO.logInfo(s"Order ${orderId.fromProto} complete")
     }

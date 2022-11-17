@@ -143,11 +143,11 @@ class ExchangeWorkflowImpl() extends ExchangeWorkflow {
   private def holdFounds(buyerId: UUID): Result[Unit] = {
     val hold = ZSaga
       .make(
-        Try(exchangeActivity.holdCryptoFounds(orderId)).toEither
+        Try(exchangeActivity.holdCryptoFunds(orderId)).toEither
       )(compensate = {
         // Stuck orders should be manually resolved
         if (!orderState.snapshot.details.isStuck) {
-          exchangeActivity.releaseCryptoFounds(orderId)
+          exchangeActivity.releaseCryptoFunds(orderId)
         }
       })
       .mapError(_ => stateToView())
@@ -201,7 +201,7 @@ class ExchangeWorkflowImpl() extends ExchangeWorkflow {
 
   private def transferFounds(buyerId: UUID, screenshotUrl: String): Result[Unit] = {
     ZSaga
-      .effect(exchangeActivity.transferCryptoFounds(orderId))
+      .effect(exchangeActivity.transferCryptoFunds(orderId))
       .mapError(_ => stateToView())
       .map { _ =>
         logger.info("Crypto transferred")
