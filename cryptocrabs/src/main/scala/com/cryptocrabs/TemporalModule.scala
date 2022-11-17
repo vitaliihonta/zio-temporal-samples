@@ -1,6 +1,6 @@
 package com.cryptocrabs
 
-import com.cryptocrabs.workflows.{ExchangeWorkflow, ExchangeWorkflowImpl}
+import com.cryptocrabs.workflows.{ExchangeOrderActivity, ExchangeWorkflow, ExchangeWorkflowImpl}
 import zio.*
 import zio.temporal.protobuf.ProtobufDataConverter
 import zio.temporal.worker.ZWorker
@@ -24,12 +24,13 @@ object TemporalModule {
     ZWorkerFactoryOptions.default
   }
 
-  val worker: URLayer[ZWorkerFactory, Unit] =
+  val worker: URLayer[ZWorkerFactory with ExchangeOrderActivity, Unit] =
     ZLayer.fromZIO {
       ZIO.serviceWithZIO[ZWorkerFactory] { workerFactory =>
         for {
-          worker <- workerFactory.newWorker(TaskQueues.exchanger)
-//          _ = worker.addActivityImplementation(activityImpl)
+          worker           <- workerFactory.newWorker(TaskQueues.exchanger)
+          exchangeActivity <- ZIO.service[ExchangeOrderActivity]
+          _ = worker.addActivityImplementation(exchangeActivity)
           _ = worker.addWorkflow[ExchangeWorkflow].from(new ExchangeWorkflowImpl)
         } yield ()
       }

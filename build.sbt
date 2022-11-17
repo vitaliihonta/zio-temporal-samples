@@ -6,6 +6,7 @@ lazy val root = (project in file("."))
     name := "func-scala-2022-zio-temporal"
   )
   .aggregate(cryptocrabs)
+  .disablePlugins(ProtocPlugin)
 
 lazy val cryptocrabs = project
   .in(file("cryptocrabs"))
