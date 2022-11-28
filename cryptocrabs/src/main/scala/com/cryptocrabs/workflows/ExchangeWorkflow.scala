@@ -21,5 +21,5 @@ trait ExchangeWorkflow {
   def sellerTransferConfirmation(): Unit
 
   @queryMethod
-  def transactionState(): ExchangeOrderView
+  def getExchangeOrderState(): ExchangeOrderView
 }

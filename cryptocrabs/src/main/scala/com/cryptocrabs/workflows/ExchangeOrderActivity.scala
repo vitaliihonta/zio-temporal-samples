@@ -11,7 +11,7 @@ import ProtoConverters.given
 // accepts only protobuf-generated messages (not enums!)
 @activityInterface
 trait ExchangeOrderActivity {
-  def placeExchangeOrder(id: protobuf.UUID, request: ExchangeOrderRequest): Unit
+  def putExchangeOrder(id: protobuf.UUID, request: ExchangeOrderRequest): Unit
 
   def orderAccepted(orderId: protobuf.UUID, buyerId: protobuf.UUID): Unit
 
@@ -32,7 +32,7 @@ object ExchangeOrderActivityImpl {
 // TODO: think about adding something like DAO layer imitation
 class ExchangeOrderActivityImpl()(using ZActivityOptions[Any]) extends ExchangeOrderActivity {
 
-  override def placeExchangeOrder(id: protobuf.UUID, request: ExchangeOrderRequest): Unit =
+  override def putExchangeOrder(id: protobuf.UUID, request: ExchangeOrderRequest): Unit =
     ZActivity.run {
       ZIO.logInfo(
         s"Hey, who wanna buy ${request.amount.fromProto} ${request.currency.fromProto}s? Order id is ${id.fromProto}, seller is ${request.seller.fromProto}"

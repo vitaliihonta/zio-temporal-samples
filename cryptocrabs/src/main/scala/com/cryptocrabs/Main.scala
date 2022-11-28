@@ -30,9 +30,9 @@ object Main extends ZIOAppDefault {
           pollStatus.repeat(Schedule.spaced(5.seconds).unit).forkDaemon
         }
         // Those steps are optional! Comment/uncomment them
-        _ <- pause *> Random.nextUUID.flatMap(exchangeClient.acceptOrder(orderId, _))
-        _ <- pause *> exchangeClient.buyerTransferConfirmation(orderId, "https://example.com")
-        _ <- pause *> exchangeClient.sellerTransferConfirmation(orderId)
+//        _ <- pause *> Random.nextUUID.flatMap(exchangeClient.acceptOrder(orderId, _))
+//        _ <- pause *> exchangeClient.buyerTransferConfirmation(orderId, "https://example.com")
+//        _ <- pause *> exchangeClient.sellerTransferConfirmation(orderId)
         // End optional steps
         result <- exchangeClient.waitForResult(orderId)
         _      <- poll.interrupt

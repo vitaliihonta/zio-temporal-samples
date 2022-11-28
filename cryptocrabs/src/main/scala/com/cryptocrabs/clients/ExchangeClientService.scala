@@ -63,7 +63,7 @@ class ExchangeClientService(client: ZWorkflowClient) {
       workflowStub <- client.newWorkflowStubProxy[ExchangeWorkflow](workflowId = orderId.toString)
       result <- ZWorkflowStub
                   .query(
-                    workflowStub.transactionState()
+                    workflowStub.getExchangeOrderState()
                   )
                   .orDieWith(_.error)
     } yield viewToModel(result)

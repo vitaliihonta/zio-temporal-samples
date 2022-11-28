@@ -49,7 +49,7 @@ class ExchangeWorkflowImpl() extends ExchangeWorkflow {
   private val logger  = LoggerFactory.getLogger(getClass)
   private val orderId = UUID.fromString(ZWorkflow.info.workflowId)
 
-  private val exchangeActivity = ZWorkflow
+  private val exchangeActivity: ExchangeOrderActivity = ZWorkflow
     .newActivityStub[ExchangeOrderActivity]
     .withStartToCloseTimeout(5.seconds)
     .withRetryOptions(ZRetryOptions.default.withMaximumAttempts(3))
@@ -59,21 +59,16 @@ class ExchangeWorkflowImpl() extends ExchangeWorkflow {
 
   override def exchangeOrder(orderRequest: ExchangeOrderRequest): ExchangeOrderView = {
 
-    placeOrder(orderRequest)
-
     val result = for {
-      _             <- placeOrder(orderRequest)
+      _             <- putOrder(orderRequest)
       buyerId       <- waitUntilAcceptedOrCancelByTimeout()
       _             <- holdFounds(buyerId)
       screenshotUrl <- waitForBuyerConfirmationOrCancel()
       _             <- waitForSellerConfirmationOrFail(buyerId, screenshotUrl)
       _             <- transferFounds(buyerId, screenshotUrl)
-    } yield ()
+    } yield exchangeOrderState()
 
-    result
-      .run()
-      .map(_ => stateToView())
-      .merge
+    result.run().merge
   }
 
   override def acceptExchangeOrder(accepted: AcceptExchangeOrderSignal): Unit = {
@@ -99,17 +94,17 @@ class ExchangeWorkflowImpl() extends ExchangeWorkflow {
     }
   }
 
-  override def transactionState(): ExchangeOrderView =
-    stateToView()
+  override def getExchangeOrderState(): ExchangeOrderView =
+    exchangeOrderState()
 
   // This allows to avoid using `return`
   private type Result[+A] = ZSaga[ExchangeOrderView, A]
-  private def finishWorkflow: Result[Nothing] = ZSaga.fail(stateToView())
+  private def finishWorkflow: Result[Nothing] = ZSaga.fail(exchangeOrderState())
 
-  private def placeOrder(orderRequest: ExchangeOrderRequest): Result[Unit] = {
+  private def putOrder(orderRequest: ExchangeOrderRequest): Result[Unit] = {
     logger.info(s"Received order id=$orderId")
 
-    exchangeActivity.placeExchangeOrder(orderId, orderRequest)
+    exchangeActivity.putExchangeOrder(orderId, orderRequest)
 
     orderState := ExchangeOrderState(
       id = orderId,
@@ -124,7 +119,7 @@ class ExchangeWorkflowImpl() extends ExchangeWorkflow {
   // Returns buyerId
   private def waitUntilAcceptedOrCancelByTimeout(): Result[UUID] = {
     logger.info("Waiting for order to be accepted")
-    ZWorkflow.awaitUntil(30.seconds)(orderState.snapshot.details.isAccepted)
+    ZWorkflow.awaitUntil(5.seconds)(orderState.snapshot.details.isAccepted)
     orderState.snapshot.details match {
       case ExchangeOrderStateDetails.Accepted(buyerId) =>
         logger.info("Order accepted")
@@ -150,7 +145,7 @@ class ExchangeWorkflowImpl() extends ExchangeWorkflow {
           exchangeActivity.releaseCryptoFunds(orderId)
         }
       })
-      .mapError(_ => stateToView())
+      .mapError(_ => exchangeOrderState())
 
     hold.map { _ =>
       orderState.update(
@@ -202,7 +197,7 @@ class ExchangeWorkflowImpl() extends ExchangeWorkflow {
   private def transferFounds(buyerId: UUID, screenshotUrl: String): Result[Unit] = {
     ZSaga
       .effect(exchangeActivity.transferCryptoFunds(orderId))
-      .mapError(_ => stateToView())
+      .mapError(_ => exchangeOrderState())
       .map { _ =>
         logger.info("Crypto transferred")
         orderState.update(
@@ -213,7 +208,7 @@ class ExchangeWorkflowImpl() extends ExchangeWorkflow {
       }
   }
 
-  private def stateToView(): ExchangeOrderView = {
+  private def exchangeOrderState(): ExchangeOrderView = {
     orderState.toOption
       .map { state =>
 
