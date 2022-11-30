@@ -1,6 +1,6 @@
-package com.cryptocrabs
+package com.cryptostock
 
-import com.cryptocrabs.workflows.{ExchangeOrderActivity, ExchangeWorkflow, ExchangeWorkflowImpl}
+import com.cryptostock.workflows.{ExchangeOrderActivity, ExchangeWorkflow, ExchangeWorkflowImpl}
 import zio.*
 import zio.temporal.protobuf.ProtobufDataConverter
 import zio.temporal.worker.ZWorker

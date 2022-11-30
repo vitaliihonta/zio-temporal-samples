@@ -1,6 +1,6 @@
-package com.cryptocrabs.workflows
+package com.cryptostock.workflows
 
-import com.cryptocrabs.exchange.*
+import com.cryptostock.exchange.*
 import zio.*
 import zio.temporal.*
 import zio.temporal.activity.*

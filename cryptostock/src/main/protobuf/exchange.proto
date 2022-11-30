@@ -1,6 +1,6 @@
 syntax = "proto2";
 
-package com.cryptocrabs.exchange;
+package com.cryptostock.exchange;
 
 import "zio-temporal.proto";
 

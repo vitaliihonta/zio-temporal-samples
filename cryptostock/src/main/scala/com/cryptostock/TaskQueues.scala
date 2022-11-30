@@ -1,4 +1,4 @@
-package com.cryptocrabs
+package com.cryptostock
 
 object TaskQueues {
   val exchanger = "exchanger"

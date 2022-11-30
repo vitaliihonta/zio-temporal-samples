@@ -1,13 +1,13 @@
-package com.cryptocrabs.workflows
+package com.cryptostock.workflows
 
-import com.cryptocrabs.CryptoCurrency
+import com.cryptostock.CryptoCurrency
 import zio.*
 import zio.temporal.*
 import zio.temporal.workflow.*
 import zio.temporal.state.*
 import zio.temporal.saga.ZSaga
 import org.slf4j.LoggerFactory
-import com.cryptocrabs.exchange.*
+import com.cryptostock.exchange.*
 
 import java.util.UUID
 import ProtoConverters.given
@@ -62,10 +62,10 @@ class ExchangeWorkflowImpl() extends ExchangeWorkflow {
     val result = for {
       _             <- putOrder(orderRequest)
       buyerId       <- waitUntilAcceptedOrCancelByTimeout()
-      _             <- holdFounds(buyerId)
+      _             <- holdFunds(buyerId)
       screenshotUrl <- waitForBuyerConfirmationOrCancel()
       _             <- waitForSellerConfirmationOrFail(buyerId, screenshotUrl)
-      _             <- transferFounds(buyerId, screenshotUrl)
+      _             <- transferFunds(buyerId, screenshotUrl)
     } yield exchangeOrderState()
 
     result.run().merge
@@ -135,7 +135,7 @@ class ExchangeWorkflowImpl() extends ExchangeWorkflow {
     }
   }
 
-  private def holdFounds(buyerId: UUID): Result[Unit] = {
+  private def holdFunds(buyerId: UUID): Result[Unit] = {
     val hold = ZSaga
       .make(
         Try(exchangeActivity.holdCryptoFunds(orderId)).toEither
@@ -194,7 +194,7 @@ class ExchangeWorkflowImpl() extends ExchangeWorkflow {
     }
   }
 
-  private def transferFounds(buyerId: UUID, screenshotUrl: String): Result[Unit] = {
+  private def transferFunds(buyerId: UUID, screenshotUrl: String): Result[Unit] = {
     ZSaga
       .effect(exchangeActivity.transferCryptoFunds(orderId))
       .mapError(_ => exchangeOrderState())

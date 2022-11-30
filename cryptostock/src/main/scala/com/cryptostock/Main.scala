@@ -1,7 +1,7 @@
-package com.cryptocrabs
+package com.cryptostock
 
-import com.cryptocrabs.clients.ExchangeClientService
-import com.cryptocrabs.workflows.ExchangeOrderActivityImpl
+import com.cryptostock.clients.ExchangeClientService
+import com.cryptostock.workflows.ExchangeOrderActivityImpl
 import zio.*
 import zio.logging.backend.SLF4J
 import zio.temporal.activity.ZActivityOptions
@@ -29,7 +29,7 @@ object Main extends ZIOAppDefault {
 
           pollStatus.repeat(Schedule.spaced(5.seconds).unit).forkDaemon
         }
-        // Those steps are optional! Comment/uncomment them
+        // Those steps are optional! Comment/uncomment them (in correct order)
         _ <- pause *> Random.nextUUID.flatMap(exchangeClient.acceptOrder(orderId, _))
         _ <- pause *> exchangeClient.buyerTransferConfirmation(orderId, "https://example.com")
         _ <- pause *> exchangeClient.sellerTransferConfirmation(orderId)

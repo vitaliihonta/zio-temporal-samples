@@ -1,9 +1,9 @@
-package com.cryptocrabs.workflows
+package com.cryptostock.workflows
 
 import zio._
 import zio.temporal.*
 import zio.temporal.workflow.*
-import com.cryptocrabs.exchange.*
+import com.cryptostock.exchange.*
 import org.slf4j.{LoggerFactory, MDC}
 
 @workflowInterface

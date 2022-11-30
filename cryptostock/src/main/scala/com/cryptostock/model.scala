@@ -1,4 +1,4 @@
-package com.cryptocrabs
+package com.cryptostock
 
 import java.util.UUID
 

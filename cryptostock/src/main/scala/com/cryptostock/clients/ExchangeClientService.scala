@@ -1,16 +1,16 @@
-package com.cryptocrabs.clients
+package com.cryptostock.clients
 
-import com.cryptocrabs.TaskQueues
-import com.cryptocrabs.workflows.{ExchangeWorkflow, ProtoConverters}
+import com.cryptostock.TaskQueues
+import com.cryptostock.workflows.{ExchangeWorkflow, ProtoConverters}
 import zio.*
 import zio.temporal.workflow.{ZWorkflowClient, ZWorkflowStub}
 import zio.temporal.ZRetryOptions
 import zio.temporal.protobuf.syntax.*
-import com.cryptocrabs.workflows.ProtoConverters.given
+import com.cryptostock.workflows.ProtoConverters.given
 
 import java.util.UUID
-import com.cryptocrabs.*
-import com.cryptocrabs.exchange.{
+import com.cryptostock.*
+import com.cryptostock.exchange.{
   AcceptExchangeOrderSignal,
   BuyerConfirmationSignal,
   ExchangeOrderRequest,

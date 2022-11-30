@@ -5,13 +5,13 @@ lazy val root = (project in file("."))
   .settings(
     name := "func-scala-2022-zio-temporal"
   )
-  .aggregate(cryptocrabs)
+  .aggregate(cryptostock)
   .disablePlugins(ProtocPlugin)
 
-lazy val cryptocrabs = project
-  .in(file("cryptocrabs"))
+lazy val cryptostock = project
+  .in(file("cryptostock"))
   .settings(
-    name := "cryptocrabs",
+    name := "cryptostock",
     libraryDependencies ++= {
       val zioTemporalVersion = "0.1.0-RC5"
       val zioVersion         = "2.0.0"

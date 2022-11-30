@@ -1,7 +1,7 @@
-package com.cryptocrabs.workflows
+package com.cryptostock.workflows
 
-import com.cryptocrabs.{CryptoCurrency, ExchangeOrderStatus}
-import com.cryptocrabs.{exchange => proto}
+import com.cryptostock.{CryptoCurrency, ExchangeOrderStatus}
+import com.cryptostock.{exchange => proto}
 import zio.temporal.protobuf.{EnumProtoType, ProtoType}
 
 object ProtoConverters {
