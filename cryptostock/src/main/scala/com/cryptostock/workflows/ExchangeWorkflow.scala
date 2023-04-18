@@ -9,7 +9,7 @@ import org.slf4j.{LoggerFactory, MDC}
 @workflowInterface
 trait ExchangeWorkflow {
   @workflowMethod
-  def exchangeOrder(order: ExchangeOrderRequest): ExchangeOrderView
+  def exchangeOrder(order: ExchangeOrderRequest): ExchangeOrderResult
 
   @signalMethod
   def acceptExchangeOrder(accepted: AcceptExchangeOrderSignal): Unit
@@ -21,5 +21,5 @@ trait ExchangeWorkflow {
   def sellerTransferConfirmation(): Unit
 
   @queryMethod
-  def getExchangeOrderState(): ExchangeOrderView
+  def getExchangeOrderState(): ExchangeOrderState
 }

@@ -12,7 +12,10 @@ import zio.temporal.workflow.ZWorkflowServiceStubs
 import java.util.UUID
 
 object Main extends ZIOAppDefault {
-  override def run: ZIO[ZIOAppArgs with Scope, Any, Any] = {
+  override val bootstrap: ZLayer[ZIOAppArgs, Any, Any] =
+    Runtime.removeDefaultLoggers ++ SLF4J.slf4j
+
+  override val run: ZIO[ZIOAppArgs with Scope, Any, Any] = {
     val exampleFlow = ZIO.serviceWithZIO[ExchangeClientService] { exchangeClient =>
       val pause = ZIO.sleep(2.seconds)
       for {
@@ -22,12 +25,17 @@ object Main extends ZIOAppDefault {
         currency = CryptoCurrency.CrabsCoin
         orderId <- exchangeClient.exchangeOrder(seller, amount, currency)
         _       <- ZIO.logInfo("Order placed")
-        poll <- {
+        _ <- {
           val pollStatus = exchangeClient
             .getStatus(orderId)
-            .flatMap(order => ZIO.logInfo(s"--- Current order status $order"))
+            .tap(status => ZIO.logInfo(s"--- Current order status $status"))
 
-          pollStatus.repeat(Schedule.spaced(5.seconds).unit).forkDaemon
+          pollStatus
+            .repeat(
+              Schedule.spaced(5.seconds).unit &&
+                Schedule.recurUntil[ExchangeOrderStatus](_.isFinal).unit
+            )
+            .fork
         }
         // Those steps are optional! Comment/uncomment them (in correct order)
         _ <- pause *> Random.nextUUID.flatMap(exchangeClient.acceptOrder(orderId, _))
@@ -35,24 +43,18 @@ object Main extends ZIOAppDefault {
         _ <- pause *> exchangeClient.sellerTransferConfirmation(orderId)
         // End optional steps
         result <- exchangeClient.waitForResult(orderId)
-        _      <- poll.interrupt
         _      <- ZIO.logInfo(s"Exchange finished result=$result")
       } yield ()
     }
 
     // Setting up the worker
-    val program = ZIO.serviceWithZIO[ZWorkerFactory] { workerFactory =>
-      workerFactory.use {
-        for {
-          stubs <- ZIO.service[ZWorkflowServiceStubs]
-          _ <- stubs.use() {
-                 exampleFlow
-               }
-        } yield ()
-      }
-    }
+    val program = for {
+      _ <- ZWorkflowServiceStubs.setup()
+      _ <- ZWorkerFactory.setup
+      _ <- exampleFlow
+    } yield ()
 
-    program.provide(
+    program.provideSome[Scope](
       // client
       ExchangeClientService.make,
       ZWorkflowClient.make,
@@ -64,8 +66,7 @@ object Main extends ZIOAppDefault {
       TemporalModule.worker,
       ZActivityOptions.default,
       ZWorkflowServiceStubs.make,
-      ZWorkerFactory.make,
-      SLF4J.slf4j(LogLevel.Debug)
+      ZWorkerFactory.make
     )
   }
 }
