@@ -7,14 +7,14 @@ import zio.temporal.workflow.{ZWorkflowClient, ZWorkflowStub}
 import zio.temporal.ZRetryOptions
 import zio.temporal.protobuf.syntax.*
 import com.cryptostock.workflows.ProtoConverters.given
-
 import java.util.UUID
 import com.cryptostock.*
 import com.cryptostock.exchange.{
   AcceptExchangeOrderSignal,
   BuyerConfirmationSignal,
   ExchangeOrderRequest,
-  ExchangeOrderView
+  ExchangeOrderResult,
+  ExchangeOrderState
 }
 
 object ExchangeClientService {
@@ -29,7 +29,7 @@ class ExchangeClientService(client: ZWorkflowClient) {
                             .newWorkflowStub[ExchangeWorkflow]
                             .withTaskQueue(TaskQueues.exchanger)
                             .withWorkflowId(orderId.toString)
-                            // NOTE: timeouts should consider "sleep" and "awaitUntil" insided the workflow
+                            // NOTE: timeouts should consider "sleep" and "awaitUntil" inside the workflow
                             .withWorkflowExecutionTimeout(5.minutes)
                             .withWorkflowRunTimeout(5.minutes)
                             .withRetryOptions(
@@ -37,68 +37,60 @@ class ExchangeClientService(client: ZWorkflowClient) {
                             )
                             .build
       _ <- ZIO.logInfo("Going to trigger workflow")
-      _ <- ZWorkflowStub
-             .start(
-               exchangeWorkflow.exchangeOrder(
-                 ExchangeOrderRequest(
-                   seller = seller,
-                   amount = amount,
-                   currency = currency
-                 )
+      _ <- ZWorkflowStub.start(
+             exchangeWorkflow.exchangeOrder(
+               ExchangeOrderRequest(
+                 seller = seller,
+                 amount = amount,
+                 currency = currency
                )
              )
-             .orDieWith(_.error)
+           )
     } yield orderId
 
   def waitForResult(orderId: UUID): Task[ExchangeOrder] =
     for {
-      workflowStub <- client.newWorkflowStubProxy[ExchangeWorkflow](workflowId = orderId.toString)
-      result <- workflowStub
-                  .result[ExchangeOrderView]
-                  .orDieWith(_.error)
-    } yield viewToModel(result)
+      workflowStub <- client.newWorkflowStub[ExchangeWorkflow](workflowId = orderId.toString)
+      result       <- workflowStub.result[ExchangeOrderResult]
+    } yield resultToOrder(result)
 
-  def getStatus(orderId: UUID): Task[ExchangeOrder] =
+  def getStatus(orderId: UUID): Task[ExchangeOrderStatus] =
     for {
-      workflowStub <- client.newWorkflowStubProxy[ExchangeWorkflow](workflowId = orderId.toString)
-      result <- ZWorkflowStub
-                  .query(
-                    workflowStub.getExchangeOrderState()
-                  )
-                  .orDieWith(_.error)
-    } yield viewToModel(result)
+      workflowStub <- client.newWorkflowStub[ExchangeWorkflow](workflowId = orderId.toString)
+      state <- ZWorkflowStub.query(
+                 workflowStub.getExchangeOrderState()
+               )
+    } yield convertOrderState(state)
 
   def acceptOrder(orderId: UUID, buyerId: UUID): Task[Unit] =
     for {
-      workflowStub <- client.newWorkflowStubProxy[ExchangeWorkflow](workflowId = orderId.toString)
-      _ <- ZWorkflowStub
-             .signal(
-               workflowStub.acceptExchangeOrder(AcceptExchangeOrderSignal(buyerId))
+      workflowStub <- client.newWorkflowStub[ExchangeWorkflow](workflowId = orderId.toString)
+      _ <- ZWorkflowStub.signal(
+             workflowStub.acceptExchangeOrder(
+               AcceptExchangeOrderSignal(buyerId)
              )
-             .orDieWith(_.error)
+           )
     } yield ()
 
   def buyerTransferConfirmation(orderId: UUID, screenshotUrl: String): Task[Unit] =
     for {
-      workflowStub <- client.newWorkflowStubProxy[ExchangeWorkflow](workflowId = orderId.toString)
-      _ <- ZWorkflowStub
-             .signal(
-               workflowStub.buyerTransferConfirmation(BuyerConfirmationSignal(screenshotUrl))
+      workflowStub <- client.newWorkflowStub[ExchangeWorkflow](workflowId = orderId.toString)
+      _ <- ZWorkflowStub.signal(
+             workflowStub.buyerTransferConfirmation(
+               BuyerConfirmationSignal(screenshotUrl)
              )
-             .orDieWith(_.error)
+           )
     } yield ()
 
   def sellerTransferConfirmation(orderId: UUID): Task[Unit] =
     for {
-      workflowStub <- client.newWorkflowStubProxy[ExchangeWorkflow](workflowId = orderId.toString)
-      _ <- ZWorkflowStub
-             .signal(
-               workflowStub.sellerTransferConfirmation()
-             )
-             .orDieWith(_.error)
+      workflowStub <- client.newWorkflowStub[ExchangeWorkflow](workflowId = orderId.toString)
+      _ <- ZWorkflowStub.signal(
+             workflowStub.sellerTransferConfirmation()
+           )
     } yield ()
 
-  private def viewToModel(orderView: ExchangeOrderView): ExchangeOrder =
+  private def resultToOrder(orderView: ExchangeOrderResult): ExchangeOrder =
     ExchangeOrder(
       orderId = orderView.id.fromProto,
       sellerId = orderView.seller.map(_.fromProto),
@@ -109,4 +101,7 @@ class ExchangeClientService(client: ZWorkflowClient) {
         ExchangeOrderBuyer(id = buyerInfo.buyerId.fromProto, screenshotUrl = buyerInfo.screenshotUrl)
       }
     )
+
+  private def convertOrderState(state: ExchangeOrderState): ExchangeOrderStatus =
+    state.status.fromProto
 }

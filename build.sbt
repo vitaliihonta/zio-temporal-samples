@@ -1,5 +1,5 @@
 ThisBuild / version      := "0.1.0-SNAPSHOT"
-ThisBuild / scalaVersion := "3.1.2"
+ThisBuild / scalaVersion := "3.2.2"
 
 lazy val root = (project in file("."))
   .settings(
@@ -13,9 +13,9 @@ lazy val cryptostock = project
   .settings(
     name := "cryptostock",
     libraryDependencies ++= {
-      val zioTemporalVersion = "0.1.0-RC5"
-      val zioVersion         = "2.0.0"
-      val zioLoggingVersion  = "2.0.0"
+      val zioTemporalVersion = "0.2.0-M2"
+      val zioVersion         = "2.0.12"
+      val zioLoggingVersion  = "2.1.12"
 
       val zioTemporal = Seq(
         "dev.vhonta" %% "zio-temporal-core"     % zioTemporalVersion,

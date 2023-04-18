@@ -26,13 +26,8 @@ object TemporalModule {
 
   val worker: URLayer[ZWorkerFactory with ExchangeOrderActivity, Unit] =
     ZLayer.fromZIO {
-      ZIO.serviceWithZIO[ZWorkerFactory] { workerFactory =>
-        for {
-          worker           <- workerFactory.newWorker(TaskQueues.exchanger)
-          exchangeActivity <- ZIO.service[ExchangeOrderActivity]
-          _ = worker.addActivityImplementation(exchangeActivity)
-          _ = worker.addWorkflow[ExchangeWorkflow].from(new ExchangeWorkflowImpl)
-        } yield ()
-      }
-    }
+      ZWorkerFactory.newWorker(TaskQueues.exchanger) @@
+        ZWorker.addActivityImplementationService[ExchangeOrderActivity] @@
+        ZWorker.addWorkflow[ExchangeWorkflowImpl].fromClass
+    }.unit
 }

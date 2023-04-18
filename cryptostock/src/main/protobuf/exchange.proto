@@ -22,6 +22,10 @@ enum ExchangeOrderStatus {
   Completed = 8;
 }
 
+message ExchangeOrderState {
+  required ExchangeOrderStatus status = 1;
+}
+
 message ExchangeOrderRequest {
   required zio.temporal.protobuf.UUID seller = 1;
   required zio.temporal.protobuf.BigDecimal amount = 2;
@@ -33,7 +37,7 @@ message ExchangeOrderBuyerInfo {
   optional string screenshotUrl = 2;
 }
 
-message ExchangeOrderView {
+message ExchangeOrderResult {
   required zio.temporal.protobuf.UUID id = 1;
   optional zio.temporal.protobuf.UUID seller = 2;
   optional zio.temporal.protobuf.BigDecimal amount = 3;

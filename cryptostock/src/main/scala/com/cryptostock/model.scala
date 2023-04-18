@@ -6,8 +6,11 @@ enum CryptoCurrency {
   case CrabsCoin, Garyeum, Snaily
 }
 
-enum ExchangeOrderStatus {
-  case Created, Placed, Cancelled, Accepted, FoundsHeld, ConfirmedByBuyer, ConfirmedBySeller, Stuck, Completed
+enum ExchangeOrderStatus(val isFinal: Boolean = false) {
+  case Created, Placed, Accepted, FoundsHeld, ConfirmedByBuyer, ConfirmedBySeller
+  case Cancelled extends ExchangeOrderStatus(true)
+  case Stuck     extends ExchangeOrderStatus(true)
+  case Completed extends ExchangeOrderStatus(true)
 }
 
 case class ExchangeOrderBuyer(
