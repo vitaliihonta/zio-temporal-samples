@@ -8,6 +8,8 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v3
       - uses: ./.github/workflows/test_scala.yaml
         with: 
           workdir: news-sync
