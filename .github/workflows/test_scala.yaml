@@ -1,7 +1,10 @@
 name: Test scala
 on:
   workflow_call:
-    inputs: []
+    inputs: 
+      workdir:
+        required: true
+        type: string
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -18,9 +21,13 @@ jobs:
             ~/.ivy2/cache
             ~/.coursier
           key: sbt-cache-${{ runner.os }}-${{ matrix.target-platform }}-${{ hashFiles('project/build.properties') }}
+        working-directory: ${{ inputs.workdir }}
       - name: Check formatting
         run: sbt scalafmtCheckAll
+        working-directory: ${{ inputs.workdir }}
       - name: Compile
-        run: sbt +test:compile
+        run: sbt Test:compile
+        working-directory: ${{ inputs.workdir }}
       - name: Run tests
-        run: sbt +test
+        run: sbt test
+        working-directory: ${{ inputs.workdir }}

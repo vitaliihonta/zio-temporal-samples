@@ -6,5 +6,8 @@ on:
     tags: [ "*" ]
 jobs:
   test:
-    - uses: ./test_scala
-      working-directory: news-sync
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./.github/workflows/test_scala.yaml
+        with: 
+          workdir: news-sync
