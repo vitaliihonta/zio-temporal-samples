@@ -8,6 +8,7 @@ project/metals.sbt
 project/project
 .bloop
 .metals
+db_data/
 
 # Website ignores
 website/build/

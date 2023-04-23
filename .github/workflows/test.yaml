@@ -1,0 +1,10 @@
+name: Test
+on:
+  pull_request:
+  push:
+    branches: [ "main" ]
+    tags: [ "*" ]
+jobs:
+  test:
+    - uses: ./test_scala
+      working-directory: news-sync

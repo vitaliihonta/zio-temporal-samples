@@ -1,10 +1,11 @@
-import sbt.*
+import sbt._
 
 object Dependencies {
   private object versions {
     val zioTemporal = "0.2.0-M4"
     val zio         = "2.0.12"
     val zioLogging  = "2.1.12"
+    val zioConfig   = "4.0.0-RC14"
     val zioJson     = "0.5.0"
     val enumeratum  = "1.7.2"
     val sttp        = "3.8.15"
@@ -38,9 +39,18 @@ object Dependencies {
   )
 
   val zioBase = Seq(
-    "dev.zio" %% "zio"               % versions.zio,
-    "dev.zio" %% "zio-logging"       % versions.zioLogging,
-    "dev.zio" %% "zio-logging-slf4j" % versions.zioLogging
+    "dev.zio"       %% "zio"                 % versions.zio,
+    "dev.zio"       %% "zio-logging"         % versions.zioLogging,
+    "dev.zio"       %% "zio-logging-slf4j"   % versions.zioLogging,
+    "dev.zio"       %% "zio-config"          % versions.zioConfig,
+    "dev.zio"       %% "zio-config-typesafe" % versions.zioConfig,
+    "ch.qos.logback" % "logback-classic"     % "1.2.11"
+  )
+
+  val database = Seq(
+    "io.getquill"   %% "quill-jdbc-zio" % "4.6.0",
+    "org.postgresql" % "postgresql"     % "42.5.4",
+    "org.flywaydb"   % "flyway-core"    % "9.16.0"
   )
 
   val telegramium = Seq(
@@ -51,9 +61,5 @@ object Dependencies {
 
   val enumeratum = Seq(
     "com.beachape" %% "enumeratum" % versions.enumeratum
-  )
-
-  val logback = Seq(
-    "ch.qos.logback" % "logback-classic" % "1.2.11"
   )
 }

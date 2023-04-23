@@ -45,7 +45,7 @@ class NewsApiClient(baseUri: Uri, apiKey: String, backend: SttpBackend[Task, Any
     basicRequest
       .get(requestUri)
       .header("X-Api-Key", apiKey)
-      .response(asJson[NewsApiResponse[EverythingResponse]])
+      .response(asJsonAlways[NewsApiResponse[EverythingResponse]])
       .send(backend)
       .flatMap { response =>
         ZIO

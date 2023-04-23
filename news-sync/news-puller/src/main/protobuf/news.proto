@@ -1,0 +1,46 @@
+syntax = "proto2";
+
+package dev.vhonta.news.puller;
+
+import "zio-temporal.proto";
+
+enum NewsSyncLanguage {
+  English = 0;
+  French = 1;
+  Spanish = 2;
+  Ukrainian = 4;
+}
+
+message NewsSyncTopic {
+  required zio.temporal.protobuf.UUID id = 1;
+  required string topic = 2;
+  required NewsSyncLanguage language = 3;
+}
+
+message NewsSyncTopics {
+  repeated NewsSyncTopic topics = 1;
+}
+
+message NewsSource {
+  optional string id = 1;
+  required string name = 2;
+}
+
+message Article {
+  required NewsSource source = 1;
+  optional string author = 2;
+  required string title = 3;
+  required string description = 4;
+  required string url = 5;
+  required int64 date = 6;
+  required string content = 7;
+
+}
+
+message Articles {
+  repeated Article articles = 1;
+}
+
+message StoreArticlesParameters {
+  required zio.temporal.protobuf.UUID topicId = 1;
+}
