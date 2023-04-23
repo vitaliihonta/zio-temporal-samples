@@ -24,10 +24,11 @@ object Dependencies {
   )
 
   val circe = Seq(
-    "io.circe" %% "circe-core"           % versions.circe,
-    "io.circe" %% "circe-parser"         % versions.circe,
-    "io.circe" %% "circe-generic"        % versions.circe,
-    "io.circe" %% "circe-generic-extras" % "0.14.3"
+    "io.circe"     %% "circe-core"           % versions.circe,
+    "io.circe"     %% "circe-parser"         % versions.circe,
+    "io.circe"     %% "circe-generic"        % versions.circe,
+    "io.circe"     %% "circe-generic-extras" % "0.14.3",
+    "com.beachape" %% "enumeratum-circe"     % versions.enumeratum
   )
 
   val sttp = Seq(
