@@ -1,0 +1,19 @@
+*.log
+.idea/
+target/
+version
+.sbt/
+project/.bloop
+project/metals.sbt
+project/project
+.bloop
+.metals
+
+# Website ignores
+website/build/
+website/node_modules/
+website/.docusaurus
+yarn.lock
+package-lock.json
+website/variables.js
+website/static/api
