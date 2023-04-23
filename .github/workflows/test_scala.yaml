@@ -21,7 +21,6 @@ jobs:
             ~/.ivy2/cache
             ~/.coursier
           key: sbt-cache-${{ runner.os }}-${{ matrix.target-platform }}-${{ hashFiles('project/build.properties') }}
-        working-directory: ${{ inputs.workdir }}
       - name: Check formatting
         run: sbt scalafmtCheckAll
         working-directory: ${{ inputs.workdir }}
