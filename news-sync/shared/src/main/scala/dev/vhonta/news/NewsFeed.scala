@@ -1,7 +1,8 @@
 package dev.vhonta.news
 
 import enumeratum.{Enum, EnumEntry}
-import java.time.LocalDateTime
+
+import java.time.{LocalDate, LocalDateTime}
 import java.util.UUID
 
 sealed abstract class NewsTopicLanguage(val code: String) extends EnumEntry
