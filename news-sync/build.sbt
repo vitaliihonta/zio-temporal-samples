@@ -46,6 +46,7 @@ lazy val shared = project
     libraryDependencies ++=
       Dependencies.zioBase ++
         Dependencies.database ++
+        Dependencies.circe ++
         Dependencies.enumeratum
   )
 

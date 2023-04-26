@@ -44,3 +44,22 @@ message Articles {
 message StoreArticlesParameters {
   required zio.temporal.protobuf.UUID topicId = 1;
 }
+
+message NewsFeedIntegrationNewsApiDetails {
+  required string token = 1;
+}
+
+enum NewsFeedIntegrationType {
+  NewsApi = 1;
+}
+
+message NewsFeedIntegration {
+  required zio.temporal.protobuf.UUID readerId = 1;
+  oneof integration {
+    NewsFeedIntegrationNewsApiDetails mewsApi = 2;
+  }
+}
+
+message NewsFeedIntegrations {
+  repeated NewsFeedIntegration integrations = 1;
+}

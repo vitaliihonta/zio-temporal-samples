@@ -5,6 +5,14 @@ package dev.vhonta.news.puller;
 import "zio-temporal.proto";
 import "news.proto";
 
+message ListTopics {
+  repeated zio.temporal.protobuf.UUID readers = 1;
+}
+
+message ListIntegrations {
+  required NewsFeedIntegrationType integrationType = 1;
+}
+
 message PullerParameters {
   required zio.temporal.protobuf.UUID topicId = 1;
   required string topic = 2;

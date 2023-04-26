@@ -2,15 +2,13 @@ package dev.vhonta.news.repository
 
 import dev.vhonta.news.{NewsFeedArticle, NewsFeedRecommendation, NewsFeedRecommendationArticle}
 import io.getquill.SnakeCase
-import io.getquill.jdbczio.Quill
 import zio._
-
 import java.sql.SQLException
 import java.time.LocalDate
 import java.util.UUID
 
 // TODO: finish
-class NewsFeedRecommendationRepository(quill: Quill.Postgres[SnakeCase]) {
+class NewsFeedRecommendationRepository(quill: PostgresQuill[SnakeCase]) {
 
   import quill._
 

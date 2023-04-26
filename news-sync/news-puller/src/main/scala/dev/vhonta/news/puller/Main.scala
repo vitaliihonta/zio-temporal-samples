@@ -10,7 +10,7 @@ import dev.vhonta.news.puller.workflows.{
   ScheduledPullerStarter,
   ScheduledPullerWorkflowImpl
 }
-import dev.vhonta.news.repository.{DatabaseMigrator, NewsFeedRepository}
+import dev.vhonta.news.repository.{DatabaseMigrator, NewsFeedIntegrationRepository, NewsFeedRepository, PostgresQuill}
 import io.getquill.SnakeCase
 import io.getquill.jdbczio.Quill
 import sttp.client3.httpclient.zio.HttpClientZioBackend
@@ -56,7 +56,8 @@ object Main extends ZIOAppDefault {
         NewsApiClient.make,
         // dao
         NewsFeedRepository.make,
-        Quill.Postgres.fromNamingStrategy(SnakeCase),
+        NewsFeedIntegrationRepository.make,
+        PostgresQuill.make,
         Quill.DataSource.fromPrefix("db"),
         // activities
         DatabaseActivitiesImpl.make,

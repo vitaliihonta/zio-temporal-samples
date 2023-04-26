@@ -7,11 +7,11 @@ import io.getquill.jdbczio.Quill
 import java.sql.SQLException
 
 object ReaderRepository {
-  val make: URLayer[Quill.Postgres[SnakeCase], ReaderRepository] =
-    ZLayer.fromFunction(ReaderRepository(_: Quill.Postgres[SnakeCase]))
+  val make: URLayer[PostgresQuill[SnakeCase], ReaderRepository] =
+    ZLayer.fromFunction(ReaderRepository(_: PostgresQuill[SnakeCase]))
 }
 
-case class ReaderRepository(quill: Quill.Postgres[SnakeCase]) {
+case class ReaderRepository(quill: PostgresQuill[SnakeCase]) {
   import quill._
 
   def create(reader: Reader): IO[SQLException, Reader] = {

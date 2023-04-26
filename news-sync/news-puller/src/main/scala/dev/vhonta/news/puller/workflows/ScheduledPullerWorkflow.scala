@@ -51,7 +51,8 @@ class ScheduledPullerWorkflowImpl extends ScheduledPullerWorkflow {
     val startedAt = ZWorkflow.currentTimeMillis.toLocalDateTime()
 
     val topics = ZActivityStub.execute(
-      databaseActivities.loadNewsTopics
+      // TODO: update
+      databaseActivities.loadNewsTopics(???)
     )
 
     val topicPullParameters = topics.topics.view.map { topic =>
