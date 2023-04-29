@@ -1,6 +1,6 @@
 package dev.vhonta.news.puller.workflows
 
-import dev.vhonta.news.puller.{
+import dev.vhonta.news.puller.proto.{
   NewsPullerActivityParameters,
   NewsPullerParameters,
   PullingResult,

@@ -1,10 +1,10 @@
 package dev.vhonta.news.puller.workflows
 
-import dev.vhonta.news.puller.{
+import dev.vhonta.news.proto.NewsFeedIntegrationType
+import dev.vhonta.news.puller.proto.{
   InitialPullerState,
   ListIntegrations,
   ListTopics,
-  NewsFeedIntegrationType,
   NewsPullerParameters,
   PullerTopicState,
   ResetPuller
@@ -90,7 +90,7 @@ class NewsApiScheduledPullerWorkflowImpl extends NewsApiScheduledPullerWorkflow 
         apiKey = integrationDetailsByReader(topic.owner).token,
         topicId = topicId,
         topic = topic.topic,
-        language = topic.language,
+        language = topic.lang,
         from = topicState.map(_.lastProcessedAt.toProto),
         to = startedAt
       )

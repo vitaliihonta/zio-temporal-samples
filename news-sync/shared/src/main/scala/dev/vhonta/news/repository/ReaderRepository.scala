@@ -4,7 +4,9 @@ import zio._
 import dev.vhonta.news.Reader
 import io.getquill.SnakeCase
 import io.getquill.jdbczio.Quill
+
 import java.sql.SQLException
+import java.util.UUID
 
 object ReaderRepository {
   val make: URLayer[PostgresQuill[SnakeCase], ReaderRepository] =
@@ -19,5 +21,14 @@ case class ReaderRepository(quill: PostgresQuill[SnakeCase]) {
       query[Reader].insertValue(lift(reader))
     }
     run(insert).as(reader)
+  }
+
+  def findById(readerId: UUID): IO[SQLException, Option[Reader]] = {
+    val insert = quote {
+      query[Reader]
+        .filter(_.id == lift(readerId))
+        .take(1)
+    }
+    run(insert).map(_.headOption)
   }
 }

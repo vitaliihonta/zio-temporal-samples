@@ -1,23 +1,25 @@
 syntax = "proto2";
 
-package dev.vhonta.news.puller;
+package dev.vhonta.news.puller.proto;
 
 import "zio-temporal.proto";
-import "news.proto";
+import "news_api.proto";
+import "news_feed.proto";
+import "news_integrations.proto";
 
 message ListTopics {
   repeated zio.temporal.protobuf.UUID readers = 1;
 }
 
 message ListIntegrations {
-  required NewsFeedIntegrationType integrationType = 1;
+  required dev.vhonta.news.proto.NewsFeedIntegrationType  integrationType = 1;
 }
 
 message NewsPullerParameters {
   required string apiKey = 1;
   required zio.temporal.protobuf.UUID topicId = 2;
   required string topic = 3;
-  required NewsSyncLanguage language = 4;
+  required dev.vhonta.news.proto.NewsTopicLanguage language = 4;
   optional int64 from = 5;
   required int64 to = 6;
 }
@@ -33,7 +35,7 @@ message NewsPullerParametersList {
 message NewsPullerActivityParameters {
   required string apiKey = 1;
   required string topic = 2;
-  required dev.vhonta.news.puller.NewsSyncLanguage language = 3;
+  required dev.vhonta.news.proto.NewsTopicLanguage language = 3;
   optional int64 from = 4;
   required int64 to = 5;
   required int32 page = 6;

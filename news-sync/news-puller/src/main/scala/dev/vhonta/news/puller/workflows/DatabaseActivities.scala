@@ -1,7 +1,15 @@
 package dev.vhonta.news.puller.workflows
 
 import dev.vhonta.news.{NewsFeedArticle, NewsFeedIntegrationDetails}
-import dev.vhonta.news.puller._
+import dev.vhonta.news.proto.{NewsFeedIntegration, NewsFeedIntegrationNewsApiDetails, NewsFeedTopic}
+import dev.vhonta.news.puller.proto.{
+  ListIntegrations,
+  ListTopics,
+  NewsApiArticles,
+  NewsFeedIntegrations,
+  NewsSyncTopics,
+  StoreArticlesParameters
+}
 import dev.vhonta.news.repository.{NewsFeedIntegrationRepository, NewsFeedRepository}
 import zio._
 import zio.temporal._
@@ -16,7 +24,7 @@ trait DatabaseActivities {
 
   def loadNewsTopics(list: ListTopics): NewsSyncTopics
 
-  def store(articles: Articles, storeParams: StoreArticlesParameters): Unit
+  def store(articles: NewsApiArticles, storeParams: StoreArticlesParameters): Unit
 }
 
 object DatabaseActivitiesImpl {
@@ -63,17 +71,17 @@ case class DatabaseActivitiesImpl(
         topics <- newsFeedRepository.listTopics(list.readers.map(_.fromProto).toSet)
       } yield NewsSyncTopics(
         topics = topics.map { topic =>
-          NewsSyncTopic(
+          NewsFeedTopic(
             id = topic.id.toProto,
             owner = topic.owner,
             topic = topic.topic,
-            language = topic.lang.toProto
+            lang = topic.lang.toProto
           )
         }
       )
     }
 
-  override def store(articles: Articles, storeParams: StoreArticlesParameters): Unit = {
+  override def store(articles: NewsApiArticles, storeParams: StoreArticlesParameters): Unit = {
     ZActivity.run {
       val newsFeedArticlesZIO = ZIO.foreach(articles.articles.toList) { article =>
         for {

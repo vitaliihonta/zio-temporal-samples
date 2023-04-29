@@ -1,0 +1,17 @@
+syntax = "proto2";
+
+package dev.vhonta.news.proto;
+
+import "zio-temporal.proto";
+
+message NewsFeedRecommendation {
+  required zio.temporal.protobuf.UUID id = 1;
+  required zio.temporal.protobuf.UUID owner = 2;
+  required zio.temporal.protobuf.UUID topic = 3;
+  required int64 forDate = 4;
+}
+
+message NewsFeedRecommendationArticle {
+  required zio.temporal.protobuf.UUID recommendation = 1;
+  required zio.temporal.protobuf.UUID article = 2;
+}

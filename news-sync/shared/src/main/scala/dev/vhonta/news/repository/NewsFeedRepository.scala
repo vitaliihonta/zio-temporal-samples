@@ -23,6 +23,13 @@ case class NewsFeedRepository(quill: PostgresQuill[SnakeCase]) {
     run(insert).as(topic)
   }
 
+  def findTopicById(topicId: UUID): IO[SQLException, Option[NewsFeedTopic]] = {
+    val select = quote {
+      query[NewsFeedTopic].filter(_.id == lift(topicId)).take(1)
+    }
+    run(select).map(_.headOption)
+  }
+
   def listTopics(readers: Set[UUID]): IO[SQLException, List[NewsFeedTopic]] = {
     val select = quote {
       query[NewsFeedTopic].filter(t => liftQuery(readers).contains(t.owner))
@@ -41,7 +48,7 @@ case class NewsFeedRepository(quill: PostgresQuill[SnakeCase]) {
     val select = quote {
       query[NewsFeedArticle]
         .filter(_.topic == lift(topicId))
-        .filter(_.publishedAt < lift(now))
+        .filter(_.publishedAt <= lift(now))
     }
     run(select)
   }

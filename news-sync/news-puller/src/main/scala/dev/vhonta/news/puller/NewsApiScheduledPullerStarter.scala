@@ -1,5 +1,6 @@
 package dev.vhonta.news.puller
 
+import dev.vhonta.news.puller.proto.InitialPullerState
 import dev.vhonta.news.puller.workflows.NewsApiScheduledPullerWorkflow
 import io.temporal.client.WorkflowExecutionAlreadyStarted
 import zio._
