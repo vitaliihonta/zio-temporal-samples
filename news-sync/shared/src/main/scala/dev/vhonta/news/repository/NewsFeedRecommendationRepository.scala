@@ -7,8 +7,12 @@ import java.sql.SQLException
 import java.time.LocalDate
 import java.util.UUID
 
-// TODO: finish
-class NewsFeedRecommendationRepository(quill: PostgresQuill[SnakeCase]) {
+object NewsFeedRecommendationRepository {
+  val make: URLayer[PostgresQuill[SnakeCase], NewsFeedRecommendationRepository] =
+    ZLayer.fromFunction(NewsFeedRecommendationRepository(_))
+}
+
+case class NewsFeedRecommendationRepository(quill: PostgresQuill[SnakeCase]) {
 
   import quill._
 
@@ -26,6 +30,16 @@ class NewsFeedRecommendationRepository(quill: PostgresQuill[SnakeCase]) {
     transaction(
       run(insert) *> run(insertArticles)
     ).unit
+  }
+
+  def existForDate(topicId: UUID, date: LocalDate): IO[SQLException, Boolean] = {
+    val check = quote {
+      query[NewsFeedRecommendation]
+        .filter(_.topic == lift(topicId))
+        .filter(_.forDate == lift(date))
+        .nonEmpty
+    }
+    run(check)
   }
 
   def getForDate(topicId: UUID, date: LocalDate): IO[SQLException, NewsFeedRecommendation.View] = {

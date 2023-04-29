@@ -68,7 +68,7 @@ case class DatabaseActivitiesImpl(
     ZActivity.run {
       for {
         _      <- ZIO.logInfo("Loading news topics...")
-        topics <- newsFeedRepository.listTopics(list.readers.map(_.fromProto).toSet)
+        topics <- newsFeedRepository.listTopics(readers = Some(list.readers.map(_.fromProto).toSet))
       } yield NewsSyncTopics(
         topics = topics.map { topic =>
           NewsFeedTopic(

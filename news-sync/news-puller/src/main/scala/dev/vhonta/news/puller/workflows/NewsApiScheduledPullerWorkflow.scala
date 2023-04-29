@@ -131,7 +131,7 @@ class NewsApiScheduledPullerWorkflowImpl extends NewsApiScheduledPullerWorkflow 
     }
 
     // Wait until all completed
-    ZAsync.collectAllDiscard(pullTasks).run
+    ZAsync.collectAllDiscard(pullTasks).run.getOrThrow
 
     // Update puller states
     pullTasks.foreach { pull =>

@@ -1,28 +1,16 @@
 package dev.vhonta.news.puller
 
 import dev.vhonta.news.puller.client.NewsApiClient
-import dev.vhonta.news.puller.workflows.{
-  DatabaseActivities,
-  DatabaseActivitiesImpl,
-  NewsActivities,
-  NewsActivitiesImpl,
-  NewsApiPullTopicNewsWorkflowImpl,
-  NewsApiScheduledPullerWorkflowImpl
-}
-import dev.vhonta.news.repository.{DatabaseMigrator, NewsFeedIntegrationRepository, NewsFeedRepository, PostgresQuill}
+import dev.vhonta.news.puller.workflows._
+import dev.vhonta.news.repository._
 import io.getquill.jdbczio.Quill
 import sttp.client3.httpclient.zio.HttpClientZioBackend
 import zio._
 import zio.logging.backend.SLF4J
 import zio.temporal.activity.ZActivityOptions
 import zio.temporal.protobuf.ProtobufDataConverter
-import zio.temporal.worker.{ZWorker, ZWorkerFactory, ZWorkerFactoryOptions}
-import zio.temporal.workflow.{
-  ZWorkflowClient,
-  ZWorkflowClientOptions,
-  ZWorkflowServiceStubs,
-  ZWorkflowServiceStubsOptions
-}
+import zio.temporal.worker._
+import zio.temporal.workflow._
 import zio.config.typesafe.TypesafeConfigProvider
 
 object Main extends ZIOAppDefault {

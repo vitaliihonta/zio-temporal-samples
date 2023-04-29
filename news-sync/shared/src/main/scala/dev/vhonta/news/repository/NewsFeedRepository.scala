@@ -30,11 +30,17 @@ case class NewsFeedRepository(quill: PostgresQuill[SnakeCase]) {
     run(select).map(_.headOption)
   }
 
-  def listTopics(readers: Set[UUID]): IO[SQLException, List[NewsFeedTopic]] = {
-    val select = quote {
-      query[NewsFeedTopic].filter(t => liftQuery(readers).contains(t.owner))
+  def listTopics(readers: Option[Set[UUID]] = None): IO[SQLException, List[NewsFeedTopic]] = {
+    readers match {
+      case None =>
+        val select = quote(query[NewsFeedTopic])
+        run(select)
+      case Some(readers) =>
+        val select = quote {
+          query[NewsFeedTopic].filter(t => liftQuery(readers).contains(t.owner))
+        }
+        run(select)
     }
-    run(select)
   }
 
   def storeArticles(articles: List[NewsFeedArticle]): IO[SQLException, Unit] = {

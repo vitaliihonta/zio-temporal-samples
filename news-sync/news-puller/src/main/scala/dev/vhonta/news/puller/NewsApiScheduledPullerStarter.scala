@@ -8,7 +8,7 @@ import zio.temporal._
 import zio.temporal.workflow._
 
 object NewsApiScheduledPullerStarter {
-  val TaskQueue   = "news-api-pullers"
+  val TaskQueue   = "news-processor-pullers"
   val SchedulerId = "news-api-scheduled-puller"
 
   val make: URLayer[ZWorkflowClient, NewsApiScheduledPullerStarter] =
@@ -43,9 +43,9 @@ case class NewsApiScheduledPullerStarter(client: ZWorkflowClient) {
                                    .newWorkflowStub[NewsApiScheduledPullerWorkflow]
                                    .withTaskQueue(NewsApiScheduledPullerStarter.TaskQueue)
                                    .withWorkflowId(NewsApiScheduledPullerStarter.SchedulerId)
-                                   .withWorkflowExecutionTimeout(2.hours)
+                                   .withWorkflowExecutionTimeout(1.hour)
                                    .withRetryOptions(
-                                     ZRetryOptions.default.withMaximumAttempts(3)
+                                     ZRetryOptions.default.withMaximumAttempts(2)
                                    )
                                    .build
       _ <- ZWorkflowStub.start(
