@@ -24,11 +24,20 @@ case class ReaderRepository(quill: PostgresQuill[SnakeCase]) {
   }
 
   def findById(readerId: UUID): IO[SQLException, Option[Reader]] = {
-    val insert = quote {
+    val select = quote {
       query[Reader]
         .filter(_.id == lift(readerId))
         .take(1)
     }
-    run(insert).map(_.headOption)
+    run(select).map(_.headOption)
+  }
+
+  def findByTelegramId(telegramId: Long): IO[SQLException, Option[Reader]] = {
+    val select = quote {
+      query[Reader]
+        .filter(_.telegramId == lift(telegramId))
+        .take(1)
+    }
+    run(select).map(_.headOption)
   }
 }
