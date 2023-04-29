@@ -1,53 +1,49 @@
-package dev.vhonta.news.puller
+package dev.vhonta.news.processor
 
-import dev.vhonta.news.puller.client.NewsApiClient
-import dev.vhonta.news.puller.workflows._
+import dev.vhonta.news.processor.workflow._
 import dev.vhonta.news.repository._
 import io.getquill.jdbczio.Quill
-import sttp.client3.httpclient.zio.HttpClientZioBackend
 import zio._
+import zio.config.typesafe.TypesafeConfigProvider
 import zio.logging.backend.SLF4J
-import zio.temporal.activity.ZActivityOptions
 import zio.temporal.protobuf.ProtobufDataConverter
 import zio.temporal.worker._
 import zio.temporal.workflow._
-import zio.config.typesafe.TypesafeConfigProvider
+import zio.temporal.activity.ZActivityOptions
 
 object Main extends ZIOAppDefault {
   override val bootstrap: ZLayer[ZIOAppArgs, Any, Any] =
     Runtime.removeDefaultLoggers ++ SLF4J.slf4j
 
-  override def run: ZIO[ZIOAppArgs with Scope, Any, Any] = {
-    val registerWorkflows =
-      ZWorkerFactory.newWorker(NewsApiScheduledPullerStarter.TaskQueue) @@
-        ZWorker.addWorkflow[NewsApiScheduledPullerWorkflowImpl].fromClass @@
-        ZWorker.addWorkflow[NewsApiPullTopicNewsWorkflowImpl].fromClass @@
-        ZWorker.addActivityImplementationService[DatabaseActivities] @@
-        ZWorker.addActivityImplementationService[NewsActivities]
+  def run: ZIO[ZIOAppArgs with Scope, Any, Any] = {
+    val registerWorkflow =
+      ZWorkerFactory.newWorker(RecommendationsProcessorStarter.TaskQueue) @@
+        ZWorker.addWorkflow[RecommendationsWorkflowImpl].fromClass @@
+        ZWorker.addWorkflow[ScheduledRecommendationsWorkflowImpl].fromClass @@
+        ZWorker.addActivityImplementationService[ProcessorActivities] @@
+        ZWorker.addActivityImplementationService[NewsFeedRecommendationEngine]
 
     val program = for {
-      _    <- registerWorkflows
+      _    <- registerWorkflow
       _    <- ZWorkflowServiceStubs.setup()
       args <- getArgs
-      _    <- ZIO.serviceWithZIO[NewsApiScheduledPullerStarter](_.start(args.contains("reset")))
+      _    <- ZIO.serviceWithZIO[RecommendationsProcessorStarter](_.start(args.contains("reset")))
       _    <- ZWorkerFactory.serve
     } yield ()
 
     program
       .provideSome[ZIOAppArgs with Scope](
         DatabaseMigrator.applyMigration,
-        NewsApiScheduledPullerStarter.make,
-        // http
-        HttpClientZioBackend.layer(),
-        NewsApiClient.make,
+        RecommendationsProcessorStarter.make,
         // dao
+        ReaderRepository.make,
         NewsFeedRepository.make,
-        NewsFeedIntegrationRepository.make,
+        NewsFeedRecommendationRepository.make,
         PostgresQuill.make,
         Quill.DataSource.fromPrefix("db"),
         // activities
-        DatabaseActivitiesImpl.make,
-        NewsActivitiesImpl.make,
+        ProcessorActivitiesImpl.make,
+        NewsFeedRecommendationEngineImpl.make,
         // temporal
         ZWorkflowClient.make,
         ZActivityOptions.default,
@@ -63,5 +59,6 @@ object Main extends ZIOAppDefault {
         ConfigProvider.defaultProvider orElse
           TypesafeConfigProvider.fromResourcePath()
       )
+
   }
 }

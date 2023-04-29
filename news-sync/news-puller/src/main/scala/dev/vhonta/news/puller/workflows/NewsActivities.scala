@@ -1,7 +1,7 @@
 package dev.vhonta.news.puller.workflows
 
 import dev.vhonta.news.puller.client.{EverythingRequest, EverythingResponse, NewsApiClient, NewsApiRequestError, SortBy}
-import dev.vhonta.news.puller.{Article, Articles, NewsSource, PullerActivityParameters}
+import dev.vhonta.news.puller.proto.{NewsApiArticle, NewsApiArticles, NewsSource, NewsPullerActivityParameters}
 import zio._
 import zio.temporal._
 import zio.temporal.activity._
@@ -11,7 +11,7 @@ import java.time.LocalDateTime
 
 @activityInterface
 trait NewsActivities {
-  def fetchArticles(parameters: PullerActivityParameters): Articles
+  def fetchArticles(parameters: NewsPullerActivityParameters): NewsApiArticles
 }
 
 object NewsActivitiesImpl {
@@ -20,7 +20,7 @@ object NewsActivitiesImpl {
 }
 
 case class NewsActivitiesImpl(newsApi: NewsApiClient)(implicit options: ZActivityOptions[Any]) extends NewsActivities {
-  override def fetchArticles(parameters: PullerActivityParameters): Articles = {
+  override def fetchArticles(parameters: NewsPullerActivityParameters): NewsApiArticles = {
     ZActivity.run {
       for {
         _ <- ZIO.logInfo(s"Processing topic=${parameters.topic} page=${parameters.page}")
@@ -34,7 +34,8 @@ case class NewsActivitiesImpl(newsApi: NewsApiClient)(implicit options: ZActivit
                                     sortBy = SortBy.PublishedAt,
                                     pageSize = 99,
                                     page = parameters.page
-                                  )
+                                  ),
+                                  apiKey = parameters.apiKey
                                 )
                                 .catchSome { case NewsApiRequestError("maximumResultsReached", _) =>
                                   ZIO
@@ -42,9 +43,9 @@ case class NewsActivitiesImpl(newsApi: NewsApiClient)(implicit options: ZActivit
                                     .as(EverythingResponse(0, Nil))
                                 }
       } yield {
-        Articles(
+        NewsApiArticles(
           articles = everythingResponse.articles.map { article =>
-            Article(
+            NewsApiArticle(
               source = NewsSource(
                 id = article.source.id,
                 name = article.source.name

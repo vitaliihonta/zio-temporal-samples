@@ -13,22 +13,21 @@ case class NewsApiRequestError(code: String, message: String)
 
 object NewsApiClient {
   private val apiClientConfig =
-    (Config.uri("baseUri").map(Uri(_)).withDefault(uri"https://newsapi.org") ++
-      Config.secret("apiKey")).nested("news.puller")
+    Config.uri("baseUri").map(Uri(_)).withDefault(uri"https://newsapi.org").nested("news.puller")
 
   val make: ZLayer[SttpBackend[Task, Any], Config.Error, NewsApiClient] = {
     ZLayer.fromZIO {
       ZIO.serviceWithZIO[SttpBackend[Task, Any]] { backend =>
-        ZIO.config(apiClientConfig).map { case (baseUri, apiKey) =>
-          new NewsApiClient(baseUri, apiKey.value.asString, backend)
+        ZIO.config(apiClientConfig).map { baseUri =>
+          new NewsApiClient(baseUri, backend)
         }
       }
     }
   }
 }
 
-class NewsApiClient(baseUri: Uri, apiKey: String, backend: SttpBackend[Task, Any]) {
-  def everything(request: EverythingRequest): Task[EverythingResponse] = {
+class NewsApiClient(baseUri: Uri, backend: SttpBackend[Task, Any]) {
+  def everything(request: EverythingRequest, apiKey: String): Task[EverythingResponse] = {
     val requestUri = uri"$baseUri/v2/everything"
       .addParams(
         Map[String, Option[String]](

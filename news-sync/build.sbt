@@ -26,6 +26,10 @@ val baseSettings = Seq(
   }
 )
 
+val baseServiceSettings = Seq(
+//  Compile / PB.protoSources += file("shared/src/main/protobuf")
+)
+
 lazy val root = project
   .in(file("."))
   .settings(
@@ -45,7 +49,9 @@ lazy val shared = project
     baseSettings,
     libraryDependencies ++=
       Dependencies.zioBase ++
+        Dependencies.zioTemporal ++
         Dependencies.database ++
+        Dependencies.circe ++
         Dependencies.enumeratum
   )
 
@@ -54,6 +60,7 @@ lazy val `news-puller` = project
   .dependsOn(shared)
   .settings(
     baseSettings,
+    baseServiceSettings,
     libraryDependencies ++=
       Dependencies.zioBase ++
         Dependencies.zioTemporal ++
@@ -66,6 +73,7 @@ lazy val `news-processor` = project
   .dependsOn(shared)
   .settings(
     baseSettings,
+    baseServiceSettings,
     libraryDependencies ++=
       Dependencies.zioBase ++
         Dependencies.zioTemporal
@@ -76,6 +84,7 @@ lazy val `telegram-push` = project
   .dependsOn(shared)
   .settings(
     baseSettings,
+    baseServiceSettings,
     libraryDependencies ++=
       Dependencies.zioBase ++
         Dependencies.zioTemporal ++

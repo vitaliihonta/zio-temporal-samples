@@ -1,6 +1,14 @@
 package dev.vhonta.news.puller.workflows
 
-import dev.vhonta.news.puller.{InitialPullerState, PullerParameters, PullerTopicState, ResetPuller}
+import dev.vhonta.news.proto.NewsFeedIntegrationType
+import dev.vhonta.news.puller.proto.{
+  InitialPullerState,
+  ListIntegrations,
+  ListTopics,
+  NewsPullerParameters,
+  PullerTopicState,
+  ResetPuller
+}
 import zio._
 import zio.temporal._
 import zio.temporal.activity.ZActivityStub
@@ -11,8 +19,8 @@ import java.time.LocalDateTime
 import java.util.UUID
 
 @workflowInterface
-trait ScheduledPullerWorkflow {
-  @workflowMethod
+trait NewsApiScheduledPullerWorkflow {
+  @workflowMethod(name = "NewsApiPullScheduler")
   def startPulling(initialState: InitialPullerState): Unit
 
   @signalMethod
@@ -22,11 +30,11 @@ trait ScheduledPullerWorkflow {
   def resetStateAll(): Unit
 }
 
-case class PullerWorkflowTopicState(lastProcessedAt: LocalDateTime)
+case class NewsApiPullerWorkflowTopicState(lastProcessedAt: LocalDateTime)
 
-class ScheduledPullerWorkflowImpl extends ScheduledPullerWorkflow {
+class NewsApiScheduledPullerWorkflowImpl extends NewsApiScheduledPullerWorkflow {
   private val logger         = ZWorkflow.getLogger(getClass)
-  private val state          = ZWorkflowState.make(Map.empty[UUID, PullerWorkflowTopicState])
+  private val state          = ZWorkflowState.make(Map.empty[UUID, NewsApiPullerWorkflowTopicState])
   private val thisWorkflowId = ZWorkflow.info.workflowId
 
   // TODO: make configurable
@@ -41,27 +49,48 @@ class ScheduledPullerWorkflowImpl extends ScheduledPullerWorkflow {
     )
     .build
 
-  private val nextRun = ZWorkflow.newContinueAsNewStub[ScheduledPullerWorkflow].build
+  private val nextRun = ZWorkflow.newContinueAsNewStub[NewsApiScheduledPullerWorkflow].build
 
   override def startPulling(initialState: InitialPullerState): Unit = {
     state := initialState.states.view
-      .map(state => state.topicId.fromProto -> PullerWorkflowTopicState(state.lastProcessedAt.fromProto[LocalDateTime]))
+      .map(state =>
+        state.topicId.fromProto -> NewsApiPullerWorkflowTopicState(state.lastProcessedAt.fromProto[LocalDateTime])
+      )
       .toMap
 
     val startedAt = ZWorkflow.currentTimeMillis.toLocalDateTime()
 
-    val topics = ZActivityStub.execute(
-      databaseActivities.loadNewsTopics
+    val newsApiIntegrations = ZActivityStub.execute(
+      databaseActivities.loadIntegrations(
+        ListIntegrations(NewsFeedIntegrationType.news_api)
+      )
     )
+
+    logger.info(s"Loaded ${newsApiIntegrations.integrations.size} news-api integrations")
+
+    val integrationDetailsByReader = newsApiIntegrations.integrations.view.flatMap { integration =>
+      integration.integration.newsApi.map(integration.readerId -> _)
+    }.toMap
+
+    val readers = integrationDetailsByReader.keys.toList
+
+    val topics = ZActivityStub.execute(
+      databaseActivities.loadNewsTopics(
+        ListTopics(readers)
+      )
+    )
+
+    logger.info(s"Starting ${topics.topics.size} pulls...")
 
     val topicPullParameters = topics.topics.view.map { topic =>
       val topicId    = topic.id.fromProto
       val topicState = state.snapshot.get(topicId)
 
-      PullerParameters(
+      NewsPullerParameters(
+        apiKey = integrationDetailsByReader(topic.owner).token,
         topicId = topicId,
         topic = topic.topic,
-        language = topic.language,
+        language = topic.lang,
         from = topicState.map(_.lastProcessedAt.toProto),
         to = startedAt
       )
@@ -81,7 +110,7 @@ class ScheduledPullerWorkflowImpl extends ScheduledPullerWorkflow {
       )
 
       val pullTopicNewsWorkflow = ZWorkflow
-        .newChildWorkflowStub[PullTopicNewsWorkflow]
+        .newChildWorkflowStub[NewsApiPullTopicNewsWorkflow]
         .withWorkflowId(s"$thisWorkflowId/topics/$topicId")
         // Limit the pull time
         .withWorkflowExecutionTimeout(singlePullTimeout)
@@ -102,14 +131,14 @@ class ScheduledPullerWorkflowImpl extends ScheduledPullerWorkflow {
     }
 
     // Wait until all completed
-    ZAsync.collectAllDiscard(pullTasks).run
+    ZAsync.collectAllDiscard(pullTasks).run.getOrThrow
 
     // Update puller states
     pullTasks.foreach { pull =>
       pull.run.getOrThrow match {
         case None => ()
         case Some(topicId) =>
-          state.update(_.updated(topicId, PullerWorkflowTopicState(lastProcessedAt = startedAt)))
+          state.update(_.updated(topicId, NewsApiPullerWorkflowTopicState(lastProcessedAt = startedAt)))
       }
     }
 

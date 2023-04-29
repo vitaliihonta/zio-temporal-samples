@@ -3,17 +3,16 @@ package dev.vhonta.news.repository
 import zio._
 import dev.vhonta.news.{NewsFeedArticle, NewsFeedTopic}
 import io.getquill.SnakeCase
-import io.getquill.jdbczio.Quill
 import java.sql.SQLException
 import java.time.LocalDateTime
 import java.util.UUID
 
 object NewsFeedRepository {
-  val make: URLayer[Quill.Postgres[SnakeCase], NewsFeedRepository] =
-    ZLayer.fromFunction(NewsFeedRepository(_: Quill.Postgres[SnakeCase]))
+  val make: URLayer[PostgresQuill[SnakeCase], NewsFeedRepository] =
+    ZLayer.fromFunction(NewsFeedRepository(_: PostgresQuill[SnakeCase]))
 }
 
-case class NewsFeedRepository(quill: Quill.Postgres[SnakeCase]) {
+case class NewsFeedRepository(quill: PostgresQuill[SnakeCase]) {
   import quill._
   import quill.extras._
 
@@ -24,11 +23,24 @@ case class NewsFeedRepository(quill: Quill.Postgres[SnakeCase]) {
     run(insert).as(topic)
   }
 
-  def listAllTopics: IO[SQLException, List[NewsFeedTopic]] = {
+  def findTopicById(topicId: UUID): IO[SQLException, Option[NewsFeedTopic]] = {
     val select = quote {
-      query[NewsFeedTopic]
+      query[NewsFeedTopic].filter(_.id == lift(topicId)).take(1)
     }
-    run(select)
+    run(select).map(_.headOption)
+  }
+
+  def listTopics(readers: Option[Set[UUID]] = None): IO[SQLException, List[NewsFeedTopic]] = {
+    readers match {
+      case None =>
+        val select = quote(query[NewsFeedTopic])
+        run(select)
+      case Some(readers) =>
+        val select = quote {
+          query[NewsFeedTopic].filter(t => liftQuery(readers).contains(t.owner))
+        }
+        run(select)
+    }
   }
 
   def storeArticles(articles: List[NewsFeedArticle]): IO[SQLException, Unit] = {
@@ -42,7 +54,7 @@ case class NewsFeedRepository(quill: Quill.Postgres[SnakeCase]) {
     val select = quote {
       query[NewsFeedArticle]
         .filter(_.topic == lift(topicId))
-        .filter(_.publishedAt < lift(now))
+        .filter(_.publishedAt <= lift(now))
     }
     run(select)
   }

@@ -1,24 +1,13 @@
 syntax = "proto2";
 
-package dev.vhonta.news.puller;
+package dev.vhonta.news.puller.proto;
 
 import "zio-temporal.proto";
-
-enum NewsSyncLanguage {
-  English = 0;
-  French = 1;
-  Spanish = 2;
-  Ukrainian = 4;
-}
-
-message NewsSyncTopic {
-  required zio.temporal.protobuf.UUID id = 1;
-  required string topic = 2;
-  required NewsSyncLanguage language = 3;
-}
+import "news_feed.proto";
+import "news_integrations.proto";
 
 message NewsSyncTopics {
-  repeated NewsSyncTopic topics = 1;
+  repeated dev.vhonta.news.proto.NewsFeedTopic topics = 1;
 }
 
 message NewsSource {
@@ -26,7 +15,7 @@ message NewsSource {
   required string name = 2;
 }
 
-message Article {
+message NewsApiArticle {
   required NewsSource source = 1;
   optional string author = 2;
   required string title = 3;
@@ -34,13 +23,16 @@ message Article {
   required string url = 5;
   required int64 date = 6;
   required string content = 7;
-
 }
 
-message Articles {
-  repeated Article articles = 1;
+message NewsApiArticles {
+  repeated NewsApiArticle articles = 1;
 }
 
 message StoreArticlesParameters {
   required zio.temporal.protobuf.UUID topicId = 1;
+}
+
+message NewsFeedIntegrations {
+  repeated dev.vhonta.news.proto.NewsFeedIntegration integrations = 1;
 }
