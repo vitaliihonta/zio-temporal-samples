@@ -13,8 +13,9 @@ enum NewsSyncLanguage {
 
 message NewsSyncTopic {
   required zio.temporal.protobuf.UUID id = 1;
-  required string topic = 2;
-  required NewsSyncLanguage language = 3;
+  required zio.temporal.protobuf.UUID owner = 2;
+  required string topic = 3;
+  required NewsSyncLanguage language = 4;
 }
 
 message NewsSyncTopics {
@@ -50,13 +51,14 @@ message NewsFeedIntegrationNewsApiDetails {
 }
 
 enum NewsFeedIntegrationType {
-  NewsApi = 1;
+  // Naming must be snake_case
+  news_api = 1;
 }
 
 message NewsFeedIntegration {
   required zio.temporal.protobuf.UUID readerId = 1;
   oneof integration {
-    NewsFeedIntegrationNewsApiDetails mewsApi = 2;
+    NewsFeedIntegrationNewsApiDetails newsApi = 2;
   }
 }
 

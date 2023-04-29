@@ -1,20 +1,20 @@
-package dev.vhonta.news.puller.workflows
+package dev.vhonta.news.puller
 
-import dev.vhonta.news.puller.InitialPullerState
+import dev.vhonta.news.puller.workflows.NewsApiScheduledPullerWorkflow
 import io.temporal.client.WorkflowExecutionAlreadyStarted
 import zio._
 import zio.temporal._
 import zio.temporal.workflow._
 
-object ScheduledPullerStarter {
-  val TaskQueue   = "pullers"
-  val SchedulerId = "scheduled-puller"
+object NewsApiScheduledPullerStarter {
+  val TaskQueue   = "news-api-pullers"
+  val SchedulerId = "news-api-scheduled-puller"
 
-  val make: URLayer[ZWorkflowClient, ScheduledPullerStarter] =
-    ZLayer.fromFunction(ScheduledPullerStarter(_))
+  val make: URLayer[ZWorkflowClient, NewsApiScheduledPullerStarter] =
+    ZLayer.fromFunction(NewsApiScheduledPullerStarter(_))
 }
 
-case class ScheduledPullerStarter(client: ZWorkflowClient) {
+case class NewsApiScheduledPullerStarter(client: ZWorkflowClient) {
   def start(reset: Boolean = false): Task[Unit] = {
     for {
       _ <- ZIO.logInfo("Starting scheduler...")
@@ -28,8 +28,9 @@ case class ScheduledPullerStarter(client: ZWorkflowClient) {
   private def resetPuller: Task[Unit] = {
     for {
       _ <- ZIO.logInfo("Hard-reset scheduler")
-      currentWorkflow <- client
-                           .newWorkflowStub[ScheduledPullerWorkflow](ScheduledPullerStarter.SchedulerId)
+      currentWorkflow <- client.newWorkflowStub[NewsApiScheduledPullerWorkflow](
+                           NewsApiScheduledPullerStarter.SchedulerId
+                         )
       _ <- currentWorkflow.terminate(reason = Some("Hard-reset"))
       _ <- startPuller
     } yield ()
@@ -38,20 +39,19 @@ case class ScheduledPullerStarter(client: ZWorkflowClient) {
   private def startPuller: Task[Unit] = {
     for {
       scheduledPullerWorkflow <- client
-                                   .newWorkflowStub[ScheduledPullerWorkflow]
-                                   .withTaskQueue(ScheduledPullerStarter.TaskQueue)
-                                   .withWorkflowId(ScheduledPullerStarter.SchedulerId)
+                                   .newWorkflowStub[NewsApiScheduledPullerWorkflow]
+                                   .withTaskQueue(NewsApiScheduledPullerStarter.TaskQueue)
+                                   .withWorkflowId(NewsApiScheduledPullerStarter.SchedulerId)
                                    .withWorkflowExecutionTimeout(2.hours)
                                    .withRetryOptions(
                                      ZRetryOptions.default.withMaximumAttempts(3)
                                    )
                                    .build
-      _ <- ZWorkflowStub
-             .start(
-               scheduledPullerWorkflow.startPulling(
-                 initialState = InitialPullerState(Nil)
-               )
+      _ <- ZWorkflowStub.start(
+             scheduledPullerWorkflow.startPulling(
+               initialState = InitialPullerState(Nil)
              )
+           )
     } yield ()
   }
 }

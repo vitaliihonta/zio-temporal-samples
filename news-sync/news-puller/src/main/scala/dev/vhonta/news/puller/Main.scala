@@ -6,12 +6,10 @@ import dev.vhonta.news.puller.workflows.{
   DatabaseActivitiesImpl,
   NewsActivities,
   NewsActivitiesImpl,
-  PullTopicNewsWorkflowImpl,
-  ScheduledPullerStarter,
-  ScheduledPullerWorkflowImpl
+  NewsApiPullTopicNewsWorkflowImpl,
+  NewsApiScheduledPullerWorkflowImpl
 }
 import dev.vhonta.news.repository.{DatabaseMigrator, NewsFeedIntegrationRepository, NewsFeedRepository, PostgresQuill}
-import io.getquill.SnakeCase
 import io.getquill.jdbczio.Quill
 import sttp.client3.httpclient.zio.HttpClientZioBackend
 import zio._
@@ -33,9 +31,9 @@ object Main extends ZIOAppDefault {
 
   override def run: ZIO[ZIOAppArgs with Scope, Any, Any] = {
     val registerWorkflows =
-      ZWorkerFactory.newWorker(ScheduledPullerStarter.TaskQueue) @@
-        ZWorker.addWorkflow[ScheduledPullerWorkflowImpl].fromClass @@
-        ZWorker.addWorkflow[PullTopicNewsWorkflowImpl].fromClass @@
+      ZWorkerFactory.newWorker(NewsApiScheduledPullerStarter.TaskQueue) @@
+        ZWorker.addWorkflow[NewsApiScheduledPullerWorkflowImpl].fromClass @@
+        ZWorker.addWorkflow[NewsApiPullTopicNewsWorkflowImpl].fromClass @@
         ZWorker.addActivityImplementationService[DatabaseActivities] @@
         ZWorker.addActivityImplementationService[NewsActivities]
 
@@ -43,14 +41,14 @@ object Main extends ZIOAppDefault {
       _    <- registerWorkflows
       _    <- ZWorkflowServiceStubs.setup()
       args <- getArgs
-      _    <- ZIO.serviceWithZIO[ScheduledPullerStarter](_.start(args.contains("reset")))
+      _    <- ZIO.serviceWithZIO[NewsApiScheduledPullerStarter](_.start(args.contains("reset")))
       _    <- ZWorkerFactory.serve
     } yield ()
 
     program
       .provideSome[ZIOAppArgs with Scope](
         DatabaseMigrator.applyMigration,
-        ScheduledPullerStarter.make,
+        NewsApiScheduledPullerStarter.make,
         // http
         HttpClientZioBackend.layer(),
         NewsApiClient.make,

@@ -12,7 +12,6 @@ import java.time.LocalDateTime
 
 @activityInterface
 trait DatabaseActivities {
-  // TODO: by integration type
   def loadIntegrations(list: ListIntegrations): NewsFeedIntegrations
 
   def loadNewsTopics(list: ListTopics): NewsSyncTopics
@@ -48,7 +47,7 @@ case class DatabaseActivitiesImpl(
             // TODO: decouple conversion
             integration = integration.integration match {
               case NewsFeedIntegrationDetails.NewsApi(token) =>
-                NewsFeedIntegration.Integration.MewsApi(
+                NewsFeedIntegration.Integration.NewsApi(
                   NewsFeedIntegrationNewsApiDetails(token)
                 )
             }
@@ -66,6 +65,7 @@ case class DatabaseActivitiesImpl(
         topics = topics.map { topic =>
           NewsSyncTopic(
             id = topic.id.toProto,
+            owner = topic.owner,
             topic = topic.topic,
             language = topic.lang.toProto
           )

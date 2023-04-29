@@ -1,7 +1,7 @@
 package dev.vhonta.news.puller.workflows
 
 import dev.vhonta.news.puller.client.{EverythingRequest, EverythingResponse, NewsApiClient, NewsApiRequestError, SortBy}
-import dev.vhonta.news.puller.{Article, Articles, NewsSource, PullerActivityParameters}
+import dev.vhonta.news.puller.{Article, Articles, NewsSource, NewsPullerActivityParameters}
 import zio._
 import zio.temporal._
 import zio.temporal.activity._
@@ -11,7 +11,7 @@ import java.time.LocalDateTime
 
 @activityInterface
 trait NewsActivities {
-  def fetchArticles(parameters: PullerActivityParameters): Articles
+  def fetchArticles(parameters: NewsPullerActivityParameters): Articles
 }
 
 object NewsActivitiesImpl {
@@ -20,7 +20,7 @@ object NewsActivitiesImpl {
 }
 
 case class NewsActivitiesImpl(newsApi: NewsApiClient)(implicit options: ZActivityOptions[Any]) extends NewsActivities {
-  override def fetchArticles(parameters: PullerActivityParameters): Articles = {
+  override def fetchArticles(parameters: NewsPullerActivityParameters): Articles = {
     ZActivity.run {
       for {
         _ <- ZIO.logInfo(s"Processing topic=${parameters.topic} page=${parameters.page}")
@@ -34,7 +34,8 @@ case class NewsActivitiesImpl(newsApi: NewsApiClient)(implicit options: ZActivit
                                     sortBy = SortBy.PublishedAt,
                                     pageSize = 99,
                                     page = parameters.page
-                                  )
+                                  ),
+                                  apiKey = parameters.apiKey
                                 )
                                 .catchSome { case NewsApiRequestError("maximumResultsReached", _) =>
                                   ZIO

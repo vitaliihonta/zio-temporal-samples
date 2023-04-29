@@ -21,12 +21,12 @@ case class NewsFeedIntegrationRepository(quill: PostgresQuill[SnakeCase]) {
   }
 
   def findByType(integrationType: NewsFeedIntegrationType): IO[SQLException, List[NewsFeedIntegration]] = {
-    val select = quote { integrationType: NewsFeedIntegrationType =>
-      sql"""SELECT x.reader, x.integration FROM news_feed_integration x
-            WHERE x->>'type' = '$integrationType' """
+    val select = quote { integrationType: String =>
+      sql"""SELECT * FROM news_feed_integration
+            WHERE integration->>'type' = $integrationType """
         .as[Query[NewsFeedIntegration]]
     }
 
-    run(select(lift(integrationType)))
+    run(select(lift(integrationType.entryName)))
   }
 }

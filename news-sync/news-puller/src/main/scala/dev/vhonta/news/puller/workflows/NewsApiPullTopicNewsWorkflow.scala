@@ -1,6 +1,11 @@
 package dev.vhonta.news.puller.workflows
 
-import dev.vhonta.news.puller.{PullerActivityParameters, PullerParameters, PullingResult, StoreArticlesParameters}
+import dev.vhonta.news.puller.{
+  NewsPullerActivityParameters,
+  NewsPullerParameters,
+  PullingResult,
+  StoreArticlesParameters
+}
 import zio.temporal._
 import zio._
 import zio.temporal.workflow._
@@ -9,12 +14,12 @@ import zio.temporal.state.ZWorkflowState
 import scala.annotation.tailrec
 
 @workflowInterface
-trait PullTopicNewsWorkflow {
-  @workflowMethod
-  def pull(parameters: PullerParameters): PullingResult
+trait NewsApiPullTopicNewsWorkflow {
+  @workflowMethod(name = "NewsApiPullTopic")
+  def pull(parameters: NewsPullerParameters): PullingResult
 }
 
-class PullTopicNewsWorkflowImpl extends PullTopicNewsWorkflow {
+class NewsApiPullTopicNewsWorkflowImpl extends NewsApiPullTopicNewsWorkflow {
 
   private val logger = ZWorkflow.getLogger(getClass)
 
@@ -39,12 +44,13 @@ class PullTopicNewsWorkflowImpl extends PullTopicNewsWorkflow {
     )
     .build
 
-  override def pull(parameters: PullerParameters): PullingResult = {
+  override def pull(parameters: NewsPullerParameters): PullingResult = {
     @tailrec
     def process(processed: Long): Long = {
       val articles = ZActivityStub.execute(
         newsActivities.fetchArticles(
-          PullerActivityParameters(
+          NewsPullerActivityParameters(
+            apiKey = parameters.apiKey,
             topic = parameters.topic,
             language = parameters.language,
             from = parameters.from,

@@ -5,7 +5,7 @@ import enumeratum.{Enum, EnumEntry}
 import io.circe.Codec
 import io.circe.generic.extras.Configuration
 import io.circe.generic.extras.semiauto._
-sealed trait NewsFeedIntegrationType extends EnumEntry
+sealed trait NewsFeedIntegrationType extends EnumEntry.Snakecase
 object NewsFeedIntegrationType extends Enum[NewsFeedIntegrationType] {
   case object NewsApi extends NewsFeedIntegrationType
   override val values = findValues
