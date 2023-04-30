@@ -1,7 +1,7 @@
 package dev.vhonta.news.tgpush.workflow
 
 import dev.vhonta.news.repository.ReaderRepository
-import dev.vhonta.news.tgpush.NewsSyncBot
+import dev.vhonta.news.tgpush.bot.NewsSyncBot
 import dev.vhonta.news.tgpush.proto.{NotifyReaderParams, TelegramParseMode}
 import telegramium.bots
 import zio._

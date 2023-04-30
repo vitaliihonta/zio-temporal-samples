@@ -9,6 +9,12 @@ message Reader {
   required int64 registeredAt = 2;
 }
 
+message ReaderSettings {
+  required zio.temporal.protobuf.UUID reader = 1;
+  required int64 modifiedAt = 2;
+  required string timezone = 3;
+}
+
 enum NewsTopicLanguage {
   English = 0;
   French = 1;

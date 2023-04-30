@@ -1,12 +1,10 @@
 package dev.vhonta.news.tgpush
 
-import dev.vhonta.news.repository.{NewsFeedIntegrationRepository, ReaderRepository}
+import dev.vhonta.news.tgpush.bot.NewsSyncBot
 import org.http4s.blaze.client.BlazeClientBuilder
 import telegramium.bots.high._
 import zio._
 import zio.interop.catz._
-import zio.temporal.workflow.ZWorkflowClient
-
 import java.net.InetSocketAddress
 
 object TelegramModule {

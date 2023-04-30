@@ -8,7 +8,7 @@ import scala.reflect.{ClassTag, classTag}
 
 trait PostgresCirceJsonExtensions { this: Encoders with Decoders with PostgresJsonExtensions =>
   private val jsonType = "jsonb"
-  implicit def circeEncoder[A: io.circe.Encoder]: Encoder[A] =
+  def circeEncoder[A: io.circe.Encoder.AsObject]: Encoder[A] =
     encoder(
       Types.VARCHAR,
       (index, value, row) => {
@@ -20,7 +20,7 @@ trait PostgresCirceJsonExtensions { this: Encoders with Decoders with PostgresJs
       }
     )
 
-  implicit def circeDecoder[A: io.circe.Decoder: ClassTag]: Decoder[A] =
+  def circeDecoder[A: io.circe.Decoder: ClassTag]: Decoder[A] =
     decoder((index, row, session) => {
       val obj        = row.getObject(index, classOf[org.postgresql.util.PGobject])
       val jsonString = obj.getValue

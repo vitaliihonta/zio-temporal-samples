@@ -1,5 +1,6 @@
 package dev.vhonta.news.tgpush.workflow
 
+import dev.vhonta.news.tgpush.bot.NewsSyncCommand.ListIntegrations
 import dev.vhonta.news.tgpush.proto._
 import zio._
 import zio.temporal._
@@ -96,7 +97,8 @@ class SetupNewsApiWorkflowImpl extends SetupNewsApiWorkflow {
         notifyUserIgnoreError(
           NotifyReaderParams(
             reader = params.reader,
-            message = s"Successfully created the News API integration!\nCheck available integrations with /list"
+            message =
+              s"Successfully created the News API integration!\nCheck available integrations with /${ListIntegrations.entryName}"
           )
         )
         SetupResult(

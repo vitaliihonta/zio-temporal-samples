@@ -19,8 +19,8 @@ object NewsFeedIntegrationDetails {
   // TODO: may add reddit later
   case class NewsApi(token: String) extends NewsFeedIntegrationDetails(NewsFeedIntegrationType.NewsApi)
 
-  private implicit val newsApiCodec: Codec[NewsApi] = deriveConfiguredCodec[NewsApi]
-  implicit val newsFeedIntegrationDetailsCodec: Codec[NewsFeedIntegrationDetails] =
+  private implicit val newsApiCodec: Codec.AsObject[NewsApi] = deriveConfiguredCodec[NewsApi]
+  implicit val newsFeedIntegrationDetailsCodec: Codec.AsObject[NewsFeedIntegrationDetails] =
     deriveConfiguredCodec[NewsFeedIntegrationDetails]
 }
 

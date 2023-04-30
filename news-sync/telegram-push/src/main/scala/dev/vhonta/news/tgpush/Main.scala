@@ -9,6 +9,7 @@ import dev.vhonta.news.repository.{
   PostgresQuill,
   ReaderRepository
 }
+import dev.vhonta.news.tgpush.bot.NewsSyncBotImpl
 import dev.vhonta.news.tgpush.workflow.{
   AddTopicWorkflowImpl,
   NewsApiActivities,
@@ -62,7 +63,7 @@ object Main extends ZIOAppDefault {
         Quill.DataSource.fromPrefix("db"),
         // telegram
         TelegramModule.makeApi,
-        NewsSyncBot.make,
+        NewsSyncBotImpl.make,
         // activities
         NewsApiActivitiesImpl.make,
         TelegramActivitiesImpl.make,
