@@ -1,6 +1,6 @@
 package dev.vhonta.news.repository
 
-import dev.vhonta.news.{NewsFeedArticle, NewsFeedRecommendation, NewsFeedRecommendationArticle}
+import dev.vhonta.news.{NewsFeedTopic, NewsFeedArticle, NewsFeedRecommendation, NewsFeedRecommendationArticle}
 import io.getquill.SnakeCase
 import zio._
 import java.sql.SQLException
@@ -42,7 +42,7 @@ case class NewsFeedRecommendationRepository(quill: PostgresQuill[SnakeCase]) {
     run(check)
   }
 
-  def getForDate(topicId: UUID, date: LocalDate): IO[SQLException, NewsFeedRecommendation.View] = {
+  def getForDate(topicId: UUID, date: LocalDate): IO[SQLException, Option[NewsFeedRecommendation.View]] = {
     val recommendationIdQuery = quote {
       query[NewsFeedRecommendation]
         .filter(_.topic == lift(topicId))
@@ -56,12 +56,26 @@ case class NewsFeedRecommendationRepository(quill: PostgresQuill[SnakeCase]) {
         .on(_.article == _.id)
         .map { case (_, art) => art }
     }
-    run(articlesQuery).map { articles =>
-      NewsFeedRecommendation.View(
-        topic = topicId,
-        date = date,
-        articles = articles
-      )
+    val topicNameQuery = quote {
+      query[NewsFeedTopic]
+        .filter(_.id == lift(topicId))
+        .map(_.topic)
+        .take(1)
     }
+
+    run(topicNameQuery)
+      .map(_.headOption)
+      .flatMap(
+        ZIO.foreach(_) { topicName =>
+          run(articlesQuery).map { articles =>
+            NewsFeedRecommendation.View(
+              topicId = topicId,
+              topic = topicName,
+              date = date,
+              articles = articles
+            )
+          }
+        }
+      )
   }
 }

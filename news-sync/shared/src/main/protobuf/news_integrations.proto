@@ -14,8 +14,9 @@ enum NewsFeedIntegrationType {
 }
 
 message NewsFeedIntegration {
-  required zio.temporal.protobuf.UUID readerId = 1;
+  required int64 id = 1;
+  required zio.temporal.protobuf.UUID readerId = 2;
   oneof integration {
-    NewsFeedIntegrationNewsApiDetails newsApi = 2;
+    NewsFeedIntegrationNewsApiDetails newsApi = 3;
   }
 }

@@ -19,10 +19,10 @@ message NewsApiArticle {
   required NewsSource source = 1;
   optional string author = 2;
   required string title = 3;
-  required string description = 4;
+  optional string description = 4;
   required string url = 5;
   required int64 date = 6;
-  required string content = 7;
+  optional string content = 7;
 }
 
 message NewsApiArticles {

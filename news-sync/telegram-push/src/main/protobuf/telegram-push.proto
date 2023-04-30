@@ -1,0 +1,117 @@
+syntax = "proto2";
+
+package dev.vhonta.news.tgpush.proto;
+
+import "zio-temporal.proto";
+import "news_feed.proto";
+import "news_integrations.proto";
+import "news_feed_recommendation.proto";
+
+message SetupNewsApi {
+  required string apiKey = 1;
+}
+
+enum SetupStep {
+  WaitingForApiKey = 1;
+  ValidatingKey = 2;
+  StoringKey = 3;
+}
+
+message CurrentSetupStep {
+  required SetupStep value = 1;
+}
+
+message SetupParams {
+  required zio.temporal.protobuf.UUID reader = 1;
+}
+
+message SetupResult {
+  oneof value {
+    dev.vhonta.news.proto.NewsFeedIntegration integration = 1;
+    string failureReason = 2;
+  }
+}
+
+message TestApiKeyParams {
+  required string apiKey = 1;
+}
+
+message TestApiKeyResult {
+  required bool valid = 2;
+}
+
+message StoreNewsApiIntegrationParams {
+  required zio.temporal.protobuf.UUID reader = 1;
+  required string apiKey = 2;
+}
+
+message StoreNewsApiIntegrationResult {
+  required dev.vhonta.news.proto.NewsFeedIntegration integration = 1;
+}
+
+enum TelegramParseMode {
+  Markdown2 = 1;
+  Html = 2;
+}
+
+message NotifyReaderParams {
+  required zio.temporal.protobuf.UUID reader = 1;
+  required string message = 2;
+  optional TelegramParseMode parseMode = 3;
+}
+
+message PretendTypingParams {
+  required zio.temporal.protobuf.UUID reader = 1;
+}
+
+message AddTopicParams {
+  required zio.temporal.protobuf.UUID reader = 1;
+}
+
+message SpecifyTopic {
+  required string value = 1;
+}
+
+enum AddTopicStep {
+  WaitingForTopic = 1;
+  StoringTopic = 2;
+}
+message CurrentAddTopicStep {
+  required AddTopicStep value = 1;
+}
+
+message CreateTopicParams {
+  required zio.temporal.protobuf.UUID reader = 1;
+  required string topic = 2;
+}
+
+message ListTopicsParams {
+  required zio.temporal.protobuf.UUID reader = 1;
+}
+
+message ListTopicsResult {
+  repeated dev.vhonta.news.proto.NewsFeedTopic topics = 1;
+}
+
+message ListAllReadersParams {
+  required int64 now = 1;
+  required int64 deltaMinutes = 2;
+}
+
+message ListAllReadersResult {
+  repeated dev.vhonta.news.proto.ReaderWithSettings values = 1;
+}
+
+message ListRecommendationsParams {
+  required dev.vhonta.news.proto.ReaderWithSettings readerWithSettings = 1;
+  required int64 date = 2;
+}
+
+message ListRecommendationsResult {
+  repeated dev.vhonta.news.proto.NewsFeedRecommendationView results = 1;
+}
+
+message PushRecommendationsParams {
+  required dev.vhonta.news.proto.ReaderWithSettings readerWithSettings = 1;
+  required int64 date = 2;
+}

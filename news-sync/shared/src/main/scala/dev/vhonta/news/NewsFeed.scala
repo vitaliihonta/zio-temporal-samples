@@ -25,6 +25,6 @@ case class NewsFeedArticle(
   id:          UUID,
   topic:       UUID,
   title:       String,
-  description: String,
+  description: Option[String],
   url:         String,
   publishedAt: LocalDateTime)

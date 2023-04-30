@@ -1,4 +1,4 @@
-package dev.vhonta.news.puller.client
+package dev.vhonta.news.client
 
 import java.time.{LocalDateTime, OffsetDateTime}
 import enumeratum.values.{StringEnum, StringEnumEntry}
@@ -62,11 +62,11 @@ object NewsSource {
 case class Article(
   source:      NewsSource,
   author:      Option[String],
-  title:       String,
-  description: String,
+  title:       Option[String],
+  description: Option[String],
   url:         String,
   publishedAt: OffsetDateTime,
-  content:     String)
+  content:     Option[String])
 
 object Article {
   implicit val codec: Codec.AsObject[Article] = deriveConfiguredCodec[Article]

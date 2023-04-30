@@ -19,6 +19,10 @@ start-puller-local:
 start-processor-local:
 	sbt "news-processor/run $(reset)"
 
+.PHONY: start-telegram-bot-local
+start-telegram-bot-local:
+	sbt "telegram-push/run $(reset)"
+
 .PHONY: psql
 psql:
 	docker exec -it news-sync-db-1 psql -d news -U postgres

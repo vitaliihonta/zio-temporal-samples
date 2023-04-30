@@ -51,6 +51,7 @@ lazy val shared = project
       Dependencies.zioBase ++
         Dependencies.zioTemporal ++
         Dependencies.database ++
+        Dependencies.sttp ++
         Dependencies.circe ++
         Dependencies.enumeratum
   )
@@ -64,7 +65,6 @@ lazy val `news-puller` = project
     libraryDependencies ++=
       Dependencies.zioBase ++
         Dependencies.zioTemporal ++
-        Dependencies.sttp ++
         Dependencies.circe
   )
 

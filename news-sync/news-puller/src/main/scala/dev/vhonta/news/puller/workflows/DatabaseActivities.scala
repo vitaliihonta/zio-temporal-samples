@@ -51,6 +51,7 @@ case class DatabaseActivitiesImpl(
       } yield NewsFeedIntegrations(
         integrations.map(integration =>
           NewsFeedIntegration(
+            id = integration.id,
             readerId = integration.reader,
             // TODO: decouple conversion
             integration = integration.integration match {

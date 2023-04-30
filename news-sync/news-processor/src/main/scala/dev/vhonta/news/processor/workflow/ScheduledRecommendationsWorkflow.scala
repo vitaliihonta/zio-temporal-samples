@@ -76,7 +76,7 @@ class ScheduledRecommendationsWorkflowImpl extends ScheduledRecommendationsWorkf
     val finishedAt = ZWorkflow.currentTimeMillis.toLocalDateTime()
     val sleepTime  = processInterval minus java.time.Duration.between(startedAt, finishedAt)
 
-    logger.info(s"Next pull starts after $sleepTime")
+    logger.info(s"Next processing starts after $sleepTime")
 
     // Wait for the next run
     ZWorkflow.sleep(sleepTime)

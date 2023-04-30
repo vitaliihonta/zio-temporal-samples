@@ -1,0 +1,1 @@
+ALTER TABLE reader_settings ADD COLUMN publish_at TIME NOT NULL DEFAULT TIME '19:00';
