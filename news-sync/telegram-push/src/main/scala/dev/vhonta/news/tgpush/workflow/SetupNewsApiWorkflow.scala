@@ -1,13 +1,11 @@
 package dev.vhonta.news.tgpush.workflow
 
-import dev.vhonta.news.proto.NewsFeedIntegration
 import dev.vhonta.news.tgpush.proto._
 import zio._
 import zio.temporal._
 import zio.temporal.activity._
 import zio.temporal.state.ZWorkflowState
 import zio.temporal.workflow._
-// TODO: implement
 
 @workflowInterface
 trait SetupNewsApiWorkflow {
@@ -61,7 +59,7 @@ class SetupNewsApiWorkflowImpl extends SetupNewsApiWorkflow {
     val apiKeySet = ZWorkflow.awaitUntil(12.hours)(state.exists(_.step == SetupStep.ValidatingKey))
     if (!apiKeySet) {
       notifyUserIgnoreError(
-        NotifyCreateIntegrationResultParams(
+        NotifyReaderParams(
           reader = params.reader,
           message = s"Have you forgotten about News API integration?"
         )
@@ -77,7 +75,7 @@ class SetupNewsApiWorkflowImpl extends SetupNewsApiWorkflow {
       )
       if (!validationResult.valid) {
         notifyUserIgnoreError(
-          NotifyCreateIntegrationResultParams(
+          NotifyReaderParams(
             reader = params.reader,
             message = s"The API key is invalid. Please ensure you provided a correct one"
           )
@@ -96,7 +94,7 @@ class SetupNewsApiWorkflowImpl extends SetupNewsApiWorkflow {
         )
         logger.info("Integration created successfully!")
         notifyUserIgnoreError(
-          NotifyCreateIntegrationResultParams(
+          NotifyReaderParams(
             reader = params.reader,
             message = s"Successfully created the News API integration!\nCheck available integrations with /list"
           )
@@ -121,10 +119,10 @@ class SetupNewsApiWorkflowImpl extends SetupNewsApiWorkflow {
     )
   }
 
-  private def notifyUserIgnoreError(params: NotifyCreateIntegrationResultParams): Unit = {
+  private def notifyUserIgnoreError(params: NotifyReaderParams): Unit = {
     ZActivityStub
       .executeAsync(
-        telegramActivities.notifyCreateIntegrationResult(params)
+        telegramActivities.notifyReader(params)
       )
       .run
   }

@@ -1,22 +1,19 @@
 package dev.vhonta.news.tgpush.workflow
 
-import dev.vhonta.news.{NewsFeedIntegration, NewsFeedIntegrationDetails, NewsTopicLanguage}
-import dev.vhonta.news.client.{EverythingRequest, NewsApiClient, NewsApiRequestError, SortBy}
-import dev.vhonta.news.repository.{NewsFeedIntegrationRepository, ReaderRepository}
+import dev.vhonta.news.repository.ReaderRepository
+import dev.vhonta.news.tgpush.NewsSyncBot
+import dev.vhonta.news.tgpush.proto.{NotifyReaderParams, TelegramParseMode}
+import telegramium.bots
 import zio._
 import zio.temporal._
 import zio.temporal.activity._
 import zio.temporal.protobuf.syntax._
-import dev.vhonta.news.tgpush.proto.NotifyCreateIntegrationResultParams
-import dev.vhonta.news.proto
-import dev.vhonta.news.tgpush.NewsSyncBot
-
 import java.util.UUID
 
 @activityInterface
 trait TelegramActivities {
   @throws[ReaderNotFoundException]
-  def notifyCreateIntegrationResult(params: NotifyCreateIntegrationResultParams): Unit
+  def notifyReader(params: NotifyReaderParams): Unit
 }
 
 case class ReaderNotFoundException(readerId: UUID) extends Exception(s"Reader with id=$readerId not found")
@@ -32,7 +29,7 @@ case class TelegramActivitiesImpl(
 )(implicit options: ZActivityOptions[Any])
     extends TelegramActivities {
 
-  override def notifyCreateIntegrationResult(params: NotifyCreateIntegrationResultParams): Unit =
+  override def notifyReader(params: NotifyReaderParams): Unit =
     ZActivity.run {
       for {
         _ <- ZIO.logInfo(s"Notifying reader=${params.reader.fromProto} about the status")
@@ -40,7 +37,12 @@ case class TelegramActivitiesImpl(
                     .findById(params.reader.fromProto)
                     .someOrFail(ReaderNotFoundException(params.reader.fromProto))
         _ <- ZIO.logInfo("Pushing a telegram notification...")
-        _ <- bot.notifyAboutIntegration(reader, params.message)
+        parseMode = params.parseMode.flatMap {
+                      case TelegramParseMode.Html            => Some(bots.Html)
+                      case TelegramParseMode.Markdown2       => Some(bots.Markdown2)
+                      case TelegramParseMode.Unrecognized(_) => None
+                    }
+        _ <- bot.notifyReader(reader, params.message, parseMode)
       } yield ()
     }
 }

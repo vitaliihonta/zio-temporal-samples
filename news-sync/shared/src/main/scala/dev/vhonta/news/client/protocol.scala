@@ -63,10 +63,10 @@ case class Article(
   source:      NewsSource,
   author:      Option[String],
   title:       String,
-  description: String,
+  description: Option[String],
   url:         String,
   publishedAt: OffsetDateTime,
-  content:     String)
+  content:     Option[String])
 
 object Article {
   implicit val codec: Codec.AsObject[Article] = deriveConfiguredCodec[Article]

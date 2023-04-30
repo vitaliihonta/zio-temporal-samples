@@ -1,7 +1,7 @@
 package dev.vhonta.news.tgpush
 
 import dev.vhonta.news.{NewsFeedIntegrationDetails, Reader}
-import dev.vhonta.news.repository.{NewsFeedIntegrationRepository, ReaderRepository}
+import dev.vhonta.news.repository.{NewsFeedIntegrationRepository, NewsFeedRepository, ReaderRepository}
 import dev.vhonta.news.tgpush.NewsSyncCallbackQuery.SetupNewsApi
 import dev.vhonta.news.tgpush.internal.{
   TelegramCommandHandling,
@@ -11,8 +11,15 @@ import dev.vhonta.news.tgpush.internal.{
   TelegramQueryCallbackIdEnum,
   TelegramQueryHandling
 }
-import dev.vhonta.news.tgpush.proto.{CurrentSetupStep, SetupParams, SetupStep}
-import dev.vhonta.news.tgpush.workflow.SetupNewsApiWorkflow
+import dev.vhonta.news.tgpush.proto.{
+  AddTopicParams,
+  CurrentAddTopicStep,
+  CurrentSetupStep,
+  SetupParams,
+  SetupStep,
+  SpecifyTopic
+}
+import dev.vhonta.news.tgpush.workflow.{AddTopicWorkflow, SetupNewsApiWorkflow}
 import io.temporal.client.WorkflowNotFoundException
 import zio._
 import zio.interop.catz._
@@ -28,7 +35,10 @@ sealed abstract class NewsSyncCommand(val description: String) extends TelegramC
 object NewsSyncCommand extends TelegramCommandIdEnum[NewsSyncCommand] {
   case object Start       extends NewsSyncCommand("Start the bot")
   case object CreateTopic extends NewsSyncCommand("Create a topic")
-  case object List        extends NewsSyncCommand("List syncs")
+
+  case object ListTopics extends NewsSyncCommand("List topics")
+
+  case object ListIntegrations extends NewsSyncCommand("List integrations")
 
   override val values = findValues
 }
@@ -44,16 +54,19 @@ object NewsSyncCallbackQuery extends TelegramQueryCallbackIdEnum[NewsSyncCallbac
 
 object NewsSyncBot {
   val make: URLayer[
-    ReaderRepository with NewsFeedIntegrationRepository with ZWorkflowClient with Api[Task],
+    ReaderRepository with NewsFeedRepository with NewsFeedIntegrationRepository with ZWorkflowClient with Api[Task],
     NewsSyncBot
   ] =
     ZLayer.fromFunction(
-      NewsSyncBot(_: ReaderRepository, _: NewsFeedIntegrationRepository, _: ZWorkflowClient)(_: Api[Task])
+      NewsSyncBot(_: ReaderRepository, _: NewsFeedRepository, _: NewsFeedIntegrationRepository, _: ZWorkflowClient)(
+        _: Api[Task]
+      )
     )
 }
 
 case class NewsSyncBot(
   readerRepository:          ReaderRepository,
+  newsFeedRepository:        NewsFeedRepository,
   integrationRepository:     NewsFeedIntegrationRepository,
   workflowClient:            ZWorkflowClient
 )(implicit override val api: Api[Task])
@@ -73,12 +86,13 @@ case class NewsSyncBot(
         .unit
   }
 
-  def notifyAboutIntegration(reader: Reader, message: String): Task[Unit] =
+  def notifyReader(reader: Reader, message: String, parseMode: Option[ParseMode]): Task[Unit] =
     api
       .execute(
         sendMessage(
           chatId = ChatIntId(reader.telegramChatId),
-          text = message
+          text = message,
+          parseMode = parseMode
         )
       )
       .unit
@@ -118,7 +132,64 @@ case class NewsSyncBot(
       .map(_.toList.flatten)
   }
 
-  private val onList = onCommand(NewsSyncCommand.List) { msg =>
+  private val onListTopics = onCommand(NewsSyncCommand.ListTopics) { msg =>
+    ZIO
+      .foreach(msg.from) { tgUser =>
+        for {
+          reader <- readerRepository
+                      .findByTelegramId(tgUser.id)
+                      .someOrElseZIO(createReader(tgUser, msg.chat))
+          _ <- ZIO.logInfo(s"Listing topics reader=${reader.id}")
+          topics <- newsFeedRepository.listTopics(
+                      readers = Some(Set(reader.id))
+                    )
+          topicsStr = topics.view
+                        .sortBy(_.lang.entryName)
+                        .map { topic =>
+                          s"<b>${topic.lang}</b> ${topic.topic} - ${topic.id}"
+                        }
+                        .mkString("\n")
+        } yield {
+          List(
+            sendMessage(
+              chatId = ChatIntId(msg.chat.id),
+              text = s"Found the following topics:  \n$topicsStr",
+              parseMode = Some(Html)
+            )
+          )
+        }
+      }
+      .map(_.toList.flatten)
+  }
+
+  private val onCreateTopics = onCommand(NewsSyncCommand.CreateTopic) { msg =>
+    ZIO
+      .foreach(msg.from) { tgUser =>
+        for {
+          reader <- getReader(tgUser)
+          addTopicWorkflow <- workflowClient
+                                .newWorkflowStub[AddTopicWorkflow]
+                                .withTaskQueue(TelegramModule.TaskQueue)
+                                .withWorkflowId(addTopicWorkflowId(reader))
+                                .build
+          _ <- ZWorkflowStub.start(
+                 addTopicWorkflow.add(
+                   AddTopicParams(reader.id)
+                 )
+               )
+        } yield {
+          List(
+            sendMessage(
+              chatId = ChatIntId(msg.chat.id),
+              text = "Please specify a topic you'd like to get updates for:"
+            )
+          )
+        }
+      }
+      .map(_.toList.flatten)
+  }
+
+  private val onListIntegrations = onCommand(NewsSyncCommand.ListIntegrations) { msg =>
     ZIO
       .foreach(msg.from) { tgUser =>
         for {
@@ -204,7 +275,7 @@ case class NewsSyncBot(
           setupWorkflow <- workflowClient
                              .newWorkflowStub[SetupNewsApiWorkflow]
                              .withTaskQueue(TelegramModule.TaskQueue)
-                             .withWorkflowId(setupWorkflowId(reader))
+                             .withWorkflowId(setupNewsApiWorkflowId(reader))
                              .build
           _ <- ZWorkflowStub.start(
                  setupWorkflow.setup(
@@ -230,14 +301,14 @@ case class NewsSyncBot(
   }
 
   override def onMessage(msg: Message): Task[Unit] = {
-    List(onStart, onList)
+    List(onStart, onListIntegrations, onListTopics, onCreateTopics)
       .onMessage(msg)
       .getOrElse {
         msg.from match {
           case Some(user) if !user.isBot =>
             ZIO.logInfo(
               s"Received a message from ${user.firstName} ${user.lastName} id=${user.id} msg=${msg.text}"
-            ) *> handleSetupFlow(msg)
+            ) *> handleSetupFlow(msg) *> handleAddTopicFlow(msg)
           case _ =>
             ZIO.logInfo("Not a user message, skip")
         }
@@ -254,13 +325,36 @@ case class NewsSyncBot(
       .unit
   }
 
+  private def handleAddTopicFlow(msg: Message): Task[Unit] = {
+    ZIO
+      .foreach(msg.from) { tgUser =>
+        for {
+          reader           <- getReader(tgUser)
+          _                <- ZIO.logInfo(s"Getting current add topic step for reader=${reader.id}")
+          maybeCurrentStep <- getCurrentAddTopicStepIfExists(reader)
+          _ <- ZIO.foreach(maybeCurrentStep) {
+                 case (addTopicWorkflow, step) if step.value.isWaitingForTopic =>
+                   ZIO.foreach(msg.text) { topic =>
+                     ZWorkflowStub.signal(
+                       addTopicWorkflow.specifyTopic(
+                         SpecifyTopic(value = topic)
+                       )
+                     )
+                   }
+                 case _ => ZIO.unit
+               }
+        } yield ()
+      }
+      .unit
+  }
+
   private def handleSetupFlow(msg: Message): Task[Unit] = {
     ZIO
       .foreach(msg.from) { tgUser =>
         for {
           reader           <- getReader(tgUser)
-          _                <- ZIO.logInfo(s"Getting current step for reader=${reader.id}")
-          maybeCurrentStep <- getCurrentStepIfExists(reader)
+          _                <- ZIO.logInfo(s"Getting current setup step for reader=${reader.id}")
+          maybeCurrentStep <- getCurrentSetupStepIfExists(reader)
           _ <- ZIO.foreach(maybeCurrentStep) {
                  case (setupWorkflow, step) if step.value.isWaitingForApiKey =>
                    ZIO.foreach(msg.text) { apiKey =>
@@ -290,12 +384,32 @@ case class NewsSyncBot(
       .unit
   }
 
-  private def getCurrentStepIfExists(
+  private def getCurrentAddTopicStepIfExists(
+    reader: Reader
+  ): Task[Option[(ZWorkflowStub.Of[AddTopicWorkflow], CurrentAddTopicStep)]] = {
+    for {
+      addTopicWorkflow <- workflowClient.newWorkflowStub[AddTopicWorkflow](
+                            workflowId = addTopicWorkflowId(reader)
+                          )
+      result <- ZWorkflowStub
+                  .query(
+                    addTopicWorkflow.currentStep()
+                  )
+                  .map(addTopicWorkflow -> _)
+                  .asSome
+                  .catchSome { case _: WorkflowNotFoundException =>
+                    ZIO.logInfo(s"Add topic for reader=${reader.id} not found") *>
+                      ZIO.none
+                  }
+    } yield result
+  }
+
+  private def getCurrentSetupStepIfExists(
     reader: Reader
   ): Task[Option[(ZWorkflowStub.Of[SetupNewsApiWorkflow], CurrentSetupStep)]] = {
     for {
       setupWorkflow <- workflowClient.newWorkflowStub[SetupNewsApiWorkflow](
-                         workflowId = setupWorkflowId(reader)
+                         workflowId = setupNewsApiWorkflowId(reader)
                        )
       result <- ZWorkflowStub
                   .query(
@@ -325,7 +439,10 @@ case class NewsSyncBot(
                 )
     } yield reader
 
-  private def setupWorkflowId(reader: Reader): String =
+  private def addTopicWorkflowId(reader: Reader): String =
+    s"add-topic/${reader.id}"
+
+  private def setupNewsApiWorkflowId(reader: Reader): String =
     s"setup/news-api/${reader.id}"
 
   private def getReader(tgUser: User): Task[Reader] = {

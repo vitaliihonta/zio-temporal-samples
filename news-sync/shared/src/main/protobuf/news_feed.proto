@@ -27,6 +27,6 @@ message NewsFeedArticle {
   required zio.temporal.protobuf.UUID id = 1;
   required zio.temporal.protobuf.UUID topic = 2;
   required string title = 3;
-  required string description = 4;
+  optional string description = 4;
   required int64 publishedAt = 5;
 }

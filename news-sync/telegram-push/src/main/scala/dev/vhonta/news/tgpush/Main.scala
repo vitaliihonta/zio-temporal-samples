@@ -10,6 +10,7 @@ import dev.vhonta.news.repository.{
   ReaderRepository
 }
 import dev.vhonta.news.tgpush.workflow.{
+  AddTopicWorkflowImpl,
   NewsApiActivities,
   NewsApiActivitiesImpl,
   SetupNewsApiWorkflowImpl,
@@ -34,6 +35,7 @@ object Main extends ZIOAppDefault {
     val registerWorkflows =
       ZWorkerFactory.newWorker(TelegramModule.TaskQueue) @@
         ZWorker.addWorkflow[SetupNewsApiWorkflowImpl].fromClass @@
+        ZWorker.addWorkflow[AddTopicWorkflowImpl].fromClass @@
         ZWorker.addActivityImplementationService[NewsApiActivities] @@
         ZWorker.addActivityImplementationService[TelegramActivities]
 

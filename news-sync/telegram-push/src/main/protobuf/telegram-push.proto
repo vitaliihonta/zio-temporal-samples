@@ -48,7 +48,42 @@ message StoreNewsApiIntegrationResult {
   required dev.vhonta.news.proto.NewsFeedIntegration integration = 1;
 }
 
-message NotifyCreateIntegrationResultParams {
+enum TelegramParseMode {
+  Markdown2 = 1;
+  Html = 2;
+}
+
+message NotifyReaderParams {
   required zio.temporal.protobuf.UUID reader = 1;
   required string message = 2;
+  optional TelegramParseMode parseMode = 3;
+}
+
+message AddTopicParams {
+  required zio.temporal.protobuf.UUID reader = 1;
+}
+
+message SpecifyTopic {
+  required string value = 1;
+}
+
+enum AddTopicStep {
+  WaitingForTopic = 1;
+  StoringTopic = 2;
+}
+message CurrentAddTopicStep {
+  required AddTopicStep value = 1;
+}
+
+message CreateTopicParams {
+  required zio.temporal.protobuf.UUID reader = 1;
+  required string topic = 2;
+}
+
+message ListTopicsParams {
+  required zio.temporal.protobuf.UUID reader = 1;
+}
+
+message ListTopicsResult {
+  repeated dev.vhonta.news.proto.NewsFeedTopic topics = 1;
 }
