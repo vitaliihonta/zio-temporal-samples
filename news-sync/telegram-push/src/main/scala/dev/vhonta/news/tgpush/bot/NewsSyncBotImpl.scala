@@ -54,6 +54,16 @@ case class NewsSyncBotImpl(
       )
       .unit
 
+  override def pretendTyping(reader: Reader): Task[Unit] =
+    api
+      .execute(
+        sendChatAction(
+          chatId = ChatIntId(reader.telegramChatId),
+          action = "typing"
+        )
+      )
+      .unit
+
   private val depsLayer: ULayer[
     ReaderRepository with NewsFeedRepository with NewsFeedIntegrationRepository with ZWorkflowClient with Api[Task]
   ] =

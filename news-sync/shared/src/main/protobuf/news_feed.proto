@@ -13,6 +13,12 @@ message ReaderSettings {
   required zio.temporal.protobuf.UUID reader = 1;
   required int64 modifiedAt = 2;
   required string timezone = 3;
+  required int64 publishAt = 4;
+}
+
+message ReaderWithSettings {
+  required Reader reader = 1;
+  required ReaderSettings settings = 2;
 }
 
 enum NewsTopicLanguage {
@@ -34,5 +40,6 @@ message NewsFeedArticle {
   required zio.temporal.protobuf.UUID topic = 2;
   required string title = 3;
   optional string description = 4;
-  required int64 publishedAt = 5;
+  required string url = 5;
+  required int64 publishedAt = 6;
 }

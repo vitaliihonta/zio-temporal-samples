@@ -5,6 +5,7 @@ package dev.vhonta.news.tgpush.proto;
 import "zio-temporal.proto";
 import "news_feed.proto";
 import "news_integrations.proto";
+import "news_feed_recommendation.proto";
 
 message SetupNewsApi {
   required string apiKey = 1;
@@ -59,6 +60,10 @@ message NotifyReaderParams {
   optional TelegramParseMode parseMode = 3;
 }
 
+message PretendTypingParams {
+  required zio.temporal.protobuf.UUID reader = 1;
+}
+
 message AddTopicParams {
   required zio.temporal.protobuf.UUID reader = 1;
 }
@@ -86,4 +91,27 @@ message ListTopicsParams {
 
 message ListTopicsResult {
   repeated dev.vhonta.news.proto.NewsFeedTopic topics = 1;
+}
+
+message ListAllReadersParams {
+  required int64 now = 1;
+  required int64 deltaMinutes = 2;
+}
+
+message ListAllReadersResult {
+  repeated dev.vhonta.news.proto.ReaderWithSettings values = 1;
+}
+
+message ListRecommendationsParams {
+  required dev.vhonta.news.proto.ReaderWithSettings readerWithSettings = 1;
+  required int64 date = 2;
+}
+
+message ListRecommendationsResult {
+  repeated dev.vhonta.news.proto.NewsFeedRecommendationView results = 1;
+}
+
+message PushRecommendationsParams {
+  required dev.vhonta.news.proto.ReaderWithSettings readerWithSettings = 1;
+  required int64 date = 2;
 }

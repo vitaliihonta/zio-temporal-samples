@@ -44,14 +44,14 @@ case class NewsActivitiesImpl(newsApi: NewsApiClient)(implicit options: ZActivit
                                 }
       } yield {
         NewsApiArticles(
-          articles = everythingResponse.articles.map { article =>
+          articles = everythingResponse.articles.filter(_.title.nonEmpty).map { article =>
             NewsApiArticle(
               source = NewsSource(
                 id = article.source.id,
                 name = article.source.name
               ),
               author = article.author,
-              title = article.title,
+              title = article.title.get,
               description = article.description,
               url = article.url,
               date = article.publishedAt.toLocalDateTime.toProto,

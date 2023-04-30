@@ -1,29 +1,21 @@
 package dev.vhonta.news.tgpush.workflow
 
-import dev.vhonta.news.{NewsFeedIntegration, NewsFeedIntegrationDetails, NewsFeedTopic, NewsTopicLanguage, proto}
 import dev.vhonta.news.client.{EverythingRequest, NewsApiClient, NewsApiRequestError, SortBy}
-import dev.vhonta.news.repository.{NewsFeedIntegrationRepository, NewsFeedRepository}
-import zio._
-import zio.temporal._
-import zio.temporal.activity._
-import zio.temporal.protobuf.syntax._
+import dev.vhonta.news.repository.NewsFeedIntegrationRepository
 import dev.vhonta.news.tgpush.proto.{
-  AddTopicParams,
-  CreateTopicParams,
-  ListTopicsParams,
-  ListTopicsResult,
   StoreNewsApiIntegrationParams,
   StoreNewsApiIntegrationResult,
   TestApiKeyParams,
   TestApiKeyResult
 }
-import dev.vhonta.news.ProtoConverters._
+import dev.vhonta.news.{NewsFeedIntegration, NewsFeedIntegrationDetails, NewsTopicLanguage, proto}
+import zio._
+import zio.temporal._
+import zio.temporal.activity._
+import zio.temporal.protobuf.syntax._
 
 @activityInterface
 trait NewsApiActivities {
-  def listTopics(params: ListTopicsParams): ListTopicsResult
-
-  def createTopic(params: CreateTopicParams): Unit
 
   def testApiKey(params: TestApiKeyParams): TestApiKeyResult
 
@@ -31,13 +23,13 @@ trait NewsApiActivities {
 }
 
 object NewsApiActivitiesImpl {
-  val make: URLayer[NewsApiClient with NewsFeedRepository with NewsFeedIntegrationRepository with ZActivityOptions[Any],
-                    NewsApiActivities
+  val make: URLayer[
+    NewsApiClient with NewsFeedIntegrationRepository with ZActivityOptions[Any],
+    NewsApiActivities
   ] =
     ZLayer.fromFunction(
       NewsApiActivitiesImpl(
         _: NewsApiClient,
-        _: NewsFeedRepository,
         _: NewsFeedIntegrationRepository
       )(_: ZActivityOptions[Any])
     )
@@ -45,47 +37,9 @@ object NewsApiActivitiesImpl {
 
 case class NewsApiActivitiesImpl(
   client:                NewsApiClient,
-  newsFeedRepository:    NewsFeedRepository,
   integrationRepository: NewsFeedIntegrationRepository
 )(implicit options:      ZActivityOptions[Any])
     extends NewsApiActivities {
-
-  override def listTopics(params: ListTopicsParams): ListTopicsResult = {
-    ZActivity.run {
-      for {
-        _      <- ZIO.logInfo(s"Listing topics reader=${params.reader.fromProto}")
-        topics <- newsFeedRepository.listTopics(readers = Some(Set(params.reader.fromProto)))
-      } yield {
-        ListTopicsResult(
-          topics = topics.map { topic =>
-            proto.NewsFeedTopic(
-              id = topic.id,
-              owner = topic.owner,
-              topic = topic.topic,
-              lang = topic.lang
-            )
-          }
-        )
-      }
-    }
-  }
-
-  override def createTopic(params: CreateTopicParams): Unit =
-    ZActivity.run {
-      for {
-        _       <- ZIO.logInfo(s"Creating topic")
-        topicId <- ZIO.randomWith(_.nextUUID)
-        _ <- newsFeedRepository.createTopic(
-               NewsFeedTopic(
-                 id = topicId,
-                 owner = params.reader.fromProto,
-                 topic = params.topic,
-                 // TODO: make configurable
-                 lang = NewsTopicLanguage.English
-               )
-             )
-      } yield ()
-    }
 
   override def testApiKey(params: TestApiKeyParams): TestApiKeyResult =
     ZActivity.run {

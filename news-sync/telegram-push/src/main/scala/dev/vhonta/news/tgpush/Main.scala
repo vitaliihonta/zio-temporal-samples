@@ -14,6 +14,11 @@ import dev.vhonta.news.tgpush.workflow.{
   AddTopicWorkflowImpl,
   NewsApiActivities,
   NewsApiActivitiesImpl,
+  NewsFeedActivities,
+  NewsFeedActivitiesImpl,
+  OnDemandPushRecommendationsWorkflowImpl,
+  PushRecommendationsWorkflowImpl,
+  ScheduledPushRecommendationsWorkflowImpl,
   SetupNewsApiWorkflowImpl,
   TelegramActivities,
   TelegramActivitiesImpl
@@ -37,19 +42,25 @@ object Main extends ZIOAppDefault {
       ZWorkerFactory.newWorker(TelegramModule.TaskQueue) @@
         ZWorker.addWorkflow[SetupNewsApiWorkflowImpl].fromClass @@
         ZWorker.addWorkflow[AddTopicWorkflowImpl].fromClass @@
+        ZWorker.addWorkflow[ScheduledPushRecommendationsWorkflowImpl].fromClass @@
+        ZWorker.addWorkflow[OnDemandPushRecommendationsWorkflowImpl].fromClass @@
+        ZWorker.addWorkflow[PushRecommendationsWorkflowImpl].fromClass @@
         ZWorker.addActivityImplementationService[NewsApiActivities] @@
-        ZWorker.addActivityImplementationService[TelegramActivities]
+        ZWorker.addActivityImplementationService[TelegramActivities] @@
+        ZWorker.addActivityImplementationService[NewsFeedActivities]
 
     val program = for {
-      _ <- ZIO.logInfo("Started Telegram push!")
-      _ <- registerWorkflows
-      _ <- ZWorkflowServiceStubs.setup()
-      _ <- ZWorkerFactory.setup
-      _ <- TelegramModule.serveBot
+      _    <- ZIO.logInfo("Started Telegram push!")
+      _    <- registerWorkflows
+      _    <- ZWorkflowServiceStubs.setup()
+      args <- getArgs
+      _    <- ZIO.serviceWithZIO[ScheduledPushStarter](_.start(args.contains("reset")))
+      _    <- ZWorkerFactory.setup
+      _    <- TelegramModule.serveBot
     } yield ()
 
     program
-      .provideSome[Scope](
+      .provideSome[ZIOAppArgs with Scope](
         DatabaseMigrator.applyMigration,
         // http
         HttpClientZioBackend.layer(),
@@ -67,8 +78,9 @@ object Main extends ZIOAppDefault {
         // activities
         NewsApiActivitiesImpl.make,
         TelegramActivitiesImpl.make,
+        NewsFeedActivitiesImpl.make,
         // temporal
-        // temporal
+        ScheduledPushStarter.make,
         ZWorkflowClient.make,
         ZActivityOptions.default,
         ZWorkflowServiceStubs.make,

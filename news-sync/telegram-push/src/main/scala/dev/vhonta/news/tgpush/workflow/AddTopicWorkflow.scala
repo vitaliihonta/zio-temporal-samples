@@ -31,15 +31,11 @@ class AddTopicWorkflowImpl extends AddTopicWorkflow {
   import AddTopicWorkflowImpl._
 
   private val logger = ZWorkflow.getLogger(getClass)
-  private val newsApiActivities = ZWorkflow
-    .newActivityStub[NewsApiActivities]
+  private val newsFeedActivities = ZWorkflow
+    .newActivityStub[NewsFeedActivities]
     .withStartToCloseTimeout(10.seconds)
     .withRetryOptions(
-      ZRetryOptions.default
-        .withMaximumAttempts(3)
-        .withDoNotRetry(
-          nameOf[ReaderNotFoundException]
-        )
+      ZRetryOptions.default.withMaximumAttempts(3)
     )
     .build
 
@@ -47,7 +43,9 @@ class AddTopicWorkflowImpl extends AddTopicWorkflow {
     .newActivityStub[TelegramActivities]
     .withStartToCloseTimeout(1.minute)
     .withRetryOptions(
-      ZRetryOptions.default.withMaximumAttempts(5)
+      ZRetryOptions.default
+        .withMaximumAttempts(5)
+        .withDoNotRetry(nameOf[ReaderNotFoundException])
     )
     .build
 
@@ -66,7 +64,7 @@ class AddTopicWorkflowImpl extends AddTopicWorkflow {
     } else {
       val AddTopicState.StoringTopic(topic) = state.snapshot
       ZActivityStub.execute(
-        newsApiActivities.createTopic(
+        newsFeedActivities.createTopic(
           CreateTopicParams(
             reader = params.reader,
             topic = topic

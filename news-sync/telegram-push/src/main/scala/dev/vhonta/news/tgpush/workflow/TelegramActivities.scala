@@ -2,7 +2,7 @@ package dev.vhonta.news.tgpush.workflow
 
 import dev.vhonta.news.repository.ReaderRepository
 import dev.vhonta.news.tgpush.bot.NewsSyncBot
-import dev.vhonta.news.tgpush.proto.{NotifyReaderParams, TelegramParseMode}
+import dev.vhonta.news.tgpush.proto.{NotifyReaderParams, TelegramParseMode, PretendTypingParams}
 import telegramium.bots
 import zio._
 import zio.temporal._
@@ -14,6 +14,9 @@ import java.util.UUID
 trait TelegramActivities {
   @throws[ReaderNotFoundException]
   def notifyReader(params: NotifyReaderParams): Unit
+
+  @throws[ReaderNotFoundException]
+  def pretendTyping(params: PretendTypingParams): Unit
 }
 
 case class ReaderNotFoundException(readerId: UUID) extends Exception(s"Reader with id=$readerId not found")
@@ -43,6 +46,17 @@ case class TelegramActivitiesImpl(
                       case TelegramParseMode.Unrecognized(_) => None
                     }
         _ <- bot.notifyReader(reader, params.message, parseMode)
+      } yield ()
+    }
+
+  override def pretendTyping(params: PretendTypingParams): Unit =
+    ZActivity.run {
+      for {
+        _ <- ZIO.logInfo(s"Pretend typing for reader=${params.reader.fromProto}")
+        reader <- readerRepository
+                    .findById(params.reader.fromProto)
+                    .someOrFail(ReaderNotFoundException(params.reader.fromProto))
+        _ <- bot.pretendTyping(reader)
       } yield ()
     }
 }

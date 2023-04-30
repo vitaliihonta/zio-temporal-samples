@@ -1,10 +1,15 @@
 package dev.vhonta.news.tgpush.bot
 
+import dev.vhonta.news.{proto => news_proto}
 import dev.vhonta.news.Reader
 import dev.vhonta.news.repository.{NewsFeedRepository, ReaderRepository}
 import dev.vhonta.news.tgpush.internal.{HandlingDSL, TelegramHandler}
-import dev.vhonta.news.tgpush.proto.{AddTopicParams, CurrentAddTopicStep}
-import dev.vhonta.news.tgpush.workflow.AddTopicWorkflow
+import dev.vhonta.news.tgpush.proto.{AddTopicParams, CurrentAddTopicStep, PushRecommendationsParams}
+import dev.vhonta.news.tgpush.workflow.{
+  AddTopicWorkflow,
+  OnDemandPushRecommendationsWorkflow,
+  PushRecommendationsWorkflow
+}
 import io.temporal.client.WorkflowNotFoundException
 import zio.temporal.workflow.{ZWorkflowClient, ZWorkflowStub}
 import zio._
@@ -12,6 +17,7 @@ import dev.vhonta.news.tgpush.{TelegramModule, proto}
 import telegramium.bots._
 import telegramium.bots.high.Api
 import zio.temporal.protobuf.syntax._
+import dev.vhonta.news.ProtoConverters._
 
 object TopicsCommand extends HandlingDSL {
   val onListTopics: TelegramHandler[Api[Task] with NewsFeedRepository with ReaderRepository, Message] =
@@ -99,8 +105,51 @@ object TopicsCommand extends HandlingDSL {
       }
     }
 
+  val onLatestFeed: TelegramHandler[Api[Task] with ZWorkflowClient with ReaderRepository, Message] =
+    onCommand(NewsSyncCommand.LatestFeed) { msg =>
+      ZIO.foreach(msg.from) { tgUser =>
+        for {
+          reader <- Repositories.getReaderWithSettings(tgUser)
+          pushWorkflow <- ZIO.serviceWithZIO[ZWorkflowClient](
+                            _.newWorkflowStub[OnDemandPushRecommendationsWorkflow]
+                              .withTaskQueue(TelegramModule.TaskQueue)
+                              .withWorkflowId(s"on-demand/push/${reader.reader.id}")
+                              .withWorkflowExecutionTimeout(5.minutes)
+                              .build
+                          )
+          now <- ZIO.clockWith(_.localDateTime)
+          _ <- ZWorkflowStub.start(
+                 pushWorkflow.push(
+                   PushRecommendationsParams(
+                     readerWithSettings = news_proto.ReaderWithSettings(
+                       reader = news_proto.Reader(
+                         id = reader.reader.id,
+                         registeredAt = reader.reader.registeredAt
+                       ),
+                       settings = news_proto.ReaderSettings(
+                         reader = reader.settings.reader,
+                         modifiedAt = reader.settings.modifiedAt,
+                         timezone = reader.settings.timezone,
+                         publishAt = reader.settings.publishAt
+                       )
+                     ),
+                     date = now
+                   )
+                 )
+               )
+          _ <- execute(
+                 sendChatAction(
+                   chatId = ChatIntId(msg.chat.id),
+                   action = "typing"
+                 )
+               )
+        } yield ()
+      }
+    }
+
   val all: TelegramHandler[Api[Task] with NewsFeedRepository with ReaderRepository with ZWorkflowClient, Message] =
     chain(
+      onLatestFeed,
       onListTopics,
       onCreateTopic,
       handleAddTopicFlow

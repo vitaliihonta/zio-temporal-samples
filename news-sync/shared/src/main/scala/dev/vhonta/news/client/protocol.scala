@@ -62,7 +62,7 @@ object NewsSource {
 case class Article(
   source:      NewsSource,
   author:      Option[String],
-  title:       String,
+  title:       Option[String],
   description: Option[String],
   url:         String,
   publishedAt: OffsetDateTime,

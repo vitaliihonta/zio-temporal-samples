@@ -39,9 +39,6 @@ class SetupNewsApiWorkflowImpl extends SetupNewsApiWorkflow {
     .withRetryOptions(
       ZRetryOptions.default
         .withMaximumAttempts(3)
-        .withDoNotRetry(
-          nameOf[ReaderNotFoundException]
-        )
     )
     .build
 
@@ -49,7 +46,11 @@ class SetupNewsApiWorkflowImpl extends SetupNewsApiWorkflow {
     .newActivityStub[TelegramActivities]
     .withStartToCloseTimeout(1.minute)
     .withRetryOptions(
-      ZRetryOptions.default.withMaximumAttempts(5)
+      ZRetryOptions.default
+        .withMaximumAttempts(5)
+        .withDoNotRetry(
+          nameOf[ReaderNotFoundException]
+        )
     )
     .build
 

@@ -14,6 +14,23 @@ object ReaderRepository {
 
 case class ReaderRepository(quill: PostgresQuill[SnakeCase]) {
   import quill._
+  import quill.extras._
+
+  def listAllForPublish(currentTime: LocalTime, deltaMinutes: Long): IO[SQLException, List[ReaderWithSettings]] = {
+    val startTime = currentTime.minusMinutes(deltaMinutes)
+
+    val select = quote {
+      query[Reader]
+        .join(
+          query[ReaderSettings]
+            .filter(_.publishAt >= lift(startTime))
+            .filter(_.publishAt < lift(currentTime))
+        )
+        .on(_.id == _.reader)
+        .map { case (reader, settings) => ReaderWithSettings(reader, settings) }
+    }
+    run(select)
+  }
 
   def create(reader: Reader, timezone: ZoneId, publishAt: LocalTime): Task[ReaderWithSettings] = {
     val settings = ReaderSettings(

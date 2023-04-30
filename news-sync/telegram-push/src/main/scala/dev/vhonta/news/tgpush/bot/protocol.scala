@@ -12,6 +12,8 @@ object NewsSyncCommand extends TelegramCommandIdEnum[NewsSyncCommand] {
 
   case object ListIntegrations extends NewsSyncCommand("List integrations")
 
+  case object LatestFeed extends NewsSyncCommand("Latest feed")
+
   case object GetSettings extends NewsSyncCommand("Get settings")
 
   case object UpdateSettings extends NewsSyncCommand("Update settings")

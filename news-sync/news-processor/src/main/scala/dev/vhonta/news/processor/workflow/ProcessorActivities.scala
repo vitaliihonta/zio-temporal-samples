@@ -109,6 +109,7 @@ case class ProcessorActivitiesImpl(
             topic = article.topic,
             title = article.title,
             description = article.description,
+            url = article.url,
             publishedAt = article.publishedAt
           )
         }

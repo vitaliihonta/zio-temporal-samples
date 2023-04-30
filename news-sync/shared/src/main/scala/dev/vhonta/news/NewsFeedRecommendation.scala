@@ -11,7 +11,8 @@ case class NewsFeedRecommendation(
 
 object NewsFeedRecommendation {
   case class View(
-    topic:    UUID,
+    topicId:  UUID,
+    topic:    String,
     date:     LocalDate,
     articles: List[NewsFeedArticle])
 }

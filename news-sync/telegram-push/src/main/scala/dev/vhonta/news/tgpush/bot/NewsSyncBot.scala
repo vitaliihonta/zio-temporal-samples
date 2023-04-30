@@ -10,4 +10,6 @@ trait NewsSyncBot {
   def prepare(): Task[Unit]
 
   def notifyReader(reader: Reader, message: String, parseMode: Option[ParseMode]): Task[Unit]
+
+  def pretendTyping(reader: Reader): Task[Unit]
 }
