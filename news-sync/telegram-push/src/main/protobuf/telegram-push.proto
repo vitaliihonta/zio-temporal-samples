@@ -1,0 +1,54 @@
+syntax = "proto2";
+
+package dev.vhonta.news.tgpush.proto;
+
+import "zio-temporal.proto";
+import "news_feed.proto";
+import "news_integrations.proto";
+
+message SetupNewsApi {
+  required string apiKey = 1;
+}
+
+enum SetupStep {
+  WaitingForApiKey = 1;
+  ValidatingKey = 2;
+  StoringKey = 3;
+}
+
+message CurrentSetupStep {
+  required SetupStep value = 1;
+}
+
+message SetupParams {
+  required zio.temporal.protobuf.UUID reader = 1;
+}
+
+message SetupResult {
+  oneof value {
+    dev.vhonta.news.proto.NewsFeedIntegration integration = 1;
+    string failureReason = 2;
+  }
+}
+
+message TestApiKeyParams {
+  required string apiKey = 1;
+}
+
+message TestApiKeyResult {
+  required bool valid = 2;
+}
+
+message StoreNewsApiIntegrationParams {
+  required zio.temporal.protobuf.UUID reader = 1;
+  required string apiKey = 2;
+}
+
+message StoreNewsApiIntegrationResult {
+  required dev.vhonta.news.proto.NewsFeedIntegration integration = 1;
+}
+
+message NotifyCreateIntegrationResultParams {
+  required zio.temporal.protobuf.UUID reader = 1;
+  required string message = 2;
+}

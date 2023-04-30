@@ -17,7 +17,9 @@ case class NewsFeedIntegrationRepository(quill: PostgresQuill[SnakeCase]) {
 
   def create(integration: NewsFeedIntegration): IO[SQLException, NewsFeedIntegration] = {
     val insert = quote {
-      query[NewsFeedIntegration].insertValue(lift(integration))
+      query[NewsFeedIntegration]
+        .insertValue(lift(integration))
+        .returningGenerated(_.id)
     }
     run(insert).as(integration)
   }

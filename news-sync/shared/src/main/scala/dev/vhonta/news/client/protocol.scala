@@ -1,4 +1,4 @@
-package dev.vhonta.news.puller.client
+package dev.vhonta.news.client
 
 import java.time.{LocalDateTime, OffsetDateTime}
 import enumeratum.values.{StringEnum, StringEnumEntry}

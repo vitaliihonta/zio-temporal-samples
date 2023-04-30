@@ -1,4 +1,4 @@
-package dev.vhonta.news.puller.client
+package dev.vhonta.news.client
 
 import zio._
 import sttp.model.Uri

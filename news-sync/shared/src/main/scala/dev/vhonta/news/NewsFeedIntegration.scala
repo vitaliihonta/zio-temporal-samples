@@ -25,5 +25,6 @@ object NewsFeedIntegrationDetails {
 }
 
 case class NewsFeedIntegration(
+  id:          Long,
   reader:      UUID,
   integration: NewsFeedIntegrationDetails)

@@ -1,4 +1,4 @@
-package dev.vhonta.news.puller
+package dev.vhonta.news
 
 import io.circe.Codec
 import io.circe.generic.extras.Configuration

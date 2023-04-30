@@ -5,13 +5,17 @@ import org.http4s.blaze.client.BlazeClientBuilder
 import telegramium.bots.high._
 import zio._
 import zio.interop.catz._
+import zio.temporal.workflow.ZWorkflowClient
 
 import java.net.InetSocketAddress
 
 object TelegramModule {
+
+  val TaskQueue = "telegram-queue"
+
   private val telegramApiConfig = Config.secret("bot-token").nested("telegram")
 
-  private val makeApi: TaskLayer[Api[Task]] =
+  val makeApi: TaskLayer[Api[Task]] =
     ZLayer.scoped {
       ZIO.config(telegramApiConfig).flatMap { botToken =>
         for {
@@ -27,19 +31,12 @@ object TelegramModule {
       }
     }
 
-  val setupBot: ZLayer[ReaderRepository with NewsFeedIntegrationRepository, Throwable, Unit] =
-    ZLayer.fromZIO {
-      // never returns
-      val setup = for {
-        _   <- ZIO.logInfo("Starting the bot...")
-        bot <- ZIO.service[NewsSyncBot]
-        _   <- bot.prepare()
-        _   <- bot.start()
-      } yield ()
-
-      setup.provideSome[ReaderRepository with NewsFeedIntegrationRepository](
-        NewsSyncBot.make,
-        makeApi
-      )
-    }
+  // never returns
+  val serveBot: ZIO[NewsSyncBot, Throwable, Unit] =
+    for {
+      _   <- ZIO.logInfo("Starting the bot...")
+      bot <- ZIO.service[NewsSyncBot]
+      _   <- bot.prepare()
+      _   <- bot.start()
+    } yield ()
 }

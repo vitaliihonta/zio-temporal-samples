@@ -1,7 +1,8 @@
 package dev.vhonta.news.tgpush
 
-import dev.vhonta.news.Reader
+import dev.vhonta.news.{NewsFeedIntegrationDetails, Reader}
 import dev.vhonta.news.repository.{NewsFeedIntegrationRepository, ReaderRepository}
+import dev.vhonta.news.tgpush.NewsSyncCallbackQuery.SetupNewsApi
 import dev.vhonta.news.tgpush.internal.{
   TelegramCommandHandling,
   TelegramCommandId,
@@ -10,23 +11,24 @@ import dev.vhonta.news.tgpush.internal.{
   TelegramQueryCallbackIdEnum,
   TelegramQueryHandling
 }
+import dev.vhonta.news.tgpush.proto.{CurrentSetupStep, SetupParams, SetupStep}
+import dev.vhonta.news.tgpush.workflow.SetupNewsApiWorkflow
+import io.temporal.client.WorkflowNotFoundException
 import zio._
 import zio.interop.catz._
+import zio.temporal.protobuf.syntax._
 import telegramium.bots._
 import telegramium.bots.high._
+import zio.temporal.workflow.{ZWorkflowClient, ZWorkflowStub}
 
 import java.sql.SQLException
-
-object NewsSyncBot {
-  val make: URLayer[ReaderRepository with NewsFeedIntegrationRepository with Api[Task], NewsSyncBot] =
-    ZLayer.fromFunction(NewsSyncBot(_: ReaderRepository, _: NewsFeedIntegrationRepository)(_: Api[Task]))
-}
 
 sealed abstract class NewsSyncCommand(val description: String) extends TelegramCommandId
 
 object NewsSyncCommand extends TelegramCommandIdEnum[NewsSyncCommand] {
-  case object Start extends NewsSyncCommand("Start the bot")
-  case object List  extends NewsSyncCommand("List syncs")
+  case object Start       extends NewsSyncCommand("Start the bot")
+  case object CreateTopic extends NewsSyncCommand("Create a topic")
+  case object List        extends NewsSyncCommand("List syncs")
 
   override val values = findValues
 }
@@ -40,9 +42,20 @@ object NewsSyncCallbackQuery extends TelegramQueryCallbackIdEnum[NewsSyncCallbac
   override val values = findValues
 }
 
+object NewsSyncBot {
+  val make: URLayer[
+    ReaderRepository with NewsFeedIntegrationRepository with ZWorkflowClient with Api[Task],
+    NewsSyncBot
+  ] =
+    ZLayer.fromFunction(
+      NewsSyncBot(_: ReaderRepository, _: NewsFeedIntegrationRepository, _: ZWorkflowClient)(_: Api[Task])
+    )
+}
+
 case class NewsSyncBot(
   readerRepository:          ReaderRepository,
-  integrationRepository:     NewsFeedIntegrationRepository
+  integrationRepository:     NewsFeedIntegrationRepository,
+  workflowClient:            ZWorkflowClient
 )(implicit override val api: Api[Task])
     extends LongPollBot[Task](api)
     with TelegramCommandHandling[NewsSyncCommand]
@@ -59,6 +72,16 @@ case class NewsSyncBot(
         )
         .unit
   }
+
+  def notifyAboutIntegration(reader: Reader, message: String): Task[Unit] =
+    api
+      .execute(
+        sendMessage(
+          chatId = ChatIntId(reader.telegramChatId),
+          text = message
+        )
+      )
+      .unit
 
   // TODO: implement
   def sendNewsFeed(): Task[Unit] =
@@ -99,22 +122,22 @@ case class NewsSyncBot(
     ZIO
       .foreach(msg.from) { tgUser =>
         for {
-          reader <- readerRepository
-                      .findByTelegramId(tgUser.id)
-                      .someOrFail(
-                        new Exception(s"User not found with tg_id=${tgUser.id}")
-                      )
+          reader       <- getReader(tgUser)
           integrations <- integrationRepository.findAllOwnedBy(reader.id)
-          integrationsStr = integrations
+          integrationsStr = integrations.view
+                              .sortBy(_.integration.`type`.entryName)
                               .map { integration =>
-                                s"""*${integration.integration.`type`.entryName}*: ||${integration.integration}|| """
+                                integration.integration match {
+                                  case NewsFeedIntegrationDetails.NewsApi(apiKey) =>
+                                    s""" #<b>${integration.id}</b> - <b>${integration.integration.`type`.entryName}</b>: <tg-spoiler>$apiKey</tg-spoiler>"""
+                                }
                               }
                               .mkString("  \n")
         } yield List(
           sendMessage(
             chatId = ChatIntId(msg.chat.id),
             text = s"Found the following integrations:  \n$integrationsStr",
-            parseMode = Some(Markdown)
+            parseMode = Some(Html)
           )
         )
       }
@@ -176,7 +199,19 @@ case class NewsSyncBot(
   private val onSetupNewsApi = onCallbackQuery[Any](NewsSyncCallbackQuery.SetupNewsApi) { query =>
     ZIO
       .foreach(query.message) { msg =>
-        ZIO.succeed(
+        for {
+          reader <- getReader(query.from)
+          setupWorkflow <- workflowClient
+                             .newWorkflowStub[SetupNewsApiWorkflow]
+                             .withTaskQueue(TelegramModule.TaskQueue)
+                             .withWorkflowId(setupWorkflowId(reader))
+                             .build
+          _ <- ZWorkflowStub.start(
+                 setupWorkflow.setup(
+                   SetupParams(reader.id)
+                 )
+               )
+        } yield {
           List(
             answerCallbackQuery(callbackQueryId = query.id),
             editMessageReplyMarkup(
@@ -186,12 +221,93 @@ case class NewsSyncBot(
             ),
             sendMessage(
               chatId = ChatIntId(msg.chat.id),
-              text = "Please specify your News API token:"
+              text = "Please specify your News API key (you need an account here https://newsapi.org/pricing):"
             )
           )
-        )
+        }
       }
       .map(_.toList.flatten)
+  }
+
+  override def onMessage(msg: Message): Task[Unit] = {
+    List(onStart, onList)
+      .onMessage(msg)
+      .getOrElse {
+        msg.from match {
+          case Some(user) if !user.isBot =>
+            ZIO.logInfo(
+              s"Received a message from ${user.firstName} ${user.lastName} id=${user.id} msg=${msg.text}"
+            ) *> handleSetupFlow(msg)
+          case _ =>
+            ZIO.logInfo("Not a user message, skip")
+        }
+      }
+      .unit
+  }
+
+  override def onCallbackQuery(query: CallbackQuery): Task[Unit] = {
+    List(onNeverMind, onSetup, onSetupNewsApi)
+      .onCallbackQuery(query)
+      .getOrElse {
+        ZIO.logInfo(s"Received query=$query")
+      }
+      .unit
+  }
+
+  private def handleSetupFlow(msg: Message): Task[Unit] = {
+    ZIO
+      .foreach(msg.from) { tgUser =>
+        for {
+          reader           <- getReader(tgUser)
+          _                <- ZIO.logInfo(s"Getting current step for reader=${reader.id}")
+          maybeCurrentStep <- getCurrentStepIfExists(reader)
+          _ <- ZIO.foreach(maybeCurrentStep) {
+                 case (setupWorkflow, step) if step.value.isWaitingForApiKey =>
+                   ZIO.foreach(msg.text) { apiKey =>
+                     ZWorkflowStub.signal(
+                       setupWorkflow.provideApiKey(
+                         proto.SetupNewsApi(apiKey)
+                       )
+                     )
+                   }
+                 case (_, step) if step.value.isValidatingKey =>
+                   api.execute(
+                     sendMessage(
+                       chatId = ChatIntId(msg.chat.id),
+                       text = "Wait a little bit, we're checking if your API key is valid"
+                     )
+                   )
+                 case _ =>
+                   api.execute(
+                     sendMessage(
+                       chatId = ChatIntId(msg.chat.id),
+                       text = "Almost there, we're preparing your sync integration..."
+                     )
+                   )
+               }
+        } yield ()
+      }
+      .unit
+  }
+
+  private def getCurrentStepIfExists(
+    reader: Reader
+  ): Task[Option[(ZWorkflowStub.Of[SetupNewsApiWorkflow], CurrentSetupStep)]] = {
+    for {
+      setupWorkflow <- workflowClient.newWorkflowStub[SetupNewsApiWorkflow](
+                         workflowId = setupWorkflowId(reader)
+                       )
+      result <- ZWorkflowStub
+                  .query(
+                    setupWorkflow.currentStep()
+                  )
+                  .map(setupWorkflow -> _)
+                  .asSome
+                  .catchSome { case _: WorkflowNotFoundException =>
+                    ZIO.logInfo(s"Setup for reader=${reader.id} not found") *>
+                      ZIO.none
+                  }
+    } yield result
   }
 
   private def createReader(tgUser: User, chat: Chat): IO[SQLException, Reader] =
@@ -209,28 +325,14 @@ case class NewsSyncBot(
                 )
     } yield reader
 
-  override def onMessage(msg: Message): Task[Unit] = {
-    List(onStart, onList)
-      .onMessage(msg)
-      .getOrElse {
-        msg.from match {
-          case Some(user) if !user.isBot =>
-            ZIO.logInfo(
-              s"Received a message from ${user.firstName} ${user.lastName} id=${user.id} msg=${msg.text} data=${msg}"
-            )
-          case _ =>
-            ZIO.logInfo("Not a user message, skip")
-        }
-      }
-      .unit
-  }
+  private def setupWorkflowId(reader: Reader): String =
+    s"setup/news-api/${reader.id}"
 
-  override def onCallbackQuery(query: CallbackQuery): Task[Unit] = {
-    List(onNeverMind, onSetup, onSetupNewsApi)
-      .onCallbackQuery(query)
-      .getOrElse {
-        ZIO.logInfo(s"Received query=$query")
-      }
-      .unit
+  private def getReader(tgUser: User): Task[Reader] = {
+    readerRepository
+      .findByTelegramId(tgUser.id)
+      .someOrFail(
+        new Exception(s"User not found with tg_id=${tgUser.id}")
+      )
   }
 }

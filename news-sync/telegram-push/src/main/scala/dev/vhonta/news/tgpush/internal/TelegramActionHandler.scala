@@ -84,7 +84,7 @@ trait TelegramQueryHandling[Q <: TelegramQueryCallbackId] {
       e.values
         .find(c => query.data.exists(_.toLowerCase == c.entryName))
         .flatMap { command =>
-          println(s"Received command $command")
+          println(s"Received callback query $command")
           handlers.foldLeft(Option.empty[RIO[R, List[Method[_]]]]) {
             case (None, handler) =>
               handler.lift(command).map(_.apply(query))

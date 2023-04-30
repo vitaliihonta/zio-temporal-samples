@@ -1,6 +1,6 @@
 package dev.vhonta.news.puller.workflows
 
-import dev.vhonta.news.puller.client.{EverythingRequest, EverythingResponse, NewsApiClient, NewsApiRequestError, SortBy}
+import dev.vhonta.news.client.{EverythingRequest, EverythingResponse, NewsApiClient, NewsApiRequestError, SortBy}
 import dev.vhonta.news.puller.proto.{NewsApiArticle, NewsApiArticles, NewsSource, NewsPullerActivityParameters}
 import zio._
 import zio.temporal._
