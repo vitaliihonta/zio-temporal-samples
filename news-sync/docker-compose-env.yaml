@@ -1,0 +1,21 @@
+version: "3"
+services:
+  db:
+    image: postgres:15.0
+    restart: always
+    volumes:
+      - ./db_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: postgres
+      POSTGRES_DB: news
+    ports:
+      - "6432:5432"
+  news-puller:
+    image: vhonta/news-puller:0.1.0
+    restart: always
+    environment:
+      DB_URL: 'jdbc:postgresql://db:5432/news'
+      ZIO_TEMPORAL_ZWORKFLOWSERVICESTUBS_SERVERURL: 'host.docker.internal:7233'
+    depends_on:
+      - db

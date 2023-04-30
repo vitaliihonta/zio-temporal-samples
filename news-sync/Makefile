@@ -3,13 +3,13 @@
 help:
 	@egrep "^# target:" [Mm]akefile
 
-.PHONY: start-env
-start-env:
-	docker-copmose up -d
+.PHONY: start-local-env
+start-local-env:
+	docker-compose -f docker-compose-local.yaml up -d
 
-.PHONY: stop-env
-stop-env:
-	docker-copmose down
+.PHONY: stop-local-env
+stop-local-env:
+	docker-compose -f docker-compose-local.yaml down
 
 .PHONY: start-puller-local
 start-puller-local:

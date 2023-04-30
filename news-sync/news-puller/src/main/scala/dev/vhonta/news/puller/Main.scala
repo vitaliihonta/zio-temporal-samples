@@ -1,5 +1,6 @@
 package dev.vhonta.news.puller
 
+import dev.vhonta.news.ProtobufDataConverterWorkaround
 import dev.vhonta.news.client.NewsApiClient
 import dev.vhonta.news.puller.workflows._
 import dev.vhonta.news.repository._
@@ -56,7 +57,7 @@ object Main extends ZIOAppDefault {
         // options
         ZWorkflowServiceStubsOptions.make,
         ZWorkflowClientOptions.make @@
-          ZWorkflowClientOptions.withDataConverter(ProtobufDataConverter.makeAutoLoad()),
+          ZWorkflowClientOptions.withDataConverter(ProtobufDataConverterWorkaround.makeAutoLoad()),
         ZWorkerFactoryOptions.make
       )
       .withConfigProvider(

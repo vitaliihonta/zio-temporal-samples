@@ -11,7 +11,7 @@ object TelegramModule {
 
   val TaskQueue = "telegram-queue"
 
-  private val telegramApiConfig = Config.secret("bot-token").nested("telegram")
+  private val telegramApiConfig = Config.secret("botToken").nested("telegram")
 
   val makeApi: TaskLayer[Api[Task]] =
     ZLayer.scoped {
