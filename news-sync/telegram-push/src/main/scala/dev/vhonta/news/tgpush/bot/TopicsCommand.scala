@@ -25,7 +25,7 @@ object TopicsCommand extends HandlingDSL {
       ZIO
         .foreach(msg.from) { tgUser =>
           for {
-            reader <- Repositories.getReaderWithSettings(tgUser)
+            reader <- Repositories.getOrCreateByTelegramId(tgUser, msg.chat, msg.date)
             _ <- execute(
                    sendChatAction(
                      chatId = ChatIntId(msg.chat.id),
@@ -57,7 +57,7 @@ object TopicsCommand extends HandlingDSL {
     onCommand(NewsSyncCommand.CreateTopic) { msg =>
       ZIO.foreach(msg.from) { tgUser =>
         for {
-          reader <- Repositories.getReaderWithSettings(tgUser)
+          reader <- Repositories.getOrCreateByTelegramId(tgUser, msg.chat, msg.date)
           addTopicWorkflow <- ZIO.serviceWithZIO[ZWorkflowClient](
                                 _.newWorkflowStub[AddTopicWorkflow]
                                   .withTaskQueue(TelegramModule.TaskQueue)
@@ -82,7 +82,7 @@ object TopicsCommand extends HandlingDSL {
   val handleAddTopicFlow: TelegramHandler[Api[Task] with ZWorkflowClient with ReaderRepository, Message] =
     onMessage { msg =>
       whenSome(msg.from) { tgUser =>
-        Repositories.getReaderWithSettings(tgUser).flatMap { reader =>
+        Repositories.getOrCreateByTelegramId(tgUser, msg.chat, msg.date).flatMap { reader =>
           whenSomeZIO(getCurrentAddTopicStepIfExists(reader.reader)) {
             case (addTopicWorkflow, step) if step.value.isWaitingForTopic =>
               whenSome(msg.text) { topic =>
@@ -109,7 +109,7 @@ object TopicsCommand extends HandlingDSL {
     onCommand(NewsSyncCommand.LatestFeed) { msg =>
       ZIO.foreach(msg.from) { tgUser =>
         for {
-          reader <- Repositories.getReaderWithSettings(tgUser)
+          reader <- Repositories.getOrCreateByTelegramId(tgUser, msg.chat, msg.date)
           pushWorkflow <- ZIO.serviceWithZIO[ZWorkflowClient](
                             _.newWorkflowStub[OnDemandPushRecommendationsWorkflow]
                               .withTaskQueue(TelegramModule.TaskQueue)

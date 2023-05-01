@@ -31,7 +31,7 @@ case class NewsActivitiesImpl(newsApi: NewsApiClient)(implicit options: ZActivit
                                     language = parameters.language.fromProto.code,
                                     from = parameters.from.map(_.fromProto[LocalDateTime]),
                                     to = Some(parameters.to.fromProto[LocalDateTime]),
-                                    sortBy = SortBy.PublishedAt,
+                                    sortBy = SortBy.Relevancy,
                                     pageSize = 99,
                                     page = parameters.page
                                   ),

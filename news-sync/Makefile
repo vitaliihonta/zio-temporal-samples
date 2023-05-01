@@ -3,6 +3,18 @@
 help:
 	@egrep "^# target:" [Mm]akefile
 
+.PHONY: dockerize
+dockerize:
+	sbt docker:publishLocal
+
+.PHONY: start-dockerized-env
+start-dockerized-env:
+	docker-compose -f docker-compose-env.yaml up -d
+
+.PHONY: stop-dockerized-env
+stop-dockerized-env:
+	docker-compose -f docker-compose-env.yaml down
+
 .PHONY: start-local-env
 start-local-env:
 	docker-compose -f docker-compose-local.yaml up -d

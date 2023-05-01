@@ -37,7 +37,9 @@ lazy val root = project
   .in(file("."))
   .settings(
     baseSettings,
-    name := "news-sync-root"
+    publish / skip      := true,
+    publishLocal / skip := true,
+    name                := "news-sync-root"
   )
   .aggregate(
     shared,

@@ -13,7 +13,7 @@ object SettingsCommands extends HandlingDSL {
     onCommand(NewsSyncCommand.ListIntegrations) { msg =>
       ZIO.foreach(msg.from) { tgUser =>
         for {
-          reader       <- Repositories.getReaderWithSettings(tgUser)
+          reader       <- Repositories.getOrCreateByTelegramId(tgUser, msg.chat, msg.date)
           integrations <- ZIO.serviceWithZIO[NewsFeedIntegrationRepository](_.findAllOwnedBy(reader.reader.id))
           integrationsStr = integrations.view
                               .sortBy(_.integration.`type`.entryName)
@@ -40,7 +40,7 @@ object SettingsCommands extends HandlingDSL {
       ZIO
         .foreach(msg.from) { tgUser =>
           for {
-            reader <- Repositories.getReaderWithSettings(tgUser)
+            reader <- Repositories.getOrCreateByTelegramId(tgUser, msg.chat, msg.date)
             _      <- ZIO.logInfo(s"Getting settings reader=${reader.reader.id}")
             _ <- execute(
                    sendMessage(
@@ -58,7 +58,7 @@ object SettingsCommands extends HandlingDSL {
     onCommand(NewsSyncCommand.UpdateSettings) { msg =>
       ZIO.foreach(msg.from) { tgUser =>
         for {
-          reader <- Repositories.getReaderWithSettings(tgUser)
+          reader <- Repositories.getOrCreateByTelegramId(tgUser, msg.chat, msg.date)
           _      <- ZIO.logInfo(s"Updating settings reader=${reader.reader.id}")
           now    <- ZIO.clockWith(_.localDateTime)
           timezone = Shared.getTimezone(msg.date, now)

@@ -14,8 +14,24 @@ services:
   news-puller:
     image: vhonta/news-puller:0.1.0
     restart: always
-    environment:
-      DB_URL: 'jdbc:postgresql://db:5432/news'
-      ZIO_TEMPORAL_ZWORKFLOWSERVICESTUBS_SERVERURL: 'host.docker.internal:7233'
+    env_file:
+      - common.env
+      - secret.env
+    depends_on:
+      - db
+  news-processor:
+    image: vhonta/news-processor:0.1.0
+    restart: always
+    env_file:
+      - common.env
+      - secret.env
+    depends_on:
+      - db
+  telegram-push:
+    image: vhonta/telegram-push:0.1.0
+    restart: always
+    env_file:
+      - common.env
+      - secret.env
     depends_on:
       - db

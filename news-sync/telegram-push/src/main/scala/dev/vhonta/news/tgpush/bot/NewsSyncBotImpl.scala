@@ -74,7 +74,6 @@ case class NewsSyncBotImpl(
       ZLayer.succeed(api)
 
   private val messageHandlers = chain(
-    // /start must be first
     SetupNewsApiHandlers.messageHandlers,
     TopicsCommand.all,
     SettingsCommands.all
