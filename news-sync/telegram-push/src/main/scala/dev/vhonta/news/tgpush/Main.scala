@@ -1,6 +1,5 @@
 package dev.vhonta.news.tgpush
 
-import dev.vhonta.news.ProtobufDataConverterWorkaround
 import dev.vhonta.news.client.NewsApiClient
 import dev.vhonta.news.repository.{
   DatabaseMigrator,
@@ -89,7 +88,7 @@ object Main extends ZIOAppDefault {
         // options
         ZWorkflowServiceStubsOptions.make,
         ZWorkflowClientOptions.make @@
-          ZWorkflowClientOptions.withDataConverter(ProtobufDataConverterWorkaround.makeAutoLoad()),
+          ZWorkflowClientOptions.withDataConverter(ProtobufDataConverter.makeAutoLoad()),
         ZWorkerFactoryOptions.make
       )
       .withConfigProvider(

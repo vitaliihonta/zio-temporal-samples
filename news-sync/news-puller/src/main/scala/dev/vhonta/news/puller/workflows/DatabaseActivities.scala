@@ -15,7 +15,6 @@ import zio._
 import zio.temporal._
 import zio.temporal.activity._
 import zio.temporal.protobuf.syntax._
-
 import java.time.LocalDateTime
 
 @activityInterface

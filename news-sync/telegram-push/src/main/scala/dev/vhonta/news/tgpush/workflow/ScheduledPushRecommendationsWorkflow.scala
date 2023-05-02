@@ -14,7 +14,7 @@ trait ScheduledPushRecommendationsWorkflow {
 }
 
 class ScheduledPushRecommendationsWorkflowImpl extends ScheduledPushRecommendationsWorkflow {
-  private val logger = ZWorkflow.getLogger(getClass)
+  private val logger = ZWorkflow.makeLogger
 
   // TODO: make configurable
   private val pushInterval      = 15.minutes
@@ -47,7 +47,7 @@ class ScheduledPushRecommendationsWorkflowImpl extends ScheduledPushRecommendati
 
     logger.info(s"Going to push ${readers.values.size} news feeds")
 
-    val pushes = readers.values.map { readerWithSettings =>
+    val pushes = ZAsync.foreachParDiscard(readers.values) { readerWithSettings =>
       val pushRecommendationsWorkflow = ZWorkflow
         .newChildWorkflowStub[PushRecommendationsWorkflow]
         .withWorkflowId(s"${ZWorkflow.info.workflowId}/push/${readerWithSettings.reader.id.fromProto}")
@@ -60,10 +60,10 @@ class ScheduledPushRecommendationsWorkflowImpl extends ScheduledPushRecommendati
             PushRecommendationsParams(readerWithSettings, date = startedAt)
           )
         )
-        .catchAll(_ => ZAsync.succeed(()))
+        .ignore
     }
 
-    ZAsync.collectAllDiscard(pushes).run.getOrThrow
+    pushes.run.getOrThrow
 
     val finishedAt = ZWorkflow.currentTimeMillis.toLocalDateTime()
     val sleepTime  = pushInterval minus java.time.Duration.between(startedAt, finishedAt)

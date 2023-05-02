@@ -30,7 +30,7 @@ object AddTopicWorkflowImpl {
 class AddTopicWorkflowImpl extends AddTopicWorkflow {
   import AddTopicWorkflowImpl._
 
-  private val logger = ZWorkflow.getLogger(getClass)
+  private val logger = ZWorkflow.makeLogger
   private val newsFeedActivities = ZWorkflow
     .newActivityStub[NewsFeedActivities]
     .withStartToCloseTimeout(10.seconds)

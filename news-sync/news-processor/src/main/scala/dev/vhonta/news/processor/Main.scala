@@ -1,6 +1,5 @@
 package dev.vhonta.news.processor
 
-import dev.vhonta.news.ProtobufDataConverterWorkaround
 import dev.vhonta.news.processor.workflow._
 import dev.vhonta.news.repository._
 import io.getquill.jdbczio.Quill
@@ -53,7 +52,7 @@ object Main extends ZIOAppDefault {
         // options
         ZWorkflowServiceStubsOptions.make,
         ZWorkflowClientOptions.make @@
-          ZWorkflowClientOptions.withDataConverter(ProtobufDataConverterWorkaround.makeAutoLoad()),
+          ZWorkflowClientOptions.withDataConverter(ProtobufDataConverter.makeAutoLoad()),
         ZWorkerFactoryOptions.make
       )
       .withConfigProvider(
