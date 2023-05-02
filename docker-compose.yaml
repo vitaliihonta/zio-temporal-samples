@@ -13,6 +13,8 @@ services:
     image: elasticsearch:8.2.2
     networks:
       - temporal-network
+    volumes:
+      - ./esdata:/usr/share/elasticsearch/data
     expose:
       - 9200
   postgresql:
@@ -21,6 +23,8 @@ services:
       POSTGRES_PASSWORD: temporal
       POSTGRES_USER: temporal
     image: postgres:14.3
+    volumes:
+      - ./db_data:/var/lib/postgresql/data
     networks:
       - temporal-network
     expose:

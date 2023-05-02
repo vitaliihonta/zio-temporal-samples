@@ -14,7 +14,6 @@ import dev.vhonta.news.tgpush.proto.{
 }
 import zio.temporal.protobuf.syntax._
 import dev.vhonta.news.ProtoConverters._
-
 import java.time.LocalDate
 
 @workflowInterface
@@ -24,7 +23,7 @@ trait PushRecommendationsWorkflow {
 }
 
 class PushRecommendationsWorkflowImpl extends PushRecommendationsWorkflow {
-  private val logger = ZWorkflow.getLogger(getClass)
+  private val logger = ZWorkflow.makeLogger
 
   private val newsFeedActivities = ZWorkflow
     .newActivityStub[NewsFeedActivities]

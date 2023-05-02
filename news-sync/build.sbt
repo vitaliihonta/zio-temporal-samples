@@ -1,5 +1,6 @@
-ThisBuild / version      := "0.1.0-SNAPSHOT"
+ThisBuild / version      := "0.1.0"
 ThisBuild / scalaVersion := "2.13.10"
+ThisBuild / organization := "dev.vhonta"
 
 val baseSettings = Seq(
   Compile / PB.targets := Seq(
@@ -27,14 +28,18 @@ val baseSettings = Seq(
 )
 
 val baseServiceSettings = Seq(
-//  Compile / PB.protoSources += file("shared/src/main/protobuf")
+  dockerBaseImage           := "eclipse-temurin:11",
+  (Docker / dockerUsername) := Some("vhonta"),
+  (Docker / packageName)    := name.value
 )
 
 lazy val root = project
   .in(file("."))
   .settings(
     baseSettings,
-    name := "news-sync-root"
+    publish / skip      := true,
+    publishLocal / skip := true,
+    name                := "news-sync-root"
   )
   .aggregate(
     shared,
@@ -67,6 +72,7 @@ lazy val `news-puller` = project
         Dependencies.zioTemporal ++
         Dependencies.circe
   )
+  .enablePlugins(JavaAppPackaging, DockerPlugin)
 
 lazy val `news-processor` = project
   .in(file("news-processor"))
@@ -78,6 +84,7 @@ lazy val `news-processor` = project
       Dependencies.zioBase ++
         Dependencies.zioTemporal
   )
+  .enablePlugins(JavaAppPackaging, DockerPlugin)
 
 lazy val `telegram-push` = project
   .in(file("telegram-push"))
@@ -91,3 +98,4 @@ lazy val `telegram-push` = project
         Dependencies.telegramium ++
         Dependencies.circe
   )
+  .enablePlugins(JavaAppPackaging, DockerPlugin)

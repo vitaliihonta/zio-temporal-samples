@@ -21,7 +21,7 @@ trait NewsApiPullTopicNewsWorkflow {
 
 class NewsApiPullTopicNewsWorkflowImpl extends NewsApiPullTopicNewsWorkflow {
 
-  private val logger = ZWorkflow.getLogger(getClass)
+  private val logger = ZWorkflow.makeLogger
 
   private val pageState = ZWorkflowState.make(1)
 
@@ -72,7 +72,7 @@ class NewsApiPullTopicNewsWorkflowImpl extends NewsApiPullTopicNewsWorkflow {
           )
         )
         // continue
-        pageState.update(_ + 1)
+        pageState += 1
         logger.info("Sleep for a bit before the next request...")
         ZWorkflow.sleep(30.seconds)
         process(processed + articles.articles.size)

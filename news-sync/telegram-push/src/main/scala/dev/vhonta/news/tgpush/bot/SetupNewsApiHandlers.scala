@@ -19,9 +19,7 @@ object SetupNewsApiHandlers extends HandlingDSL {
     onCommand(NewsSyncCommand.Start) { msg =>
       ZIO.foreach(msg.from) { tgUser =>
         for {
-          reader <- Repositories
-                      .findByTelegramId(tgUser)
-                      .someOrElseZIO(Repositories.createReader(tgUser, msg.chat, tgDate = msg.date))
+          reader <- Repositories.getOrCreateByTelegramId(tgUser, msg.chat, msg.date)
           _ <- execute(
                  sendMessage(
                    chatId = ChatIntId(reader.reader.telegramChatId),
@@ -70,7 +68,7 @@ object SetupNewsApiHandlers extends HandlingDSL {
     onCallbackQueryId(NewsSyncCallbackQuery.SetupNewsApi) { query =>
       ZIO.foreach(query.message) { msg =>
         for {
-          reader <- Repositories.getReaderWithSettings(query.from)
+          reader <- Repositories.getOrCreateByTelegramId(query.from, msg.chat, msg.date)
           setupWorkflow <- ZIO.serviceWithZIO[ZWorkflowClient](
                              _.newWorkflowStub[SetupNewsApiWorkflow]
                                .withTaskQueue(TelegramModule.TaskQueue)
@@ -107,7 +105,7 @@ object SetupNewsApiHandlers extends HandlingDSL {
   val handleNewsApiSetup: TelegramHandler[Api[Task] with ZWorkflowClient with ReaderRepository, Message] =
     onMessage { msg =>
       whenSome(msg.from) { tgUser =>
-        Repositories.getReaderWithSettings(tgUser).flatMap { reader =>
+        Repositories.getOrCreateByTelegramId(tgUser, msg.chat, msg.date).flatMap { reader =>
           whenSomeZIO(getCurrentSetupStepIfExists(reader.reader)) {
             case (setupWorkflow, step) if step.value.isWaitingForApiKey =>
               whenSome(msg.text) { apiKey =>

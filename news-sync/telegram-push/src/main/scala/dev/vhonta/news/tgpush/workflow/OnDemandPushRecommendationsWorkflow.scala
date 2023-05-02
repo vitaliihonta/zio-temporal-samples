@@ -15,7 +15,7 @@ trait OnDemandPushRecommendationsWorkflow {
 }
 
 class OnDemandPushRecommendationsWorkflowImpl extends OnDemandPushRecommendationsWorkflow {
-  private val logger = ZWorkflow.getLogger(getClass)
+  private val logger = ZWorkflow.makeLogger
 
   private val telegramActivities = ZWorkflow
     .newActivityStub[TelegramActivities]

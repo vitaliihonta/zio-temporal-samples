@@ -33,8 +33,8 @@ trait NewsApiScheduledPullerWorkflow {
 case class NewsApiPullerWorkflowTopicState(lastProcessedAt: LocalDateTime)
 
 class NewsApiScheduledPullerWorkflowImpl extends NewsApiScheduledPullerWorkflow {
-  private val logger         = ZWorkflow.getLogger(getClass)
-  private val state          = ZWorkflowState.make(Map.empty[UUID, NewsApiPullerWorkflowTopicState])
+  private val logger         = ZWorkflow.makeLogger
+  private val state          = ZWorkflowState.emptyMap[UUID, NewsApiPullerWorkflowTopicState]
   private val thisWorkflowId = ZWorkflow.info.workflowId
 
   // TODO: make configurable
@@ -84,7 +84,7 @@ class NewsApiScheduledPullerWorkflowImpl extends NewsApiScheduledPullerWorkflow 
 
     val topicPullParameters = topics.topics.view.map { topic =>
       val topicId    = topic.id.fromProto
-      val topicState = state.snapshot.get(topicId)
+      val topicState = state.get(topicId)
 
       NewsPullerParameters(
         apiKey = integrationDetailsByReader(topic.owner).token,
@@ -99,10 +99,10 @@ class NewsApiScheduledPullerWorkflowImpl extends NewsApiScheduledPullerWorkflow 
     // remove deleted topics
     locally {
       val existingTopics = topicPullParameters.view.map(_.topicId.fromProto).toSet
-      state.update(_.view.filterKeys(existingTopics.contains).toMap)
+      state.filterKeysInPlace(existingTopics.contains)
     }
 
-    val pullTasks = topicPullParameters.map { parameters =>
+    val pullTasks = ZAsync.foreachPar(topicPullParameters) { parameters =>
       val topicId = parameters.topicId.fromProto
 
       logger.info(
@@ -122,24 +122,14 @@ class NewsApiScheduledPullerWorkflowImpl extends NewsApiScheduledPullerWorkflow 
         )
         .map { result =>
           logger.info(s"Puller topicId=$topicId processed ${result.processed} records")
-          Some(topicId)
+          topicId
         }
-        .catchAll { error =>
-          logger.warn(s"Puller topicId=$topicId failed, will retry later", error)
-          ZAsync.succeed(None)
-        }
+        .option
     }
 
-    // Wait until all completed
-    ZAsync.collectAllDiscard(pullTasks).run.getOrThrow
-
-    // Update puller states
-    pullTasks.foreach { pull =>
-      pull.run.getOrThrow match {
-        case None => ()
-        case Some(topicId) =>
-          state.update(_.updated(topicId, NewsApiPullerWorkflowTopicState(lastProcessedAt = startedAt)))
-      }
+    // Wait until all completed and update puller state
+    pullTasks.run.getOrThrow.flatMap(_.toList).foreach { topicId =>
+      state.update(topicId, NewsApiPullerWorkflowTopicState(lastProcessedAt = startedAt))
     }
 
     val finishedAt = ZWorkflow.currentTimeMillis.toLocalDateTime()
@@ -165,11 +155,11 @@ class NewsApiScheduledPullerWorkflowImpl extends NewsApiScheduledPullerWorkflow 
   override def resetState(command: ResetPuller): Unit = {
     val topicId = command.topicId.fromProto
     logger.info(s"Resetting puller state topicId=$topicId")
-    state.update(_ - topicId)
+    state -= topicId
   }
 
   override def resetStateAll(): Unit = {
     logger.info("Resetting ALL puller state")
-    state := Map.empty
+    state.clear()
   }
 }

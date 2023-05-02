@@ -20,7 +20,7 @@ trait RecommendationsWorkflow {
 }
 
 class RecommendationsWorkflowImpl extends RecommendationsWorkflow {
-  private val logger = ZWorkflow.getLogger(getClass)
+  private val logger = ZWorkflow.makeLogger
 
   private val processorActivities = ZWorkflow
     .newActivityStub[ProcessorActivities]

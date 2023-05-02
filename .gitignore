@@ -9,7 +9,9 @@ project/project
 .bloop
 .metals
 db_data/
+esdata/
 venv/
+secret.env
 
 # Website ignores
 website/build/

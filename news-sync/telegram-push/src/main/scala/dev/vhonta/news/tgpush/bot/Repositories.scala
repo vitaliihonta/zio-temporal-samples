@@ -11,18 +11,16 @@ import java.util.UUID
 
 object Repositories {
 
-  def findByTelegramId(tgUser: User): RIO[ReaderRepository, Option[ReaderWithSettings]] =
+  def getOrCreateByTelegramId(tgUser: User, chat: Chat, tgDate: Int): RIO[ReaderRepository, ReaderWithSettings] =
+    findByTelegramId(tgUser)
+      .someOrElseZIO(Repositories.createReader(tgUser, chat, tgDate))
+
+  private def findByTelegramId(tgUser: User): RIO[ReaderRepository, Option[ReaderWithSettings]] =
     ZIO.serviceWithZIO[ReaderRepository](
       _.findByTelegramId(tgUser.id)
     )
 
-  def getReaderWithSettings(tgUser: User): RIO[ReaderRepository, ReaderWithSettings] = {
-    findByTelegramId(tgUser).someOrFail(
-      new Exception(s"User not found with tg_id=${tgUser.id}")
-    )
-  }
-
-  def createReader(tgUser: User, chat: Chat, tgDate: Int): RIO[ReaderRepository, ReaderWithSettings] =
+  private def createReader(tgUser: User, chat: Chat, tgDate: Int): RIO[ReaderRepository, ReaderWithSettings] =
     for {
       _        <- ZIO.logInfo(s"Going to create a new reader ${tgUser.firstName} ${tgUser.lastName} id=${tgUser.id}")
       readerId <- ZIO.randomWith(_.nextUUID)

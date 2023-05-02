@@ -3,13 +3,25 @@
 help:
 	@egrep "^# target:" [Mm]akefile
 
-.PHONY: start-env
-start-env:
-	docker-copmose up -d
+.PHONY: dockerize
+dockerize:
+	sbt docker:publishLocal
 
-.PHONY: stop-env
-stop-env:
-	docker-copmose down
+.PHONY: start-dockerized-env
+start-dockerized-env:
+	docker-compose -f docker-compose-env.yaml up -d
+
+.PHONY: stop-dockerized-env
+stop-dockerized-env:
+	docker-compose -f docker-compose-env.yaml down
+
+.PHONY: start-local-env
+start-local-env:
+	docker-compose -f docker-compose-local.yaml up -d
+
+.PHONY: stop-local-env
+stop-local-env:
+	docker-compose -f docker-compose-local.yaml down
 
 .PHONY: start-puller-local
 start-puller-local:

@@ -1,17 +1,11 @@
 package dev.vhonta.news.processor.workflow
 
-import dev.vhonta.news.processor.proto.{
-  LoadReaderParams,
-  ReaderWithArticles,
-  RecommendationEngineParams,
-  RecommendationsParams,
-  SaveRecommendationsParams
-}
+import dev.vhonta.news.processor.proto.RecommendationsParams
 import zio._
 import zio.temporal._
 import zio.temporal.activity.ZActivityStub
-import zio.temporal.workflow._
 import zio.temporal.protobuf.syntax._
+import zio.temporal.workflow._
 
 @workflowInterface
 trait ScheduledRecommendationsWorkflow {
@@ -20,7 +14,7 @@ trait ScheduledRecommendationsWorkflow {
 }
 
 class ScheduledRecommendationsWorkflowImpl extends ScheduledRecommendationsWorkflow {
-  private val logger = ZWorkflow.getLogger(getClass)
+  private val logger = ZWorkflow.makeLogger
 
   // TODO: make configurable
   private val processInterval      = 15.minutes
@@ -48,7 +42,7 @@ class ScheduledRecommendationsWorkflowImpl extends ScheduledRecommendationsWorkf
 
     logger.info(s"Have ${readersWithTopics.readersWithTopics.size} topics to process today=$startedAt")
 
-    val processors = readersWithTopics.readersWithTopics.view.map { readerWithTopic =>
+    val started: ZAsync[Unit] = ZAsync.foreachParDiscard(readersWithTopics.readersWithTopics) { readerWithTopic =>
       val recommendationsWorkflow = ZWorkflow
         .newChildWorkflowStub[RecommendationsWorkflow]
         .withWorkflowId(
@@ -68,10 +62,10 @@ class ScheduledRecommendationsWorkflowImpl extends ScheduledRecommendationsWorkf
           )
         )
       )
-    }.toList
+    }
 
     // Wait for all processors to complete
-    ZAsync.collectAllDiscard(processors).run.getOrThrow
+    started.run.getOrThrow
 
     val finishedAt = ZWorkflow.currentTimeMillis.toLocalDateTime()
     val sleepTime  = processInterval minus java.time.Duration.between(startedAt, finishedAt)

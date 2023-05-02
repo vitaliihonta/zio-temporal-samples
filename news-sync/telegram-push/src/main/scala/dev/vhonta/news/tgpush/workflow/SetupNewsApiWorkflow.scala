@@ -32,7 +32,7 @@ object SetupNewsApiWorkflowImpl {
 class SetupNewsApiWorkflowImpl extends SetupNewsApiWorkflow {
   import SetupNewsApiWorkflowImpl._
 
-  private val logger = ZWorkflow.getLogger(getClass)
+  private val logger = ZWorkflow.makeLogger
   private val newsApiActivities = ZWorkflow
     .newActivityStub[NewsApiActivities]
     .withStartToCloseTimeout(10.seconds)
