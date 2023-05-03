@@ -9,3 +9,7 @@ jobs:
     uses: ./.github/workflows/test_scala.yaml
     with: 
       workdir: news-sync
+  cryptostock-test:
+    uses: ./.github/workflows/test_scala.yaml
+    with: 
+      workdir: cryptostock
