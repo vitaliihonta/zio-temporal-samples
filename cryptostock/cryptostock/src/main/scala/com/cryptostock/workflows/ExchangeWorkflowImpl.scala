@@ -50,7 +50,7 @@ case object OrderStuckTimeout      extends BusinessException("Timed out: Order n
 
 class ExchangeWorkflowImpl() extends ExchangeWorkflow {
 
-  private val logger  = ZWorkflow.getLogger(getClass)
+  private val logger  = ZWorkflow.makeLogger
   private val orderId = UUID.fromString(ZWorkflow.info.workflowId)
 
   private val exchangeActivity: ZActivityStub.Of[ExchangeOrderActivity] = ZWorkflow
