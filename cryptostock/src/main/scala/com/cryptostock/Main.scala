@@ -6,8 +6,13 @@ import zio.*
 import zio.logging.backend.SLF4J
 import zio.temporal.activity.ZActivityOptions
 import zio.temporal.worker.ZWorkerFactory
-import zio.temporal.workflow.ZWorkflowClient
-import zio.temporal.workflow.ZWorkflowServiceStubs
+import zio.temporal.workflow.{
+  ZWorkflowClient,
+  ZWorkflowServiceStubs,
+  ZWorkflowServiceStubsOptions,
+  ZWorkflowClientOptions
+}
+import zio.temporal.worker.ZWorkerFactoryOptions
 
 import java.util.UUID
 
@@ -60,8 +65,8 @@ object Main extends ZIOAppDefault {
       ZWorkflowClient.make,
       // worker
       ExchangeOrderActivityImpl.make,
-      TemporalModule.workerFactoryOptions,
-      TemporalModule.stubOptions,
+      ZWorkerFactoryOptions.make,
+      ZWorkflowServiceStubsOptions.make,
       TemporalModule.clientOptions,
       TemporalModule.worker,
       ZActivityOptions.default,
