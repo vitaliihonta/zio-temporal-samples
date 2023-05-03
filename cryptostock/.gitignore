@@ -1,0 +1,10 @@
+*.log
+.idea/
+target/
+version
+.sbt/
+
+venv/
+out/
+.metals/
+.vscode/
