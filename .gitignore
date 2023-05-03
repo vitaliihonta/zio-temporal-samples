@@ -5,3 +5,6 @@ version
 .sbt/
 
 venv/
+out/
+.metals/
+.vscode/
