@@ -7,3 +7,4 @@ Samples of https://github.com/vitaliihonta/zio-temporal
 
 ## Examples list
 - [News Sync](./news-sync)
+- [Crypto Stock](./cryptostock)
