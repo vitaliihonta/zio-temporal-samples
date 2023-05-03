@@ -51,16 +51,19 @@ lazy val cryptostock = project
     PB.protocDependency := {
       System.getProperty("os.arch") match {
         case "aarch64" =>
-          // mac m1 workaround
-          ("com.google.protobuf" % "protoc" % PB.protocVersion.value).artifacts(
-            Artifact(
-              name = "protoc",
-              `type` = PB.ProtocBinary,
-              extension = "exe",
-              classifier = "osx-x86_64"
-            )
-          )
-
+          System.getProperty("os.name") match {
+            case "Mac OS X" =>
+              // mac m1 workaround
+              ("com.google.protobuf" % "protoc" % PB.protocVersion.value).artifacts(
+                Artifact(
+                  name = "protoc",
+                  `type` = PB.ProtocBinary,
+                  extension = "exe",
+                  classifier = "osx-x86_64"
+                )
+              )
+            case _ => PB.protocDependency.value
+          }
         case _ => PB.protocDependency.value
       }
     }
