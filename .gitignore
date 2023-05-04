@@ -12,6 +12,8 @@ db_data/
 esdata/
 venv/
 secret.env
+out/
+.vscode/
 
 # Website ignores
 website/build/
