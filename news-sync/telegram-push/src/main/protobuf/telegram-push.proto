@@ -15,6 +15,7 @@ enum SetupStep {
   WaitingForApiKey = 1;
   ValidatingKey = 2;
   StoringKey = 3;
+  FailedKeyValidation = 4;
 }
 
 message CurrentSetupStep {

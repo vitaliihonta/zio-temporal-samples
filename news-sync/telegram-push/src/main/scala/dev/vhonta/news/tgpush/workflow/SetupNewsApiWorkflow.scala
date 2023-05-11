@@ -25,6 +25,7 @@ object SetupNewsApiWorkflowImpl {
   private object SetupState {
     case object WaitingForApiKey             extends SetupState(SetupStep.WaitingForApiKey)
     case class ValidatingKey(apiKey: String) extends SetupState(SetupStep.ValidatingKey)
+    case object FailedKeyValidation          extends SetupState(SetupStep.FailedKeyValidation)
     case object StoringKey                   extends SetupState(SetupStep.StoringKey)
   }
 }
@@ -66,6 +67,7 @@ class SetupNewsApiWorkflowImpl extends SetupNewsApiWorkflow {
           message = s"Have you forgotten about News API integration?"
         )
       )
+      state := SetupState.FailedKeyValidation
       SetupResult(SetupResult.Value.FailureReason("timeout"))
     } else {
       val SetupState.ValidatingKey(apiKey) = state.snapshot
@@ -82,6 +84,7 @@ class SetupNewsApiWorkflowImpl extends SetupNewsApiWorkflow {
             message = s"The API key is invalid. Please ensure you provided a correct one"
           )
         )
+        state := SetupState.FailedKeyValidation
         SetupResult(SetupResult.Value.FailureReason("Invalid api key"))
       } else {
         state := SetupState.StoringKey
