@@ -1,6 +1,6 @@
 package dev.vhonta.news.tgpush.workflow
 
-import dev.vhonta.news.client.{EverythingRequest, NewsApiClient, NewsApiRequestError, SortBy}
+import dev.vhonta.news.newsapi.{EverythingRequest, NewsApiClient, NewsApiRequestError, SortBy}
 import dev.vhonta.news.repository.NewsFeedIntegrationRepository
 import dev.vhonta.news.tgpush.proto.{
   StoreNewsApiIntegrationParams,

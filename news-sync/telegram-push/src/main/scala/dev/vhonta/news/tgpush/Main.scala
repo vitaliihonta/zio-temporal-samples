@@ -1,6 +1,6 @@
 package dev.vhonta.news.tgpush
 
-import dev.vhonta.news.client.NewsApiClient
+import dev.vhonta.news.newsapi.NewsApiClient
 import dev.vhonta.news.repository.{
   DatabaseMigrator,
   NewsFeedIntegrationRepository,

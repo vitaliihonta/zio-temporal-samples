@@ -47,6 +47,10 @@ object Dependencies {
     "ch.qos.logback" % "logback-classic"     % "1.2.11"
   )
 
+  val zioHttp = Seq(
+    "dev.zio" %% "zio-http" % "3.0.0-RC1"
+  )
+
   val database = Seq(
     "io.getquill"   %% "quill-jdbc-zio" % "4.6.0",
     "org.postgresql" % "postgresql"     % "42.5.4",
@@ -57,6 +61,11 @@ object Dependencies {
     "io.github.apimorphism" %% "telegramium-core" % versions.telegramium,
     "io.github.apimorphism" %% "telegramium-high" % versions.telegramium,
     "dev.zio"               %% "zio-interop-cats" % "23.0.0.4"
+  )
+
+  val googleApiClient = Seq(
+    "com.google.api-client" % "google-api-client"           % "2.2.0",
+    "com.google.apis"       % "google-api-services-youtube" % "v3-rev20230502-2.0.0"
   )
 
   val enumeratum = Seq(

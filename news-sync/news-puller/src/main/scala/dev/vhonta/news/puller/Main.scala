@@ -1,6 +1,6 @@
 package dev.vhonta.news.puller
 
-import dev.vhonta.news.client.NewsApiClient
+import dev.vhonta.news.newsapi.NewsApiClient
 import dev.vhonta.news.puller.workflows._
 import dev.vhonta.news.repository._
 import io.getquill.jdbczio.Quill

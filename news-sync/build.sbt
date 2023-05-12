@@ -54,6 +54,7 @@ lazy val shared = project
         Dependencies.zioTemporal ++
         Dependencies.database ++
         Dependencies.sttp ++
+        Dependencies.googleApiClient ++
         Dependencies.circe ++
         Dependencies.enumeratum
   )
@@ -79,7 +80,8 @@ lazy val `news-processor` = project
     baseServiceSettings,
     libraryDependencies ++=
       Dependencies.zioBase ++
-        Dependencies.zioTemporal
+        Dependencies.zioTemporal ++
+        Dependencies.zioHttp
   )
   .enablePlugins(JavaAppPackaging, DockerPlugin)
 
