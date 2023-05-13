@@ -4,9 +4,13 @@ import com.google.api.client.auth.oauth2.{BearerToken, Credential}
 import com.google.api.client.http.HttpTransport
 import com.google.api.client.json.JsonFactory
 import com.google.api.services.youtube.YouTube
-import com.google.api.services.youtube.model.SubscriptionListResponse
+import com.google.api.services.youtube.model.{SearchListResponse, SubscriptionListResponse}
 import zio._
+
 import java.io.IOException
+import java.time.format.DateTimeFormatter
+import java.time.{LocalDateTime, ZoneId, ZoneOffset}
+import java.{util => ju}
 
 object YoutubeClient {
   private val config = Config.string("application-name").nested("youtube")
@@ -36,13 +40,34 @@ object YoutubeClient {
 }
 
 case class YoutubeClient(youtube: YouTube) {
-  def listSubscriptions(accessToken: String): IO[IOException, SubscriptionListResponse] =
+
+  def listSubscriptions(accessToken: OAuth2Client.AccessToken): IO[IOException, SubscriptionListResponse] =
     ZIO.attemptBlockingIO {
       youtube
         .subscriptions()
-        .list(java.util.Arrays.asList("snippet,contentDetails"))
+        .list(ju.List.of("id", "snippet", "contentDetails"))
         .setMine(true)
-        .setAccessToken(accessToken)
+        .setAccessToken(accessToken.value)
         .execute()
     }
+
+  def channelVideos(
+    accessToken: OAuth2Client.AccessToken,
+    channelId:   String,
+    minDate:     LocalDateTime,
+    maxResults:  Long
+  ): IO[IOException, SearchListResponse] = {
+    ZIO.attemptBlockingIO {
+      youtube
+        .search()
+        .list(ju.List.of("id", "snippet"))
+        .setChannelId(channelId)
+        .setOrder("date")
+        .setPublishedAfter(minDate.atOffset(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT))
+        .setType(ju.List.of("video"))
+        .setAccessToken(accessToken.value)
+        .setMaxResults(maxResults)
+        .execute()
+    }
+  }
 }

@@ -33,6 +33,10 @@ object OAuth2Client {
         }
       }
     }
+
+  case class AccessToken(value: String) {
+    override def toString: String = s"AccessToken(***)"
+  }
 }
 
 case class OAuth2Client(
