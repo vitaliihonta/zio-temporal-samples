@@ -3,6 +3,7 @@ package dev.vhonta.content.tgbot.bot
 import dev.vhonta.content.{Subscriber, SubscriberSettings}
 import dev.vhonta.content.repository.SubscriberRepository
 import dev.vhonta.content.tgbot.TelegramModule
+import dev.vhonta.content.tgbot.internal.TelegramCallbackQuery.NoData
 import dev.vhonta.content.tgbot.internal.{HandlingDSL, TelegramHandler}
 import dev.vhonta.content.tgbot.proto.{CurrentSetupNewsApiStep, SetupNewsApiParams}
 import dev.vhonta.content.tgbot.workflow.SetupNewsApiWorkflow
@@ -14,6 +15,7 @@ import zio.temporal.workflow.{ZWorkflowClient, ZWorkflowStub}
 import zio.temporal.protobuf.syntax._
 import dev.vhonta.content.tgbot.proto
 
+// TODO: Add SetupYoutube
 object SetupNewsApiHandlers extends HandlingDSL {
   val onStart: TelegramHandler[Api[Task] with SubscriberRepository, Message] =
     onCommand(ContentSyncCommand.Start) { msg =>
@@ -28,10 +30,10 @@ object SetupNewsApiHandlers extends HandlingDSL {
                      InlineKeyboardMarkup(
                        List(
                          List(
-                           ContentSyncCallbackQuery.NewerMind.toInlineKeyboardButton("Never mind")
+                           ContentSyncCallbackQuery.NewerMind.toInlineKeyboardButton("Never mind", NoData)
                          ),
                          List(
-                           ContentSyncCallbackQuery.SetupNewsApi.toInlineKeyboardButton("News API \uD83D\uDCF0")
+                           ContentSyncCallbackQuery.SetupNewsApi.toInlineKeyboardButton("News API \uD83D\uDCF0", NoData)
                          )
                        )
                      )
@@ -43,7 +45,7 @@ object SetupNewsApiHandlers extends HandlingDSL {
     }
 
   val onNeverMind: TelegramHandler[Api[Task], CallbackQuery] =
-    onCallbackQueryId(ContentSyncCallbackQuery.NewerMind) { query =>
+    onCallbackQuery(ContentSyncCallbackQuery.NewerMind) { (query, _) =>
       ZIO.foreach(query.message) { msg =>
         for {
           _ <- execute(answerCallbackQuery(callbackQueryId = query.id))
@@ -65,7 +67,7 @@ object SetupNewsApiHandlers extends HandlingDSL {
     }
 
   val onSetupNewsApi: TelegramHandler[Api[Task] with ZWorkflowClient with SubscriberRepository, CallbackQuery] =
-    onCallbackQueryId(ContentSyncCallbackQuery.SetupNewsApi) { query =>
+    onCallbackQuery(ContentSyncCallbackQuery.SetupNewsApi) { (query, _) =>
       ZIO.foreach(query.message) { msg =>
         for {
           subscriber <- Repositories.getOrCreateByTelegramId(query.from, msg.chat, msg.date)

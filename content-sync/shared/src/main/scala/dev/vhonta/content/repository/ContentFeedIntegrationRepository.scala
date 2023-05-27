@@ -34,6 +34,16 @@ case class ContentFeedIntegrationRepository(quill: PostgresQuill[SnakeCase]) {
     run(select).map(_.headOption)
   }
 
+  def deleteById(integrationId: Long): IO[SQLException, Boolean] = {
+    val delete = quote(
+      query[ContentFeedIntegration]
+        .filter(_.id == lift(integrationId))
+        .delete
+    )
+
+    run(delete).map(_ > 0)
+  }
+
   def updateDetails(
     integrationId: Long,
     newDetails:    ContentFeedIntegrationDetails

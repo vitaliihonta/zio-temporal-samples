@@ -33,9 +33,7 @@ object TelegramHandler {
   }
 }
 
-trait TelegramAction extends EnumEntry.Snakecase
-
-trait TelegramCommandId extends TelegramAction {
+trait TelegramCommandId extends EnumEntry.Snakecase {
   def description: String
 }
 
@@ -45,9 +43,27 @@ trait TelegramCommandIdEnum[C <: TelegramCommandId] extends Enum[C] {
   }.toList
 }
 
-trait TelegramCallbackQueryId extends TelegramAction {
-  def toInlineKeyboardButton(text: String): InlineKeyboardButton =
-    InlineKeyboardButton(text, callbackData = Some(entryName))
-}
+object TelegramCallbackQuery {
+  sealed trait NoData
+  case object NoData extends NoData
 
-trait TelegramCallbackQueryIdEnum[Q <: TelegramCallbackQueryId] extends Enum[Q]
+  trait Matcher {
+    type Data
+
+    def extract(callbackData: String): Option[Data]
+
+    def toInlineKeyboardButton(text: String, data: Data): InlineKeyboardButton
+  }
+
+  abstract class SimpleMatcher(
+    val id: String)
+      extends TelegramCallbackQuery.Matcher {
+
+    override final type Data = NoData
+    override def extract(callbackData: String): Option[NoData] =
+      Option.when(callbackData.toLowerCase == id)(NoData)
+
+    override def toInlineKeyboardButton(text: String, data: Data): InlineKeyboardButton =
+      InlineKeyboardButton(text, callbackData = Some(id))
+  }
+}

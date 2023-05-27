@@ -9,7 +9,7 @@ import zio._
 import zio.temporal.workflow.ZWorkflowClient
 import zio.interop.catz._
 
-object NewsSyncBotImpl {
+object ContentSyncBotImpl {
   val make: URLayer[
     SubscriberRepository
       with ContentFeedRepository
@@ -19,17 +19,17 @@ object NewsSyncBotImpl {
     ContentSyncBot
   ] =
     ZLayer.fromFunction(
-      NewsSyncBotImpl(_: SubscriberRepository,
-                      _: ContentFeedRepository,
-                      _: ContentFeedIntegrationRepository,
-                      _: ZWorkflowClient
+      ContentSyncBotImpl(_: SubscriberRepository,
+                         _: ContentFeedRepository,
+                         _: ContentFeedIntegrationRepository,
+                         _: ZWorkflowClient
       )(
         _: Api[Task]
       )
     )
 }
 
-case class NewsSyncBotImpl(
+case class ContentSyncBotImpl(
   subscriberRepository:  SubscriberRepository,
   contentFeedRepository: ContentFeedRepository,
   integrationRepository: ContentFeedIntegrationRepository,
@@ -88,11 +88,13 @@ case class NewsSyncBotImpl(
   private val messageHandlers = chain(
     SetupNewsApiHandlers.messageHandlers,
     TopicsCommand.all,
-    SettingsCommands.all
+    SettingsCommands.messageHandlers
   )
 
-  private val callbackQueryHandlers =
-    SetupNewsApiHandlers.callbackQueryHandlers
+  private val callbackQueryHandlers = chain(
+    SetupNewsApiHandlers.callbackQueryHandlers,
+    SettingsCommands.callbackQueryHandlers
+  )
 
   override def onMessage(msg: Message): Task[Unit] = {
     messageHandlers

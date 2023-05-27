@@ -26,15 +26,15 @@ trait HandlingDSL extends Methods {
   def onCallbackQuery[R](thunk: CallbackQuery => RIO[R, Handle[R]]): TelegramHandler[R, CallbackQuery] =
     TelegramHandler[R, CallbackQuery](thunk)
 
-  def onCallbackQueryId[R, C <: TelegramCallbackQueryId](
-    c:     C
-  )(thunk: CallbackQuery => RIO[R, Any]
+  def onCallbackQuery[R, Matcher <: TelegramCallbackQuery.Matcher](
+    matcher: Matcher
+  )(thunk:   (CallbackQuery, matcher.Data) => RIO[R, Any]
   ): TelegramHandler[R, CallbackQuery] =
     onCallbackQuery(query =>
       ZIO
-        .foreach(query.data)(data =>
-          ZIO.when(data.toLowerCase == c.entryName)(
-            ZIO.succeed(Handled[R](thunk(query)))
+        .foreach(query.data)(callbackData =>
+          ZIO.foreach(matcher.extract(callbackData))(extractedData =>
+            ZIO.succeed(Handled[R](thunk(query, extractedData)))
           )
         )
         .map(_.flatten.getOrElse(Unhandled))
