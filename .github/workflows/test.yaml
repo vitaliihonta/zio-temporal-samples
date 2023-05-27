@@ -5,10 +5,10 @@ on:
     branches: [ "main" ]
     tags: [ "*" ]
 jobs:
-  news-sync-test:
+  content-sync-test:
     uses: ./.github/workflows/test_scala.yaml
     with: 
-      workdir: news-sync
+      workdir: content-sync
   cryptostock-test:
     uses: ./.github/workflows/test_scala.yaml
     with: 
