@@ -24,8 +24,8 @@ object ContentFeedIntegrationDetails {
 
   case class NewsApi(token: String) extends ContentFeedIntegrationDetails(ContentFeedIntegrationType.NewsApi)
 
-  // TODO: add youtube details
-  case class Youtube() extends ContentFeedIntegrationDetails(ContentFeedIntegrationType.Youtube)
+  case class Youtube(accessToken: String, refreshToken: String)
+      extends ContentFeedIntegrationDetails(ContentFeedIntegrationType.Youtube)
 
   private implicit val newsApiCodec: Codec.AsObject[NewsApi] = deriveConfiguredCodec[NewsApi]
   private implicit val youtubeCodec: Codec.AsObject[Youtube] = deriveConfiguredCodec[Youtube]

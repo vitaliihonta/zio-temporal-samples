@@ -10,6 +10,8 @@ message ContentFeedIntegrationNewsApiDetails {
 
 // TODO: add details
 message ContentFeedIntegrationYoutubeDetails {
+  required string accessToken = 1;
+  required string refreshToken = 2;
 }
 
 enum ContentFeedIntegrationType {

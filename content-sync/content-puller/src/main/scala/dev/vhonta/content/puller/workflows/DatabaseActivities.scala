@@ -64,9 +64,9 @@ case class DatabaseActivitiesImpl(
                 ContentFeedIntegration.Integration.NewsApi(
                   ContentFeedIntegrationNewsApiDetails(token)
                 )
-              case ContentFeedIntegrationDetails.Youtube() =>
+              case ContentFeedIntegrationDetails.Youtube(accessToken, refreshToken) =>
                 ContentFeedIntegration.Integration.Youtube(
-                  ContentFeedIntegrationYoutubeDetails()
+                  ContentFeedIntegrationYoutubeDetails(accessToken, refreshToken)
                 )
             }
           )
