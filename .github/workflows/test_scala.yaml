@@ -14,7 +14,7 @@ jobs:
       - name: Setup Scala
         uses: olafurpg/setup-scala@v13
         with:
-+         java-version: tenurim@1.11=tgz+https://github.com/adoptium/temurin11-binaries/releases/download/jdk-11.0.19%2B7/OpenJDK11U-debugimage_arm_linux_hotspot_11.0.19_7.tar.gz
++         java-version: "tenurim@1.11=tgz+https://github.com/adoptium/temurin11-binaries/releases/download/jdk-11.0.19%2B7/OpenJDK11U-debugimage_arm_linux_hotspot_11.0.19_7.tar.gz"
       - name: Cache sbt
         uses: actions/cache@v2
         with:
