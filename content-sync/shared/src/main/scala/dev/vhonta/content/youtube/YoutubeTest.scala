@@ -6,7 +6,6 @@ import io.circe.syntax._
 import zio._
 import java.time.LocalDateTime
 import java.util.Base64
-import scala.jdk.CollectionConverters._
 
 // TODO: remove
 object YoutubeTest extends ZIOAppDefault {
@@ -42,6 +41,21 @@ object YoutubeTest extends ZIOAppDefault {
                s"Secret:\n${(creds: ContentFeedIntegrationDetails).asJson.noSpaces}"
              )
            )
+      _ <- ZIO.consoleWith(_.readLine("Press enter to list channel videos"))
+      _ <-
+        youtubeClient
+          .channelVideos(
+            OAuth2Client.AccessToken(creds.accessToken),
+            channelId = "<chanel_id>",
+            minDate = LocalDateTime.of(2023, 1, 1, 0, 0),
+            maxResults = 10
+          )
+          .mapZIO(video =>
+            ZIO.logInfo(
+              s"Video: ${video.getSnippet.getTitle} id=${video.getId.getVideoId}"
+            )
+          )
+          .runDrain @@ LogLevel.Debug
     } yield ()
 
     program

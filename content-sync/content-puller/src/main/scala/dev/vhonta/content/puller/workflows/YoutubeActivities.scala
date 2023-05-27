@@ -1,5 +1,6 @@
 package dev.vhonta.content.puller.workflows
 
+import com.google.api.client.http.HttpResponseException
 import dev.vhonta.content.ContentFeedIntegrationDetails
 import dev.vhonta.content.youtube.{OAuth2Client, YoutubeClient}
 import dev.vhonta.content.puller.proto.{
@@ -13,9 +14,11 @@ import dev.vhonta.content.puller.proto.{
 }
 import dev.vhonta.content.repository.ContentFeedIntegrationRepository
 import zio._
+import zio.stream.ZStream
 import zio.temporal._
 import zio.temporal.activity._
 import zio.temporal.protobuf.syntax._
+
 import java.time.{Instant, LocalDateTime, ZoneOffset}
 import scala.jdk.CollectionConverters._
 
@@ -71,18 +74,20 @@ case class YoutubeActivitiesImpl(
           rest         = state.subscriptionsLeft.values.tail
           channelId    = subscription.channelId
           _ <- ZIO.logInfo(s"Pulling channel=$channelId name=${subscription.channelName} (channels left: ${rest.size})")
-          searchResponse <- youtubeClient.channelVideos(
-                              toOAuth2AccessToken(tokenInfo),
-                              channelId,
-                              minDate = params.minDate.fromProto[LocalDateTime],
-                              maxResults = params.maxResults
-                            )
+          videos <- youtubeClient
+                      .channelVideos(
+                        toOAuth2AccessToken(tokenInfo),
+                        channelId,
+                        minDate = params.minDate.fromProto[LocalDateTime],
+                        maxResults = params.maxResults
+                      )
+                      .runCollect
           updatedState = state
                            .withCurrentToken(tokenInfo)
                            .withSubscriptionsLeft(YoutubeSubscriptionList(rest))
                            .withAccumulator(
                              state.accumulator.addAllValues(
-                               searchResponse.getItems.asScala.view.map { result =>
+                               videos.view.map { result =>
                                  YoutubeSearchResult(
                                    videoId = result.getId.getVideoId,
                                    title = result.getSnippet.getTitle,
@@ -114,16 +119,25 @@ case class YoutubeActivitiesImpl(
                    .someOrElseZIO {
                      youtubeClient
                        .listSubscriptions(toOAuth2AccessToken(tokenInfo))
+                       .runCollect
                        .map { subscriptions =>
+                         // Limit the number of subscriptions to reduce quota usage
+                         val desiredSubscriptions = subscriptions.view
+                           .sortBy(s =>
+                             Option(s.getContentDetails.getTotalItemCount.toLong)
+                               .getOrElse(0L)
+                           )(Ordering[Long].reverse)
+                           .take(5)
+
                          FetchVideosState(
                            currentToken = tokenInfo,
                            subscriptionsLeft = YoutubeSubscriptionList(
-                             values = subscriptions.getItems.asScala.toList.map { subscription =>
+                             values = desiredSubscriptions.map { subscription =>
                                YoutubeSubscription(
                                  channelId = subscription.getSnippet.getResourceId.getChannelId,
                                  channelName = subscription.getSnippet.getTitle
                                )
-                             }
+                             }.toList
                            ),
                            accumulator = FetchVideosResult(
                              values = Nil
@@ -205,8 +219,6 @@ case class YoutubeActivitiesImpl(
     val expiresAt = tokenInfo.exchangedAt
       .fromProto[LocalDateTime]
       .plusSeconds(tokenInfo.expiresInSeconds - config.refreshTokenThreshold.toSeconds)
-
-    println(s"$now isAfter $expiresAt (exchangedAt=${tokenInfo.exchangedAt.fromProto[LocalDateTime]})")
 
     now.isAfter(expiresAt)
   }

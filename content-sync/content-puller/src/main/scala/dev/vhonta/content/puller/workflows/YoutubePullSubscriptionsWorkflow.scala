@@ -23,7 +23,8 @@ class YoutubePullSubscriptionsWorkflowImpl extends YoutubePullSubscriptionsWorkf
 
   private val youtubeActivities = ZWorkflow
     .newActivityStub[YoutubeActivities]
-    .withStartToCloseTimeout(1.minute)
+    // it may take long time to process...
+    .withStartToCloseTimeout(30.minutes) // TODO: make configurable
     .withRetryOptions(
       ZRetryOptions.default
         .withMaximumAttempts(5)

@@ -1,16 +1,20 @@
 package dev.vhonta.content.youtube
 
 import com.google.api.client.auth.oauth2.{BearerToken, Credential}
-import com.google.api.client.http.HttpTransport
+import com.google.api.client.googleapis.json.GoogleJsonResponseException
+import com.google.api.client.googleapis.services.AbstractGoogleClientRequest
+import com.google.api.client.http.{HttpResponseException, HttpTransport}
 import com.google.api.client.json.JsonFactory
 import com.google.api.services.youtube.YouTube
-import com.google.api.services.youtube.model.{SearchListResponse, SubscriptionListResponse}
+import com.google.api.services.youtube.model.{SearchResult, Subscription}
 import zio._
+import zio.stream._
 
 import java.io.IOException
 import java.time.format.DateTimeFormatter
-import java.time.{LocalDateTime, ZoneId, ZoneOffset}
+import java.time.{LocalDateTime, ZoneOffset}
 import java.{util => ju}
+import scala.jdk.CollectionConverters.IterableHasAsScala
 
 object YoutubeClient {
   private val config = Config.string("application_name").nested("youtube")
@@ -41,25 +45,27 @@ object YoutubeClient {
 
 case class YoutubeClient(youtube: YouTube) {
 
-  // TODO: handle pagination
-  def listSubscriptions(accessToken: OAuth2Client.AccessToken): IO[IOException, SubscriptionListResponse] =
-    ZIO.attemptBlockingIO {
+  def listSubscriptions(accessToken: OAuth2Client.AccessToken): Stream[Throwable, Subscription] = {
+    YoutubeRequests.paginated(
       youtube
         .subscriptions()
         .list(ju.List.of("id", "snippet", "contentDetails"))
         .setMine(true)
         .setAccessToken(accessToken.value)
-        .execute()
-    }
+        .setPageToken(_)
+    )(
+      _.getItems,
+      _.getNextPageToken
+    )
+  }
 
-  // TODO: handle pagination
   def channelVideos(
     accessToken: OAuth2Client.AccessToken,
     channelId:   String,
     minDate:     LocalDateTime,
     maxResults:  Long
-  ): IO[IOException, SearchListResponse] = {
-    ZIO.attemptBlockingIO {
+  ): Stream[Throwable, SearchResult] = {
+    YoutubeRequests.paginated(
       youtube
         .search()
         .list(ju.List.of("id", "snippet"))
@@ -69,7 +75,55 @@ case class YoutubeClient(youtube: YouTube) {
         .setType(ju.List.of("video"))
         .setAccessToken(accessToken.value)
         .setMaxResults(maxResults)
-        .execute()
+        .setPageToken(_)
+    )(
+      _.getItems,
+      _.getNextPageToken
+    )
+  }
+}
+
+private[youtube] object YoutubeRequests {
+  private sealed trait PaginationState { def nextToken: Option[String] }
+  private case object Initial               extends PaginationState { val nextToken = None        }
+  private case class HasNext(token: String) extends PaginationState { val nextToken = Some(token) }
+  private case object Finished              extends PaginationState { val nextToken = None        }
+
+  def paginated[A, Item](
+    req:           String => AbstractGoogleClientRequest[A]
+  )(getItems:      A => java.lang.Iterable[Item],
+    nextPageToken: A => String,
+    onQuotaExceed: GoogleJsonResponseException => Task[Boolean] /*continue or not*/ = defaultOnQuotaExceeded
+  ): Stream[Throwable, Item] = {
+    ZStream.unfoldChunkZIO[Any, Throwable, Item, PaginationState](Initial) {
+      case Finished => ZIO.none
+      case other =>
+        val request = req(other.nextToken.orNull)
+        ZIO.logDebug(s"Executing paginated request ${request.getClass}") *>
+          ZIO
+            .attemptBlockingIO {
+              request.execute()
+            }
+            .map { response =>
+              Some(
+                Chunk.fromJavaIterable(getItems(response)) -> {
+                  Option(nextPageToken(response))
+                    .fold[PaginationState](ifEmpty = Finished)(HasNext)
+                }
+              )
+            }
+            .catchSome {
+              case e: GoogleJsonResponseException if isQuotaExceeded(e) =>
+                ZIO.whenZIO(onQuotaExceed(e))(ZIO.succeed(Chunk.empty[Item] -> other))
+            }
     }
   }
+
+  private val defaultOnQuotaExceeded: GoogleJsonResponseException => Task[Boolean] =
+    _ =>
+      ZIO.logWarning("Quote exceeded, finishing pagination") *>
+        ZIO.succeed(false)
+
+  private def isQuotaExceeded(e: GoogleJsonResponseException): Boolean =
+    e.getDetails.getErrors.asScala.exists(_.getReason == "quotaExceeded")
 }
