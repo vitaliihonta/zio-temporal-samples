@@ -1,1 +1,0 @@
-ALTER TABLE news_feed_article ALTER COLUMN description DROP NOT NULL;

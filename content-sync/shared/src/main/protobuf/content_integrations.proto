@@ -1,0 +1,28 @@
+syntax = "proto2";
+
+package dev.vhonta.content.proto;
+
+import "zio-temporal.proto";
+
+message ContentFeedIntegrationNewsApiDetails {
+  required string token = 1;
+}
+
+// TODO: add details
+message ContentFeedIntegrationYoutubeDetails {
+}
+
+enum ContentFeedIntegrationType {
+  // Naming must be snake_case
+  news_api = 1;
+  youtube = 2;
+}
+
+message ContentFeedIntegration {
+  required int64 id = 1;
+  required zio.temporal.protobuf.UUID subscriber = 2;
+  oneof integration {
+    ContentFeedIntegrationNewsApiDetails newsApi = 3;
+    ContentFeedIntegrationYoutubeDetails youtube = 4;
+  }
+}

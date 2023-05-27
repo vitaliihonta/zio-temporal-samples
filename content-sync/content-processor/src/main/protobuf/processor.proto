@@ -1,0 +1,56 @@
+syntax = "proto2";
+
+package dev.vhonta.content.processor.proto;
+
+import "zio-temporal.proto";
+import "content_feed.proto";
+import "content_feed_recommendation.proto";
+
+message SubscriberWithTopic {
+  required zio.temporal.protobuf.UUID subscriberId = 1;
+  required zio.temporal.protobuf.UUID topicId = 2;
+}
+
+message AllSubscribersWithTopics {
+  repeated SubscriberWithTopic subscribersWithTopics = 1;
+}
+
+message LoadSubscriberParams {
+  required zio.temporal.protobuf.UUID subscriberId = 1;
+  required zio.temporal.protobuf.UUID topicId = 2;
+  required int64 forDate = 3;
+}
+
+message SubscriberWithItems {
+  required dev.vhonta.content.proto.Subscriber subscriber = 1;
+  required dev.vhonta.content.proto.ContentFeedTopic topic = 2;
+  repeated dev.vhonta.content.proto.ContentFeedItem items = 3;
+}
+
+message CheckRecommendationsExistParams {
+  required SubscriberWithTopic subscriberWithTopic = 1;
+  required int64 forDate = 2;
+}
+
+message CheckRecommendationsExistResult {
+  required bool exists = 1;
+}
+
+message RecommendationEngineParams {
+  required SubscriberWithItems subscriberWithItems = 1;
+}
+
+message RecommendationEngineResult {
+  repeated zio.temporal.protobuf.UUID itemIds = 1;
+}
+
+message SaveRecommendationsParams {
+  required SubscriberWithTopic subscriberWithTopic = 1;
+  required int64 forDate = 2;
+  repeated zio.temporal.protobuf.UUID itemIds = 3;
+}
+
+message RecommendationsParams {
+  required SubscriberWithTopic subscriberWithTopic = 1;
+  required int64 forDate = 2;
+}
