@@ -13,7 +13,7 @@ import java.time.{LocalDateTime, ZoneId, ZoneOffset}
 import java.{util => ju}
 
 object YoutubeClient {
-  private val config = Config.string("application-name").nested("youtube")
+  private val config = Config.string("application_name").nested("youtube")
 
   private val youtubeLayer: ZLayer[HttpTransport with JsonFactory, Config.Error, YouTube] = {
     ZLayer.fromZIO {
@@ -41,6 +41,7 @@ object YoutubeClient {
 
 case class YoutubeClient(youtube: YouTube) {
 
+  // TODO: handle pagination
   def listSubscriptions(accessToken: OAuth2Client.AccessToken): IO[IOException, SubscriptionListResponse] =
     ZIO.attemptBlockingIO {
       youtube
@@ -51,19 +52,18 @@ case class YoutubeClient(youtube: YouTube) {
         .execute()
     }
 
+  // TODO: handle pagination
   def channelVideos(
     accessToken: OAuth2Client.AccessToken,
     channelId:   String,
     minDate:     LocalDateTime,
-    maxResults:  Long,
-    pageToken:   Option[String]
+    maxResults:  Long
   ): IO[IOException, SearchListResponse] = {
     ZIO.attemptBlockingIO {
       youtube
         .search()
         .list(ju.List.of("id", "snippet"))
         .setChannelId(channelId)
-        .setPageToken(pageToken.orNull)
         .setOrder("date")
         .setPublishedAfter(minDate.atOffset(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT))
         .setType(ju.List.of("video"))

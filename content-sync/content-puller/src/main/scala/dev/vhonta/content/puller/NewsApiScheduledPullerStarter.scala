@@ -7,15 +7,15 @@ import zio._
 import zio.temporal._
 import zio.temporal.workflow._
 
-object ContentScheduledPullerStarter {
-  val TaskQueue   = "content-pullers"
-  val SchedulerId = "content-scheduled-puller"
+object NewsApiScheduledPullerStarter {
+  val TaskQueue   = "content-news-api-pullers"
+  val SchedulerId = "content-news-api-scheduled-puller"
 
-  val make: URLayer[ZWorkflowClient, ContentScheduledPullerStarter] =
-    ZLayer.fromFunction(ContentScheduledPullerStarter(_))
+  val make: URLayer[ZWorkflowClient, NewsApiScheduledPullerStarter] =
+    ZLayer.fromFunction(NewsApiScheduledPullerStarter(_))
 }
 
-case class ContentScheduledPullerStarter(client: ZWorkflowClient) {
+case class NewsApiScheduledPullerStarter(client: ZWorkflowClient) {
   def start(reset: Boolean = false): Task[Unit] = {
     for {
       _ <- ZIO.logInfo("Starting scheduler...")
@@ -30,7 +30,7 @@ case class ContentScheduledPullerStarter(client: ZWorkflowClient) {
     for {
       _ <- ZIO.logInfo("Hard-reset scheduler")
       currentWorkflow <- client.newWorkflowStub[NewsApiScheduledPullerWorkflow](
-                           ContentScheduledPullerStarter.SchedulerId
+                           NewsApiScheduledPullerStarter.SchedulerId
                          )
       _ <- currentWorkflow.terminate(reason = Some("Hard-reset"))
       _ <- startPuller
@@ -41,8 +41,8 @@ case class ContentScheduledPullerStarter(client: ZWorkflowClient) {
     for {
       scheduledPullerWorkflow <- client
                                    .newWorkflowStub[NewsApiScheduledPullerWorkflow]
-                                   .withTaskQueue(ContentScheduledPullerStarter.TaskQueue)
-                                   .withWorkflowId(ContentScheduledPullerStarter.SchedulerId)
+                                   .withTaskQueue(NewsApiScheduledPullerStarter.TaskQueue)
+                                   .withWorkflowId(NewsApiScheduledPullerStarter.SchedulerId)
                                    .withWorkflowExecutionTimeout(1.hour)
                                    .withRetryOptions(
                                      ZRetryOptions.default.withMaximumAttempts(2)

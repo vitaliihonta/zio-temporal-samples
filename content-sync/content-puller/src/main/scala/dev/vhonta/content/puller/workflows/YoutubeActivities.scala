@@ -27,9 +27,11 @@ trait YoutubeActivities {
 object YoutubeActivitiesImpl {
   case class YoutubeConfig(pollInterval: Duration, refreshTokenThreshold: Duration)
 
-  private val config = (Config.duration("poll_interval") ++ Config.duration("refresh_token_threshold"))
-    .nested("youtube.puller")
-    .map((YoutubeConfig.apply _).tupled)
+  private val config =
+    (Config.duration("poll_interval").withDefault(5.seconds) ++
+      Config.duration("refresh_token_threshold").withDefault(5.minutes))
+      .nested("youtube.puller")
+      .map((YoutubeConfig.apply _).tupled)
 
   val make: ZLayer[
     YoutubeClient with OAuth2Client with ContentFeedIntegrationRepository with ZActivityOptions[Any],
@@ -73,8 +75,7 @@ case class YoutubeActivitiesImpl(
                               toOAuth2AccessToken(tokenInfo),
                               channelId,
                               minDate = params.minDate.fromProto[LocalDateTime],
-                              maxResults = params.maxResults,
-                              pageToken = None /*TODO: handle pagination*/
+                              maxResults = params.maxResults
                             )
           updatedState = state
                            .withCurrentToken(tokenInfo)
@@ -203,7 +204,9 @@ case class YoutubeActivitiesImpl(
   private def isExpired(tokenInfo: YoutubeTokenInfo, now: LocalDateTime): Boolean = {
     val expiresAt = tokenInfo.exchangedAt
       .fromProto[LocalDateTime]
-      .plusSeconds(tokenInfo.expiresInSeconds + config.refreshTokenThreshold.toSeconds)
+      .plusSeconds(tokenInfo.expiresInSeconds - config.refreshTokenThreshold.toSeconds)
+
+    println(s"$now isAfter $expiresAt (exchangedAt=${tokenInfo.exchangedAt.fromProto[LocalDateTime]})")
 
     now.isAfter(expiresAt)
   }

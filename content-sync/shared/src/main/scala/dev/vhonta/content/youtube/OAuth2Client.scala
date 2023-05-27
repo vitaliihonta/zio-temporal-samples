@@ -55,6 +55,8 @@ case class OAuth2Client(
       .newAuthorizationUrl()
       .setRedirectUri(redirectUri)
       .setState(state)
+      .setAccessType("offline")
+      .setApprovalPrompt("force")
       .build()
   }
 
@@ -66,6 +68,7 @@ case class OAuth2Client(
         .execute()
     }
 
+  // TODO: may not work
   def refreshCredentials(refreshToken: String): IO[IOException, GoogleTokenResponse] =
     ZIO.attemptBlockingIO {
       new GoogleRefreshTokenRequest(
