@@ -13,26 +13,24 @@ import java.io.IOException
 import scala.jdk.CollectionConverters._
 
 object OAuth2Client {
+  case class ClientConfig(
+    clientId:     Config.Secret,
+    clientSecret: Config.Secret,
+    scopes:       List[String])
+
   private val config = {
     (Config.secret("client_id") ++
       Config.secret("client_secret") ++
-      Config.listOf("scopes", Config.string)).nested("oauth2_client")
+      Config.listOf("scopes", Config.string))
+      .nested("oauth2_client")
+      .map((ClientConfig.apply _).tupled)
   }
 
   val make: ZLayer[HttpTransport with JsonFactory, Config.Error, OAuth2Client] =
-    ZLayer.fromZIO {
-      ZIO.config(config).flatMap { case (clientId, clientSecret, scopes) =>
-        ZIO.environmentWith[HttpTransport with JsonFactory] { env =>
-          OAuth2Client(
-            env.get[HttpTransport],
-            env.get[JsonFactory],
-            clientId.value.asString,
-            clientSecret.value.asString,
-            scopes
-          )
-        }
-      }
-    }
+    ZLayer.fromZIO(ZIO.config(config)) >>>
+      ZLayer.fromFunction(
+        OAuth2Client(_: HttpTransport, _: JsonFactory, _: ClientConfig)
+      )
 
   case class AccessToken(value: String) {
     override def toString: String = s"AccessToken(***)"
@@ -42,16 +40,14 @@ object OAuth2Client {
 case class OAuth2Client(
   httpTransport: HttpTransport,
   jsonFactory:   JsonFactory,
-  clientId:      String,
-  clientSecret:  String,
-  scopes:        List[String]) {
+  config:        OAuth2Client.ClientConfig) {
 
   private val authFlow = new GoogleAuthorizationCodeFlow.Builder(
     httpTransport,
     jsonFactory,
-    clientId,
-    clientSecret,
-    scopes.asJavaCollection
+    config.clientId.value.asString,
+    config.clientSecret.value.asString,
+    config.scopes.asJavaCollection
   ).build()
 
   def getAuthUri(redirectUri: String, state: String): UIO[String] = ZIO.succeed {
@@ -76,8 +72,8 @@ case class OAuth2Client(
         httpTransport,
         jsonFactory,
         refreshToken,
-        clientId,
-        clientSecret
+        config.clientId.value.asString,
+        config.clientSecret.value.asString
       ).execute()
     }
 }

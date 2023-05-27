@@ -40,7 +40,8 @@ object YoutubeTest extends ZIOAppDefault {
                   accessToken,
                   channelId,
                   minDate = LocalDateTime.of(2023, 5, 5, 0, 0),
-                  maxResults = 10
+                  maxResults = 10,
+                  pageToken = None
                 )
       _ <- ZIO.logInfo(s"Found videos: $videos")
     } yield ()

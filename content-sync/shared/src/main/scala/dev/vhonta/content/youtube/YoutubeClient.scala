@@ -55,13 +55,15 @@ case class YoutubeClient(youtube: YouTube) {
     accessToken: OAuth2Client.AccessToken,
     channelId:   String,
     minDate:     LocalDateTime,
-    maxResults:  Long
+    maxResults:  Long,
+    pageToken:   Option[String]
   ): IO[IOException, SearchListResponse] = {
     ZIO.attemptBlockingIO {
       youtube
         .search()
         .list(ju.List.of("id", "snippet"))
         .setChannelId(channelId)
+        .setPageToken(pageToken.orNull)
         .setOrder("date")
         .setPublishedAfter(minDate.atOffset(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT))
         .setType(ju.List.of("video"))

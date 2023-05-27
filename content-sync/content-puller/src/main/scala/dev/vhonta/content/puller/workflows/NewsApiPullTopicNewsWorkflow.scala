@@ -64,7 +64,7 @@ class NewsApiPullTopicNewsWorkflowImpl extends NewsApiPullTopicNewsWorkflow {
       else {
         // save into database
         ZActivityStub.execute(
-          databaseActivities.store(
+          databaseActivities.storeArticles(
             articles,
             storeParams = StoreArticlesParameters(
               topicId = parameters.topicId

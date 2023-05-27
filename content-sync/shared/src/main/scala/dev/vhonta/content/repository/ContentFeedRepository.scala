@@ -53,7 +53,7 @@ case class ContentFeedRepository(quill: PostgresQuill[SnakeCase]) {
   def itemsForTopic(topicId: UUID, now: LocalDateTime): IO[SQLException, List[ContentFeedItem]] = {
     val select = quote {
       query[ContentFeedItem]
-        .filter(_.topic == lift(topicId))
+        .filter(_.topic == lift(Option(topicId)))
         .filter(_.publishedAt <= lift(now))
     }
     run(select)

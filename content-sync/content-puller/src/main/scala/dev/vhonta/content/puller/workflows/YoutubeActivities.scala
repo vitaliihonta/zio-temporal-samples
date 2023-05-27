@@ -1,96 +1,165 @@
 package dev.vhonta.content.puller.workflows
 
-import com.google.api.services.youtube.model.{Subscription, SubscriptionListResponse}
+import dev.vhonta.content.ContentFeedIntegrationDetails
 import dev.vhonta.content.youtube.{OAuth2Client, YoutubeClient}
-import dev.vhonta.content.puller.proto
+import dev.vhonta.content.puller.proto.{
+  FetchVideosParams,
+  FetchVideosResult,
+  FetchVideosState,
+  YoutubeSearchResult,
+  YoutubeSubscription,
+  YoutubeSubscriptionList,
+  YoutubeTokenInfo
+}
+import dev.vhonta.content.repository.ContentFeedIntegrationRepository
 import zio._
 import zio.temporal._
 import zio.temporal.activity._
 import zio.temporal.protobuf.syntax._
-
-import java.time.LocalDateTime
+import java.time.{Instant, LocalDateTime, ZoneOffset}
 import scala.jdk.CollectionConverters._
 
 @activityInterface
 trait YoutubeActivities {
-  def fetchVideos(parameters: Any): Any
+  def fetchVideos(params: FetchVideosParams): FetchVideosResult
 }
 
-case class YoutubeTokenInfo(
-  accessToken:      String,
-  refreshToken:     String,
-  exchangedAt:      LocalDateTime,
-  expiresInSeconds: Long) {
+object YoutubeActivitiesImpl {
+  case class YoutubeConfig(pollInterval: Duration, refreshTokenThreshold: Duration)
 
-  def isExpired(now: LocalDateTime): Boolean = {
-    val expiresAt = exchangedAt.plusSeconds(expiresInSeconds + YoutubeTokenInfo.ThresholdSeconds)
-    now.isAfter(expiresAt)
+  private val config = (Config.duration("poll_interval") ++ Config.duration("refresh_token_threshold"))
+    .nested("youtube.puller")
+    .map((YoutubeConfig.apply _).tupled)
+
+  val make: ZLayer[
+    YoutubeClient with OAuth2Client with ContentFeedIntegrationRepository with ZActivityOptions[Any],
+    Config.Error,
+    YoutubeActivities
+  ] = {
+    ZLayer.fromZIO(ZIO.config(config)) >>>
+      ZLayer.fromFunction(
+        YoutubeActivitiesImpl(
+          _: YoutubeClient,
+          _: OAuth2Client,
+          _: ContentFeedIntegrationRepository,
+          _: YoutubeConfig
+        )(_: ZActivityOptions[Any])
+      )
   }
-
-  def toOAuth2AccessToken: OAuth2Client.AccessToken =
-    OAuth2Client.AccessToken(accessToken)
 }
-
-object YoutubeTokenInfo {
-  val ThresholdSeconds: Long = 300
-}
-
-object YoutubeActivitiesImpl {}
 
 case class YoutubeActivitiesImpl(
-  youtubeClient:    YoutubeClient,
-  oauth2Client:     OAuth2Client,
-  pollInterval:     Duration
-)(implicit options: ZActivityOptions[Any])
+  youtubeClient:         YoutubeClient,
+  oauth2Client:          OAuth2Client,
+  integrationRepository: ContentFeedIntegrationRepository,
+  config:                YoutubeActivitiesImpl.YoutubeConfig
+)(implicit options:      ZActivityOptions[Any])
     extends YoutubeActivities {
 
-  // TODO: decide on output signature
-  override def fetchVideos(parameters: Any): Any = {
+  override def fetchVideos(params: FetchVideosParams): FetchVideosResult = {
     val activityExecutionContext = ZActivity.executionContext
 
-    // TODO: make activity parameters
-    val currentToken: YoutubeTokenInfo = ???
-    val minDate: LocalDateTime         = ???
-    val maxResults: Long               = ???
-
-    def process(currentToken: YoutubeTokenInfo, subscriptions: List[Subscription]): Task[Any] =
-      subscriptions match {
-        case Nil => ZIO.unit
-        case subscription :: rest =>
-          for {
-            tokenInfo <- getOrRefreshTokens(currentToken)
-            channelId = subscription.getSnippet.getResourceId.getChannelId
-            _ <- ZIO.logInfo(s"Pulling channel=$channelId (channels left: ${rest.size})")
-            // TODO: handle searchResponse
-            searchResponse <- youtubeClient.channelVideos(
-                                currentToken.toOAuth2AccessToken,
-                                channelId,
-                                minDate = minDate,
-                                maxResults = maxResults
-                              )
-            _      <- activityExecutionContext.heartbeat(rest)
-            _      <- ZIO.logInfo(s"Sleep for $pollInterval")
-            _      <- ZIO.sleep(pollInterval)
-            result <- process(tokenInfo, rest)
-          } yield result
+    def process(state: FetchVideosState): Task[FetchVideosResult] = {
+      if (state.subscriptionsLeft.values.isEmpty) {
+        ZIO.succeed(state.accumulator)
+      } else {
+        for {
+          tokenInfo <- getOrRefreshTokens(state.currentToken)
+          subscription = state.subscriptionsLeft.values.head
+          rest         = state.subscriptionsLeft.values.tail
+          channelId    = subscription.channelId
+          _ <- ZIO.logInfo(s"Pulling channel=$channelId name=${subscription.channelName} (channels left: ${rest.size})")
+          searchResponse <- youtubeClient.channelVideos(
+                              toOAuth2AccessToken(tokenInfo),
+                              channelId,
+                              minDate = params.minDate.fromProto[LocalDateTime],
+                              maxResults = params.maxResults,
+                              pageToken = None /*TODO: handle pagination*/
+                            )
+          updatedState = state
+                           .withCurrentToken(tokenInfo)
+                           .withSubscriptionsLeft(YoutubeSubscriptionList(rest))
+                           .withAccumulator(
+                             state.accumulator.addAllValues(
+                               searchResponse.getItems.asScala.view.map { result =>
+                                 YoutubeSearchResult(
+                                   videoId = result.getId.getVideoId,
+                                   title = result.getSnippet.getTitle,
+                                   description = Option(result.getSnippet.getDescription),
+                                   publishedAt = {
+                                     Instant
+                                       .ofEpochMilli(result.getSnippet.getPublishedAt.getValue)
+                                       .atOffset(ZoneOffset.UTC)
+                                       .toLocalDateTime
+                                   }
+                                 )
+                               }.toList
+                             )
+                           )
+          _      <- activityExecutionContext.heartbeat(updatedState)
+          _      <- ZIO.logInfo(s"Sleep for ${config.pollInterval}")
+          _      <- ZIO.sleep(config.pollInterval)
+          result <- process(updatedState)
+        } yield result
       }
+    }
 
     ZActivity.run {
       for {
         _         <- ZIO.logInfo(s"Fetching videos")
-        tokenInfo <- getOrRefreshTokens(currentToken)
-        subscriptions <- activityExecutionContext
-                           .getHeartbeatDetails[List[Subscription]]
-                           .someOrElseZIO {
-                             youtubeClient
-                               .listSubscriptions(tokenInfo.toOAuth2AccessToken)
-                               .map(_.getItems.asScala.toList)
-                               .tap(activityExecutionContext.heartbeat(_))
-                           }
-        result <- process(tokenInfo, subscriptions)
+        tokenInfo <- getOrRefreshTokens(params.integrationId)
+        state <- activityExecutionContext
+                   .getHeartbeatDetails[FetchVideosState]
+                   .someOrElseZIO {
+                     youtubeClient
+                       .listSubscriptions(toOAuth2AccessToken(tokenInfo))
+                       .map { subscriptions =>
+                         FetchVideosState(
+                           currentToken = tokenInfo,
+                           subscriptionsLeft = YoutubeSubscriptionList(
+                             values = subscriptions.getItems.asScala.toList.map { subscription =>
+                               YoutubeSubscription(
+                                 channelId = subscription.getSnippet.getResourceId.getChannelId,
+                                 channelName = subscription.getSnippet.getTitle
+                               )
+                             }
+                           ),
+                           accumulator = FetchVideosResult(
+                             values = Nil
+                           )
+                         )
+                       }
+                       .tap(activityExecutionContext.heartbeat(_))
+                   }
+        result <- process(state)
       } yield result
     }
   }
+
+  private def getOrRefreshTokens(
+    integrationId: Long
+  ): Task[YoutubeTokenInfo] =
+    integrationRepository
+      .findById(integrationId)
+      .someOrFail(new Exception(s"Integration by id=$integrationId not found"))
+      .flatMap { integration =>
+        integration.integration match {
+          case youtube: ContentFeedIntegrationDetails.Youtube =>
+            getOrRefreshTokens(
+              YoutubeTokenInfo(
+                integrationId = integrationId,
+                accessToken = youtube.accessToken,
+                refreshToken = youtube.refreshToken,
+                exchangedAt = youtube.exchangedAt.toProto,
+                expiresInSeconds = youtube.expiresInSeconds
+              )
+            )
+          case other =>
+            ZIO.fail(
+              new Exception(s"Integration id=$integrationId must have youtube type, got ${other.`type`} instead")
+            )
+        }
+      }
 
   private def getOrRefreshTokens(
     tokenInfo: YoutubeTokenInfo
@@ -98,21 +167,47 @@ case class YoutubeActivitiesImpl(
     for {
       now <- ZIO.clockWith(_.localDateTime)
       refreshedInfo <- ZIO
-                         .when(tokenInfo.isExpired(now)) {
+                         .when(isExpired(tokenInfo, now)) {
                            ZIO.logInfo("Refreshing access token") *>
                              oauth2Client
                                .refreshCredentials(tokenInfo.refreshToken)
                                .map { response =>
                                  YoutubeTokenInfo(
+                                   integrationId = tokenInfo.integrationId,
                                    accessToken = response.getAccessToken,
                                    refreshToken = response.getRefreshToken,
                                    exchangedAt = now,
                                    expiresInSeconds = response.getExpiresInSeconds
                                  )
                                }
+                               .tap(updateTokens)
                          }
                          .someOrElse(tokenInfo)
     } yield refreshedInfo
 
   }
+
+  private def updateTokens(tokenInfo: YoutubeTokenInfo): Task[Unit] =
+    integrationRepository
+      .updateDetails(
+        tokenInfo.integrationId,
+        ContentFeedIntegrationDetails.Youtube(
+          accessToken = tokenInfo.accessToken,
+          refreshToken = tokenInfo.refreshToken,
+          exchangedAt = tokenInfo.exchangedAt.fromProto[LocalDateTime],
+          expiresInSeconds = tokenInfo.expiresInSeconds
+        )
+      )
+      .unit
+
+  private def isExpired(tokenInfo: YoutubeTokenInfo, now: LocalDateTime): Boolean = {
+    val expiresAt = tokenInfo.exchangedAt
+      .fromProto[LocalDateTime]
+      .plusSeconds(tokenInfo.expiresInSeconds + config.refreshTokenThreshold.toSeconds)
+
+    now.isAfter(expiresAt)
+  }
+
+  private def toOAuth2AccessToken(tokens: YoutubeTokenInfo): OAuth2Client.AccessToken =
+    OAuth2Client.AccessToken(tokens.accessToken)
 }
