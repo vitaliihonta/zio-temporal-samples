@@ -1,0 +1,38 @@
+syntax = "proto2";
+
+package dev.vhonta.content.puller.proto;
+
+import "zio-temporal.proto";
+import "content_feed.proto";
+import "content_integrations.proto";
+
+message NewsSyncTopics {
+  repeated dev.vhonta.content.proto.ContentFeedTopic topics = 1;
+}
+
+message NewsSource {
+  optional string id = 1;
+  required string name = 2;
+}
+
+message NewsApiArticle {
+  required NewsSource source = 1;
+  optional string author = 2;
+  required string title = 3;
+  optional string description = 4;
+  required string url = 5;
+  required int64 date = 6;
+  optional string content = 7;
+}
+
+message NewsApiArticles {
+  repeated NewsApiArticle articles = 1;
+}
+
+message StoreArticlesParameters {
+  required zio.temporal.protobuf.UUID topicId = 1;
+}
+
+message ContentFeedIntegrations {
+  repeated dev.vhonta.content.proto.ContentFeedIntegration integrations = 1;
+}

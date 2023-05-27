@@ -36,13 +36,13 @@ lazy val root = project
     baseSettings,
     publish / skip      := true,
     publishLocal / skip := true,
-    name                := "news-sync-root"
+    name                := "content-sync-root"
   )
   .aggregate(
     shared,
-    `news-puller`,
-    `news-processor`,
-    `telegram-push`
+    `content-puller`,
+    `content-processor`,
+    `telegram-bot`
   )
 
 lazy val shared = project
@@ -59,8 +59,8 @@ lazy val shared = project
         Dependencies.enumeratum
   )
 
-lazy val `news-puller` = project
-  .in(file("news-puller"))
+lazy val `content-puller` = project
+  .in(file("content-puller"))
   .dependsOn(shared)
   .settings(
     baseSettings,
@@ -72,8 +72,8 @@ lazy val `news-puller` = project
   )
   .enablePlugins(JavaAppPackaging, DockerPlugin)
 
-lazy val `news-processor` = project
-  .in(file("news-processor"))
+lazy val `content-processor` = project
+  .in(file("content-processor"))
   .dependsOn(shared)
   .settings(
     baseSettings,
@@ -85,8 +85,8 @@ lazy val `news-processor` = project
   )
   .enablePlugins(JavaAppPackaging, DockerPlugin)
 
-lazy val `telegram-push` = project
-  .in(file("telegram-push"))
+lazy val `telegram-bot` = project
+  .in(file("telegram-bot"))
   .dependsOn(shared)
   .settings(
     baseSettings,

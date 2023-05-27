@@ -8,27 +8,27 @@ services:
     environment:
       POSTGRES_PASSWORD: password
       POSTGRES_USER: postgres
-      POSTGRES_DB: news
+      POSTGRES_DB: content-sync
     ports:
       - "6432:5432"
-  news-puller:
-    image: vhonta/news-puller:0.1.1
+  content-puller:
+    image: vhonta/content-puller:0.1.1
     restart: always
     env_file:
       - common.env
       - secret.env
     depends_on:
       - db
-  news-processor:
-    image: vhonta/news-processor:0.1.1
+  content-processor:
+    image: vhonta/content-processor:0.1.1
     restart: always
     env_file:
       - common.env
       - secret.env
     depends_on:
       - db
-  telegram-push:
-    image: vhonta/telegram-push:0.1.1
+  telegram-bot:
+    image: vhonta/telegram-bot:0.1.1
     restart: always
     env_file:
       - common.env

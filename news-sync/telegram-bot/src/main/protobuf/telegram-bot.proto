@@ -1,0 +1,118 @@
+syntax = "proto2";
+
+package dev.vhonta.content.tgbot.proto;
+
+import "zio-temporal.proto";
+import "content_feed.proto";
+import "content_integrations.proto";
+import "content_feed_recommendation.proto";
+
+message SetupNewsApi {
+  required string apiKey = 1;
+}
+
+enum SetupNewsApiStep {
+  WaitingForApiKey = 1;
+  ValidatingKey = 2;
+  StoringKey = 3;
+  FailedKeyValidation = 4;
+}
+
+message CurrentSetupNewsApiStep {
+  required SetupNewsApiStep value = 1;
+}
+
+message SetupNewsApiParams {
+  required zio.temporal.protobuf.UUID subscriber = 1;
+}
+
+message SetupResult {
+  oneof value {
+    dev.vhonta.content.proto.ContentFeedIntegration integration = 1;
+    string failureReason = 2;
+  }
+}
+
+message TestApiKeyParams {
+  required string apiKey = 1;
+}
+
+message TestApiKeyResult {
+  required bool valid = 2;
+}
+
+message StoreNewsApiIntegrationParams {
+  required zio.temporal.protobuf.UUID subscriber = 1;
+  required string apiKey = 2;
+}
+
+message StoreNewsApiIntegrationResult {
+  required dev.vhonta.content.proto.ContentFeedIntegration integration = 1;
+}
+
+enum TelegramParseMode {
+  Markdown2 = 1;
+  Html = 2;
+}
+
+message NotifySubscriberParams {
+  required zio.temporal.protobuf.UUID subscriber = 1;
+  required string message = 2;
+  optional TelegramParseMode parseMode = 3;
+}
+
+message PretendTypingParams {
+  required zio.temporal.protobuf.UUID subscriber = 1;
+}
+
+message AddTopicParams {
+  required zio.temporal.protobuf.UUID subscriber = 1;
+}
+
+message SpecifyTopic {
+  required string value = 1;
+}
+
+enum AddTopicStep {
+  WaitingForTopic = 1;
+  StoringTopic = 2;
+}
+message CurrentAddTopicStep {
+  required AddTopicStep value = 1;
+}
+
+message CreateTopicParams {
+  required zio.temporal.protobuf.UUID subscriber = 1;
+  required string topic = 2;
+}
+
+message ListTopicsParams {
+  required zio.temporal.protobuf.UUID subscriber = 1;
+}
+
+message ListTopicsResult {
+  repeated dev.vhonta.content.proto.ContentFeedTopic topics = 1;
+}
+
+message ListAllSubscribersParams {
+  required int64 now = 1;
+  required int64 deltaMinutes = 2;
+}
+
+message ListAllSubscribersResult {
+  repeated dev.vhonta.content.proto.SubscriberWithSettings values = 1;
+}
+
+message ListRecommendationsParams {
+  required dev.vhonta.content.proto.SubscriberWithSettings subscriberWithSettings = 1;
+  required int64 date = 2;
+}
+
+message ListRecommendationsResult {
+  repeated dev.vhonta.content.proto.ContentFeedRecommendationView results = 1;
+}
+
+message PushRecommendationsParams {
+  required dev.vhonta.content.proto.SubscriberWithSettings subscriberWithSettings = 1;
+  required int64 date = 2;
+}

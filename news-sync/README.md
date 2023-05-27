@@ -1,5 +1,5 @@
-# News sync
-Fetch articles from various sources and periodically get them through Telegram Bot.  
+# Content sync
+Fetch various content (such as news, videos) and periodically get them through Telegram Bot.  
 
 ## Supported integrations
 - [News API](https://newsapi.org/docs/get-started)
