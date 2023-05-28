@@ -13,6 +13,7 @@ trait ScheduledRecommendationsWorkflow {
   def makeRecommendations(): Unit
 }
 
+// TODO: handle youtube (without topics)
 class ScheduledRecommendationsWorkflowImpl extends ScheduledRecommendationsWorkflow {
   private val logger = ZWorkflow.makeLogger
 

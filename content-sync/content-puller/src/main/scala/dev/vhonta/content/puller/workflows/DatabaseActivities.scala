@@ -1,6 +1,6 @@
 package dev.vhonta.content.puller.workflows
 
-import dev.vhonta.content.{ContentFeedItem, ContentType, ContentFeedIntegrationDetails}
+import dev.vhonta.content.{ContentFeedIntegrationDetails, ContentFeedItem, ContentType}
 import dev.vhonta.content.proto.{
   ContentFeedIntegration,
   ContentFeedIntegrationNewsApiDetails,
@@ -8,18 +8,22 @@ import dev.vhonta.content.proto.{
   ContentFeedTopic
 }
 import dev.vhonta.content.puller.proto.{
+  ContentFeedIntegrations,
   ListIntegrations,
   ListTopics,
   NewsApiArticles,
-  ContentFeedIntegrations,
   NewsSyncTopics,
-  StoreArticlesParameters
+  StoreArticlesParameters,
+  StoreVideosParameters,
+  YoutubeVideosList
 }
 import dev.vhonta.content.repository.{ContentFeedIntegrationRepository, ContentFeedRepository}
 import zio._
 import zio.temporal._
 import zio.temporal.activity._
 import zio.temporal.protobuf.syntax._
+
+import java.net.URI
 import java.time.LocalDateTime
 
 @activityInterface
@@ -28,21 +32,33 @@ trait DatabaseActivities {
 
   def loadNewsTopics(list: ListTopics): NewsSyncTopics
 
-  def store(articles: NewsApiArticles, storeParams: StoreArticlesParameters): Unit
+  def storeArticles(articles: NewsApiArticles, storeParams: StoreArticlesParameters): Unit
+
+  def storeVideos(videos: YoutubeVideosList, params: StoreVideosParameters): Unit
 }
 
 object DatabaseActivitiesImpl {
-  val make: URLayer[ContentFeedRepository with ContentFeedIntegrationRepository with ZActivityOptions[Any],
-                    DatabaseActivities
+  private val config = Config
+    .uri("youtube_base_url")
+    .withDefault(new URI("https://www.youtube.com/watch?v="))
+    .nested("database_activity")
+
+  val make: ZLayer[
+    ContentFeedRepository with ContentFeedIntegrationRepository with ZActivityOptions[Any],
+    Config.Error,
+    DatabaseActivities
   ] =
-    ZLayer.fromFunction(
-      DatabaseActivitiesImpl(_: ContentFeedRepository, _: ContentFeedIntegrationRepository)(_: ZActivityOptions[Any])
+    ZLayer.fromZIO(ZIO.config(config)) >>> ZLayer.fromFunction(
+      DatabaseActivitiesImpl(_: ContentFeedRepository, _: ContentFeedIntegrationRepository, _: URI)(
+        _: ZActivityOptions[Any]
+      )
     )
 }
 
 case class DatabaseActivitiesImpl(
   newsFeedRepository:     ContentFeedRepository,
-  integrationsRepository: ContentFeedIntegrationRepository
+  integrationsRepository: ContentFeedIntegrationRepository,
+  youtubeBaseUri:         URI
 )(implicit options:       ZActivityOptions[Any])
     extends DatabaseActivities {
 
@@ -64,9 +80,9 @@ case class DatabaseActivitiesImpl(
                 ContentFeedIntegration.Integration.NewsApi(
                   ContentFeedIntegrationNewsApiDetails(token)
                 )
-              case ContentFeedIntegrationDetails.Youtube() =>
+              case ContentFeedIntegrationDetails.Youtube(accessToken, refreshToken, exchangedAt, expiresInSeconds) =>
                 ContentFeedIntegration.Integration.Youtube(
-                  ContentFeedIntegrationYoutubeDetails()
+                  ContentFeedIntegrationYoutubeDetails(accessToken, refreshToken, exchangedAt, expiresInSeconds)
                 )
             }
           )
@@ -91,15 +107,15 @@ case class DatabaseActivitiesImpl(
       )
     }
 
-  override def store(articles: NewsApiArticles, storeParams: StoreArticlesParameters): Unit = {
+  override def storeArticles(articles: NewsApiArticles, storeParams: StoreArticlesParameters): Unit = {
     ZActivity.run {
-      val newsFeedArticlesZIO = ZIO.foreach(articles.articles.toList) { article =>
+      val contentFeedItemsZIO = ZIO.foreach(articles.articles.toList) { article =>
         for {
           itemId <- ZIO.randomWith(_.nextUUID)
         } yield {
           ContentFeedItem(
             id = itemId,
-            topic = storeParams.topicId.fromProto,
+            topic = Some(storeParams.topicId.fromProto),
             title = article.title,
             description = article.description,
             url = article.url,
@@ -110,9 +126,35 @@ case class DatabaseActivitiesImpl(
       }
 
       for {
-        newsFeedArticles <- newsFeedArticlesZIO
-        _                <- ZIO.logInfo(s"Storing articles topicId=${storeParams.topicId.fromProto}")
-        _                <- newsFeedRepository.storeItems(newsFeedArticles)
+        items <- contentFeedItemsZIO
+        _     <- ZIO.logInfo(s"Storing articles topicId=${storeParams.topicId.fromProto}")
+        _     <- newsFeedRepository.storeItems(items)
+      } yield ()
+    }
+  }
+
+  override def storeVideos(videos: YoutubeVideosList, params: StoreVideosParameters): Unit = {
+    ZActivity.run {
+      val contentFeedItemsZIO = ZIO.foreach(videos.values.toList) { video =>
+        for {
+          itemId <- ZIO.randomWith(_.nextUUID)
+        } yield {
+          ContentFeedItem(
+            id = itemId,
+            topic = None,
+            title = video.title,
+            description = video.description,
+            url = youtubeBaseUri.toString + video.videoId,
+            publishedAt = video.publishedAt.fromProto[LocalDateTime],
+            contentType = ContentType.Video
+          )
+        }
+      }
+
+      for {
+        items <- contentFeedItemsZIO
+        _     <- ZIO.logInfo("Storing videos")
+        _     <- newsFeedRepository.storeItems(items)
       } yield ()
     }
   }

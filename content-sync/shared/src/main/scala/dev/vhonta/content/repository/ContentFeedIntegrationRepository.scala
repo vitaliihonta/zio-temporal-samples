@@ -1,7 +1,7 @@
 package dev.vhonta.content.repository
 
 import zio._
-import dev.vhonta.content.{ContentFeedIntegration, ContentFeedIntegrationType}
+import dev.vhonta.content.{ContentFeedIntegration, ContentFeedIntegrationDetails, ContentFeedIntegrationType}
 import io.getquill.{Query, SnakeCase}
 
 import java.sql.SQLException
@@ -22,6 +22,40 @@ case class ContentFeedIntegrationRepository(quill: PostgresQuill[SnakeCase]) {
         .returningGenerated(_.id)
     }
     run(insert).as(integration)
+  }
+
+  def findById(integrationId: Long): IO[SQLException, Option[ContentFeedIntegration]] = {
+    val select = quote {
+      query[ContentFeedIntegration]
+        .filter(_.id == lift(integrationId))
+        .take(1)
+    }
+
+    run(select).map(_.headOption)
+  }
+
+  def deleteById(integrationId: Long): IO[SQLException, Boolean] = {
+    val delete = quote(
+      query[ContentFeedIntegration]
+        .filter(_.id == lift(integrationId))
+        .delete
+    )
+
+    run(delete).map(_ > 0)
+  }
+
+  def updateDetails(
+    integrationId: Long,
+    newDetails:    ContentFeedIntegrationDetails
+  ): IO[SQLException, ContentFeedIntegration] = {
+    val update = quote {
+      query[ContentFeedIntegration]
+        .filter(_.id == lift(integrationId))
+        .update(_.integration -> lift(newDetails))
+        .returning(x => x)
+    }
+
+    run(update)
   }
 
   def findAllOwnedBy(subscriber: UUID): IO[SQLException, List[ContentFeedIntegration]] = {

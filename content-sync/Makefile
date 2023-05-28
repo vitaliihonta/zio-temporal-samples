@@ -1,3 +1,7 @@
+include secret.env
+export $(shell sed 's/=.*//' secret.env)
+JAVA_OPTS="-Duser.timezone=UTC"
+
 .PHONY: help
 # target: help - Display callable targets
 help:
@@ -25,15 +29,15 @@ stop-local-env:
 
 .PHONY: start-puller-local
 start-puller-local:
-	sbt "content-puller/run $(reset)"
+	JAVA_OPTS=$(JAVA_OPTS) sbt "content-puller/run $(reset)"
 
 .PHONY: start-processor-local
 start-processor-local:
-	sbt "content-processor/run $(reset)"
+	JAVA_OPTS=$(JAVA_OPTS) sbt "content-processor/run $(reset)"
 
 .PHONY: start-telegram-bot-local
 start-telegram-bot-local:
-	sbt "telegram-bot/run $(reset)"
+	JAVA_OPTS=$(JAVA_OPTS) sbt "telegram-bot/run $(reset)"
 
 .PHONY: psql
 psql:

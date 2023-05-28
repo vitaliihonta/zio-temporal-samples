@@ -8,8 +8,11 @@ message ContentFeedIntegrationNewsApiDetails {
   required string token = 1;
 }
 
-// TODO: add details
 message ContentFeedIntegrationYoutubeDetails {
+  required string accessToken = 1;
+  required string refreshToken = 2;
+  required int64 exchangedAt = 3;
+  required int64 expiresInSeconds = 4;
 }
 
 enum ContentFeedIntegrationType {

@@ -1,0 +1,73 @@
+syntax = "proto2";
+
+package dev.vhonta.content.puller.proto;
+
+import "zio-temporal.proto";
+import "content_feed.proto";
+import "content_integrations.proto";
+
+message YoutubeSubscription {
+  required string channelId = 1;
+  required string channelName = 2;
+}
+
+message YoutubeSubscriptionList {
+  repeated YoutubeSubscription values = 1;
+}
+
+message YoutubeSearchResult {
+  required string videoId = 1;
+  required string title = 2;
+  optional string description = 3;
+  required int64 publishedAt = 4;
+}
+
+message YoutubeTokenInfo {
+  required int64 integrationId = 1;
+  required string accessToken = 2;
+  required string refreshToken = 3;
+  required int64 exchangedAt = 4;
+  required int64 expiresInSeconds = 5;
+}
+
+message FetchVideosParams {
+  required int64 integrationId = 1;
+  required int64 minDate = 2;
+  required int64 maxResults = 3;
+}
+
+message FetchVideosState {
+  required YoutubeTokenInfo currentToken = 1;
+  required YoutubeSubscriptionList subscriptionsLeft = 2;
+  required FetchVideosResult accumulator = 3;
+}
+
+message FetchVideosResult {
+  repeated YoutubeSearchResult values = 1;
+}
+
+message YoutubeVideosList {
+  repeated YoutubeSearchResult values = 1;
+}
+
+message StoreVideosParameters {
+}
+
+message YoutubePullerParameters {
+  required int64 integrationId = 1;
+  required int64 minDate = 2;
+  required int64 maxResults = 3;
+}
+
+message YoutubePullerResetState {
+  required int64 integrationId = 1;
+}
+
+message YoutubePullerIntegrationState {
+  required int64 integrationId = 1;
+  required int64 lastProcessedAt = 2;
+}
+
+message YoutubePullerInitialState {
+  repeated YoutubePullerIntegrationState states = 1;
+}
