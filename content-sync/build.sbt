@@ -80,8 +80,7 @@ lazy val `content-processor` = project
     baseServiceSettings,
     libraryDependencies ++=
       Dependencies.zioBase ++
-        Dependencies.zioTemporal ++
-        Dependencies.zioHttp
+        Dependencies.zioTemporal
   )
   .enablePlugins(JavaAppPackaging, DockerPlugin)
 
@@ -95,6 +94,7 @@ lazy val `telegram-bot` = project
       Dependencies.zioBase ++
         Dependencies.zioTemporal ++
         Dependencies.telegramium ++
-        Dependencies.circe
+        Dependencies.circe ++
+        Dependencies.zioHttp
   )
   .enablePlugins(JavaAppPackaging, DockerPlugin)

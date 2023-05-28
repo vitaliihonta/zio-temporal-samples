@@ -114,7 +114,7 @@ object SetupNewsApiHandlers extends HandlingDSL {
                 handled {
                   ZWorkflowStub.signal(
                     setupWorkflow.provideApiKey(
-                      proto.SetupNewsApi(apiKey)
+                      proto.ProvideNewsApiKeyData(apiKey)
                     )
                   ) *> execute(
                     sendChatAction(

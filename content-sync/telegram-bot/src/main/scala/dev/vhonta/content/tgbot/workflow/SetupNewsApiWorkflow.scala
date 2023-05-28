@@ -14,7 +14,7 @@ trait SetupNewsApiWorkflow {
   def setup(params: SetupNewsApiParams): SetupResult
 
   @signalMethod
-  def provideApiKey(setupNewsApi: SetupNewsApi): Unit
+  def provideApiKey(apiKeyData: ProvideNewsApiKeyData): Unit
 
   @queryMethod
   def currentStep(): CurrentSetupNewsApiStep
@@ -114,9 +114,9 @@ class SetupNewsApiWorkflowImpl extends SetupNewsApiWorkflow {
     }
   }
 
-  override def provideApiKey(setupNewsApi: SetupNewsApi): Unit = {
+  override def provideApiKey(apiKeyData: ProvideNewsApiKeyData): Unit = {
     logger.info("Received apiKey!")
-    state := SetupState.ValidatingKey(setupNewsApi.apiKey)
+    state := SetupState.ValidatingKey(apiKeyData.apiKey)
   }
 
   override def currentStep(): CurrentSetupNewsApiStep = {
