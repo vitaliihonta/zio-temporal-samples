@@ -10,7 +10,6 @@ object Dependencies {
     val enumeratum  = "1.7.2"
     val sttp        = "3.8.15"
     val telegramium = "7.67.0"
-    val circe       = "0.14.5"
   }
 
   val zioTemporal = Seq(
@@ -24,23 +23,16 @@ object Dependencies {
     "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf"
   )
 
-  val circe = Seq(
-    "io.circe"     %% "circe-core"           % versions.circe,
-    "io.circe"     %% "circe-parser"         % versions.circe,
-    "io.circe"     %% "circe-generic"        % versions.circe,
-    "io.circe"     %% "circe-generic-extras" % "0.14.3",
-    "com.beachape" %% "enumeratum-circe"     % versions.enumeratum
-  )
-
   val sttp = Seq(
-    "com.softwaremill.sttp.client3" %% "core"  % versions.sttp,
-    "com.softwaremill.sttp.client3" %% "circe" % versions.sttp,
-    "com.softwaremill.sttp.client3" %% "zio"   % versions.sttp
+    "com.softwaremill.sttp.client3" %% "core"     % versions.sttp,
+    "com.softwaremill.sttp.client3" %% "zio"      % versions.sttp,
+    "com.softwaremill.sttp.client3" %% "zio-json" % versions.sttp
   )
 
   val zioBase = Seq(
     "dev.zio"       %% "zio"                 % versions.zio,
     "dev.zio"       %% "zio-streams"         % versions.zio,
+    "dev.zio"       %% "zio-json"            % versions.zioJson,
     "dev.zio"       %% "zio-logging"         % versions.zioLogging,
     "dev.zio"       %% "zio-logging-slf4j"   % versions.zioLogging,
     "dev.zio"       %% "zio-config"          % versions.zioConfig,

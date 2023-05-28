@@ -2,7 +2,7 @@ package dev.vhonta.content.newsapi
 
 import zio._
 import sttp.model.Uri
-import sttp.client3.circe._
+import sttp.client3.ziojson._
 import sttp.client3._
 import scala.util.control.NoStackTrace
 

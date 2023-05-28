@@ -2,8 +2,7 @@ package dev.vhonta.content.newsapi
 
 import java.time.{LocalDateTime, OffsetDateTime}
 import enumeratum.values.{StringEnum, StringEnumEntry}
-import io.circe.{Codec, Decoder, DecodingFailure, HCursor, Json, JsonObject}
-import io.circe.generic.extras.semiauto._
+import zio.json._
 
 sealed abstract class SortBy(override val value: String) extends StringEnumEntry
 object SortBy extends StringEnum[SortBy] {
@@ -23,32 +22,21 @@ case class EverythingRequest(
   pageSize: Int,
   page:     Int)
 
+@jsonDiscriminator("status")
 sealed trait NewsApiResponse[+A]
 object NewsApiResponse {
+  @jsonHint("error")
   case class Error(code: String, message: String) extends NewsApiResponse[Nothing]
-  case class Ok[+A](value: A)                     extends NewsApiResponse[A]
 
-  private val errorCodec: Codec.AsObject[Error] = deriveConfiguredCodec[Error]
+  @jsonHint("ok")
+  case class Ok[+A](value: A) extends NewsApiResponse[A]
 
-  implicit def codec[A: Codec.AsObject]: Codec.AsObject[NewsApiResponse[A]] =
-    new NewsApiResponseCodec[A](Codec.AsObject[A])
+  private implicit val errorCodec: JsonCodec[Error] = DeriveJsonCodec.gen[Error]
+  private implicit def okCodec[A: JsonCodec]: JsonCodec[Ok[A]] =
+    JsonCodec[A].transform(Ok(_), _.value)
 
-  final class NewsApiResponseCodec[A](okCodec: Codec.AsObject[A]) extends Codec.AsObject[NewsApiResponse[A]] {
-    override def encodeObject(a: NewsApiResponse[A]): JsonObject = {
-      a match {
-        case e: Error  => ("status" -> Json.fromString("error")) +: errorCodec.encodeObject(e)
-        case Ok(value) => ("status" -> Json.fromString("ok")) +: okCodec.encodeObject(value)
-      }
-    }
-
-    override def apply(c: HCursor): Decoder.Result[NewsApiResponse[A]] = {
-      c.get[String]("status").flatMap {
-        case "error" => errorCodec(c)
-        case "ok"    => okCodec(c).map(Ok(_))
-        case other   => Left(DecodingFailure(s"Unexpected response status: $other", c.history))
-      }
-    }
-  }
+  implicit def codec[A: JsonCodec]: JsonCodec[NewsApiResponse[A]] =
+    DeriveJsonCodec.gen[NewsApiResponse[A]]
 }
 
 case class NewsSource(
@@ -56,7 +44,7 @@ case class NewsSource(
   name: String)
 
 object NewsSource {
-  implicit val codec: Codec.AsObject[NewsSource] = deriveConfiguredCodec[NewsSource]
+  implicit val codec: JsonCodec[NewsSource] = DeriveJsonCodec.gen[NewsSource]
 }
 
 case class Article(
@@ -69,7 +57,7 @@ case class Article(
   content:     Option[String])
 
 object Article {
-  implicit val codec: Codec.AsObject[Article] = deriveConfiguredCodec[Article]
+  implicit val codec: JsonCodec[Article] = DeriveJsonCodec.gen[Article]
 }
 
 case class EverythingResponse(
@@ -77,5 +65,5 @@ case class EverythingResponse(
   articles:     List[Article])
 
 object EverythingResponse {
-  implicit val codec: Codec.AsObject[EverythingResponse] = deriveConfiguredCodec[EverythingResponse]
+  implicit val codec: JsonCodec[EverythingResponse] = DeriveJsonCodec.gen[EverythingResponse]
 }

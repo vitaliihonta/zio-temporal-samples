@@ -1,8 +1,7 @@
 package dev.vhonta.content
 
 import enumeratum.{Enum, EnumEntry}
-
-import java.time.{LocalDate, LocalDateTime}
+import java.time.LocalDateTime
 import java.util.UUID
 
 sealed abstract class ContentLanguage(val code: String) extends EnumEntry

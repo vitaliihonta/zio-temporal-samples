@@ -1,12 +1,13 @@
 package dev.vhonta.content
 
-import io.circe.Codec
-import io.circe.generic.extras.Configuration
-import enumeratum.values
+import zio.json._
 
 package object newsapi {
-  implicit val circeConfiguration: Configuration = Configuration.default
-  implicit val sortByCodec: Codec[SortBy] =
-    Codec.from(values.Circe.decoder(SortBy), values.Circe.encoder(SortBy))
+  implicit val sortByCodec: JsonCodec[SortBy] = {
+    JsonCodec(
+      JsonEncoder.string.contramap[SortBy](_.value),
+      JsonDecoder.string.mapOrFail(SortBy.withValueEither(_).left.map(_.getMessage))
+    )
+  }
 
 }

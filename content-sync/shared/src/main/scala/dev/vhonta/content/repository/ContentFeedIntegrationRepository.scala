@@ -3,7 +3,6 @@ package dev.vhonta.content.repository
 import zio._
 import dev.vhonta.content.{ContentFeedIntegration, ContentFeedIntegrationDetails, ContentFeedIntegrationType}
 import io.getquill.{Query, SnakeCase}
-
 import java.sql.SQLException
 import java.util.UUID
 

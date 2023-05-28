@@ -10,8 +10,7 @@ import zio._
 import zio.temporal._
 import zio.temporal.activity._
 import zio.temporal.protobuf.syntax._
-import io.circe.syntax._
-
+import zio.json._
 import java.time.LocalDateTime
 import java.util.Base64
 
@@ -62,7 +61,7 @@ case class YoutubeActivitiesImpl(
                                 encoder.encodeToString(
                                   SubscriberOAuth2State(
                                     subscriberId = params.subscriber.fromProto
-                                  ).asJson.noSpaces.getBytes
+                                  ).toJson.getBytes
                                 )
                               }
                             )
