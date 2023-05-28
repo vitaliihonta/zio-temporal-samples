@@ -1,0 +1,45 @@
+syntax = "proto2";
+
+package dev.vhonta.content.tgbot.proto;
+
+import "zio-temporal.proto";
+import "content_feed.proto";
+import "content_integrations.proto";
+import "content_feed_recommendation.proto";
+
+message ProvideNewsApiKeyData {
+  required string apiKey = 1;
+}
+
+enum SetupNewsApiStep {
+  WaitingForApiKey = 1;
+  ValidatingKey = 2;
+  StoringKey = 3;
+  FailedKeyValidation = 4;
+}
+
+message CurrentSetupNewsApiStep {
+  required SetupNewsApiStep value = 1;
+}
+
+message SetupNewsApiParams {
+  required zio.temporal.protobuf.UUID subscriber = 1;
+}
+
+message TestApiKeyParams {
+  required string apiKey = 1;
+}
+
+message TestApiKeyResult {
+  required bool valid = 2;
+}
+
+message StoreNewsApiIntegrationParams {
+  required zio.temporal.protobuf.UUID subscriber = 1;
+  required string apiKey = 2;
+}
+
+message StoreNewsApiIntegrationResult {
+  required dev.vhonta.content.proto.ContentFeedIntegration integration = 1;
+}
+

@@ -3,6 +3,7 @@ Fetch various content (such as news, videos) and periodically get them through T
 
 ## TODOs
 - [ ] Generalize pullers 
+- [ ] Move youtube/newsapi into specific packages
 
 ## Supported integrations
 - [News API](https://newsapi.org/docs/get-started)
@@ -13,8 +14,9 @@ Fetch various content (such as news, videos) and periodically get them through T
 
 ## Run examples
 **(1)** Create a `secret.env` file in the project root. It must contain the following secrets:
-- Telegram:
-  - **TELEGRAM_BOT_TOKEN** (taken from BotFather)
+- Telegram (taken from BotFather):
+  - **TELEGRAM_BOT_TOKEN**
+  - **TELEGRAM_BOT_USERNAME** 
 - Youtube (taken from google console):
   - **OAUTH2_CLIENT_CLIENT_ID**
   - **OAUTH2_CLIENT_CLIENT_SECRET**

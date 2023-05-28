@@ -1,0 +1,16 @@
+syntax = "proto2";
+
+package dev.vhonta.content.tgbot.proto;
+
+import "zio-temporal.proto";
+import "content_feed.proto";
+import "content_integrations.proto";
+import "content_feed_recommendation.proto";
+
+
+message SetupResult {
+  oneof value {
+    dev.vhonta.content.proto.ContentFeedIntegration integration = 1;
+    string failureReason = 2;
+  }
+}

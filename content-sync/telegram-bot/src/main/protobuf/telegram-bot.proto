@@ -7,49 +7,6 @@ import "content_feed.proto";
 import "content_integrations.proto";
 import "content_feed_recommendation.proto";
 
-message SetupNewsApi {
-  required string apiKey = 1;
-}
-
-enum SetupNewsApiStep {
-  WaitingForApiKey = 1;
-  ValidatingKey = 2;
-  StoringKey = 3;
-  FailedKeyValidation = 4;
-}
-
-message CurrentSetupNewsApiStep {
-  required SetupNewsApiStep value = 1;
-}
-
-message SetupNewsApiParams {
-  required zio.temporal.protobuf.UUID subscriber = 1;
-}
-
-message SetupResult {
-  oneof value {
-    dev.vhonta.content.proto.ContentFeedIntegration integration = 1;
-    string failureReason = 2;
-  }
-}
-
-message TestApiKeyParams {
-  required string apiKey = 1;
-}
-
-message TestApiKeyResult {
-  required bool valid = 2;
-}
-
-message StoreNewsApiIntegrationParams {
-  required zio.temporal.protobuf.UUID subscriber = 1;
-  required string apiKey = 2;
-}
-
-message StoreNewsApiIntegrationResult {
-  required dev.vhonta.content.proto.ContentFeedIntegration integration = 1;
-}
-
 enum TelegramParseMode {
   Markdown2 = 1;
   Html = 2;

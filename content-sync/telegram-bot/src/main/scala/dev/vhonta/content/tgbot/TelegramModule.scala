@@ -30,11 +30,13 @@ object TelegramModule {
     }
 
   // never returns
-  val serveBot: ZIO[ContentSyncBot, Throwable, Unit] =
-    for {
-      _   <- ZIO.logInfo("Starting the bot...")
-      bot <- ZIO.service[ContentSyncBot]
-      _   <- bot.prepare()
-      _   <- bot.start()
-    } yield ()
+  val serveBot: ZIO[ContentSyncBot, Throwable, Nothing] = {
+    ZIO.serviceWithZIO[ContentSyncBot] { bot =>
+      (for {
+        _ <- ZIO.logInfo("Starting the bot...")
+        _ <- bot.prepare()
+        _ <- bot.start()
+      } yield ()) *> ZIO.never
+    }
+  }
 }

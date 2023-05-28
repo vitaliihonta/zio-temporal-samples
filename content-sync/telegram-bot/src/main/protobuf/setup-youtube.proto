@@ -1,0 +1,67 @@
+syntax = "proto2";
+
+package dev.vhonta.content.tgbot.proto;
+
+import "zio-temporal.proto";
+import "content_feed.proto";
+import "content_integrations.proto";
+import "content_feed_recommendation.proto";
+
+
+message SetupYoutubeParams {
+  required zio.temporal.protobuf.UUID subscriber = 1;
+  required string redirectUri = 2;
+}
+
+enum SetupYoutubeStep {
+  InitiatingYoutubeOauth = 1;
+  WaitingForCallback = 2;
+  GettingCredentials = 3;
+  TestingYoutubeCredentials = 4;
+  StoringTokens = 5;
+  FailedYoutubeSetup = 6;
+}
+
+message CurrentSetupYoutubeStep {
+  required SetupYoutubeStep value = 1;
+}
+
+message YoutubeCallbackData {
+  required string authorizationCode = 1;
+}
+
+message InitializeOAuth2Params {
+  required zio.temporal.protobuf.UUID subscriber = 1;
+  required string redirectUri = 2;
+}
+
+message InitializeOAuth2Result {
+  required string authorizationUri = 1;
+}
+
+message GetOAuth2CredentialsParams {
+  required string redirectUri = 1;
+  required string authorizationCode = 2;
+}
+
+message GetOAuth2CredentialsResult {
+  required dev.vhonta.content.proto.ContentFeedIntegrationYoutubeDetails creds = 1;
+}
+
+message TestOAuth2CredentialsParams {
+  required dev.vhonta.content.proto.ContentFeedIntegrationYoutubeDetails creds = 1;
+}
+
+message TestOAuth2CredentialsResult {
+  // No error if succeeded
+  optional string error = 1;
+}
+
+message StoreYoutubeIntegrationParams {
+  required zio.temporal.protobuf.UUID subscriber = 1;
+  required dev.vhonta.content.proto.ContentFeedIntegrationYoutubeDetails creds = 2;
+}
+
+message StoreYoutubeIntegrationResult {
+  required dev.vhonta.content.proto.ContentFeedIntegration integration = 1;
+}

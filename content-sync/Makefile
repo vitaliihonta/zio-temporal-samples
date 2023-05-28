@@ -1,6 +1,8 @@
+JAVA_OPTS="-Duser.timezone=UTC"
+TELEGRAM_BINDING_PORT="9092"
+
 include secret.env
 export $(shell sed 's/=.*//' secret.env)
-JAVA_OPTS="-Duser.timezone=UTC"
 
 .PHONY: help
 # target: help - Display callable targets
@@ -37,7 +39,7 @@ start-processor-local:
 
 .PHONY: start-telegram-bot-local
 start-telegram-bot-local:
-	JAVA_OPTS=$(JAVA_OPTS) sbt "telegram-bot/run $(reset)"
+	TELEGRAM_BINDING_PORT=$(TELEGRAM_BINDING_PORT) JAVA_OPTS=$(JAVA_OPTS) sbt "telegram-bot/run $(reset)"
 
 .PHONY: psql
 psql:

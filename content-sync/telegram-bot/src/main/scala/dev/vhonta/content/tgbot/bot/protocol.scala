@@ -26,6 +26,8 @@ object ContentSyncCallbackQuery {
   case object NewerMind    extends TelegramCallbackQuery.SimpleMatcher("nwm")
   case object SetupNewsApi extends TelegramCallbackQuery.SimpleMatcher("set_nw_api")
 
+  case object SetupYoutube extends TelegramCallbackQuery.SimpleMatcher("set_ytbe")
+
   case object IntegrationDetails extends TelegramCallbackQuery.Matcher {
     override final type Data = Long /*integration id*/
 
