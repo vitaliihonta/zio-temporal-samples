@@ -4,13 +4,14 @@ Fetch various content (such as news, videos) and periodically get them through T
 ## TODOs
 - [ ] Generalize pullers 
 - [ ] Move youtube/newsapi into specific packages
+- [ ] Try zio-json instead of circe?
 
 ## Supported integrations
 - [News API](https://newsapi.org/docs/get-started)
 - [Youtube Data API V3](https://developers.google.com/youtube/v3/docs)
 
 ## Architecture diagram
-![Diagram](diagrams/NewsSync.jpg)
+![Diagram](diagrams/ContentSync.jpg)
 
 ## Run examples
 **(1)** Create a `secret.env` file in the project root. It must contain the following secrets:
