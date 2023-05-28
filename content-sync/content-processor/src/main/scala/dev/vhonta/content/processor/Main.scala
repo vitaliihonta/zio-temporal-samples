@@ -39,6 +39,7 @@ object Main extends ZIOAppDefault {
         SubscriberRepository.make,
         ContentFeedRepository.make,
         ContentFeedRecommendationRepository.make,
+        ContentFeedIntegrationRepository.make,
         PostgresQuill.make,
         Quill.DataSource.fromPrefix("db"),
         // activities

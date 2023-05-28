@@ -1,10 +1,21 @@
 package dev.vhonta.content.tgbot.workflow
 
 import dev.vhonta.content.ProtoConverters._
-import dev.vhonta.content.proto.{ContentFeedItem, ContentFeedRecommendationView}
-import dev.vhonta.content.repository.{ContentFeedRecommendationRepository, ContentFeedRepository, SubscriberRepository}
+import dev.vhonta.content.proto.{
+  ContentFeedIntegration,
+  ContentFeedIntegrationNewsApiDetails,
+  ContentFeedIntegrationYoutubeDetails,
+  ContentFeedItem,
+  ContentFeedRecommendationView
+}
+import dev.vhonta.content.repository.{
+  ContentFeedIntegrationRepository,
+  ContentFeedRecommendationRepository,
+  ContentFeedRepository,
+  SubscriberRepository
+}
 import dev.vhonta.content.tgbot.proto._
-import dev.vhonta.content.{ContentFeedTopic, ContentLanguage, proto}
+import dev.vhonta.content.{ContentFeedIntegrationDetails, ContentFeedTopic, ContentLanguage, proto}
 import zio._
 import zio.temporal._
 import zio.temporal.activity._
@@ -25,13 +36,18 @@ trait ContentFeedActivities {
 
 object ContentFeedActivitiesImpl {
   val make: URLayer[
-    ContentFeedRepository with SubscriberRepository with ContentFeedRecommendationRepository with ZActivityOptions[Any],
+    ContentFeedRepository
+      with SubscriberRepository
+      with ContentFeedIntegrationRepository
+      with ContentFeedRecommendationRepository
+      with ZActivityOptions[Any],
     ContentFeedActivities
   ] =
     ZLayer.fromFunction(
       ContentFeedActivitiesImpl(
         _: ContentFeedRepository,
         _: SubscriberRepository,
+        _: ContentFeedIntegrationRepository,
         _: ContentFeedRecommendationRepository
       )(_: ZActivityOptions[Any])
     )
@@ -40,6 +56,7 @@ object ContentFeedActivitiesImpl {
 case class ContentFeedActivitiesImpl(
   contentFeedRepository:               ContentFeedRepository,
   subscriberRepository:                SubscriberRepository,
+  contentFeedIntegrationRepository:    ContentFeedIntegrationRepository,
   contentFeedRecommendationRepository: ContentFeedRecommendationRepository
 )(implicit options:                    ZActivityOptions[Any])
     extends ContentFeedActivities {
@@ -114,24 +131,42 @@ case class ContentFeedActivitiesImpl(
           ZIO.logInfo(
             s"List recommendations subscriber=${params.subscriberWithSettings.subscriber.id.fromProto} date=${params.date}"
           )
-        topics <- contentFeedRepository.listTopics(subscribers =
-                    Some(Set(params.subscriberWithSettings.subscriber.id.fromProto))
-                  )
-        recommendations <- ZIO.foreachPar(topics) { topic =>
+        integrations <- contentFeedIntegrationRepository.list(
+                          subscribers = Some(Set(params.subscriberWithSettings.subscriber.id.fromProto))
+                        )
+        recommendations <- ZIO.foreachPar(integrations) { integration =>
                              contentFeedRecommendationRepository.getForDate(
-                               topicId = topic.id,
+                               integrationId = integration.id,
                                date = params.date.fromProto[LocalDate]
                              )
                            }
       } yield ListRecommendationsResult(
         results = recommendations.flatten.map { recommendation =>
           ContentFeedRecommendationView(
-            topicId = recommendation.topicId,
-            topic = recommendation.topic,
+            integration = ContentFeedIntegration(
+              id = recommendation.integration.id,
+              subscriber = recommendation.integration.subscriber,
+              integration = recommendation.integration.integration match {
+                case ContentFeedIntegrationDetails.NewsApi(token) =>
+                  ContentFeedIntegration.Integration.NewsApi(
+                    ContentFeedIntegrationNewsApiDetails(token)
+                  )
+                case ContentFeedIntegrationDetails.Youtube(accessToken, refreshToken, exchangedAt, expiresInSeconds) =>
+                  ContentFeedIntegration.Integration.Youtube(
+                    ContentFeedIntegrationYoutubeDetails(
+                      accessToken,
+                      refreshToken,
+                      exchangedAt,
+                      expiresInSeconds
+                    )
+                  )
+              }
+            ),
             date = recommendation.date,
             items = recommendation.items.map { item =>
               ContentFeedItem(
                 id = item.id,
+                integration = item.integration,
                 topic = item.topic,
                 title = item.title,
                 description = item.description,

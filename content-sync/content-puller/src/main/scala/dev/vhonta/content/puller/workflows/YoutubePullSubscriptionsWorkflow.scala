@@ -64,7 +64,9 @@ class YoutubePullSubscriptionsWorkflowImpl extends YoutubePullSubscriptionsWorkf
       ZActivityStub.execute(
         databaseActivities.storeVideos(
           videos = YoutubeVideosList(videos.values),
-          params = StoreVideosParameters()
+          params = StoreVideosParameters(
+            integrationId = params.integrationId
+          )
         )
       )
       PullingResult(videosCount)

@@ -69,7 +69,7 @@ class NewsApiScheduledPullerWorkflowImpl extends NewsApiScheduledPullerWorkflow 
     logger.info(s"Loaded ${newsApiIntegrations.integrations.size} news-api integrations")
 
     val integrationDetailsBySubscriber = newsApiIntegrations.integrations.view.flatMap { integration =>
-      integration.integration.newsApi.map(integration.subscriber -> _)
+      integration.integration.newsApi.map(details => (integration.subscriber, integration -> details))
     }.toMap
 
     val subscribers = integrationDetailsBySubscriber.keys.toList
@@ -86,8 +86,11 @@ class NewsApiScheduledPullerWorkflowImpl extends NewsApiScheduledPullerWorkflow 
       val topicId    = topic.id.fromProto
       val topicState = state.get(topicId)
 
+      val (integration, details) = integrationDetailsBySubscriber(topic.owner)
+
       NewsPullerParameters(
-        apiKey = integrationDetailsBySubscriber(topic.owner).token,
+        apiKey = details.token,
+        integrationId = integration.id,
         topicId = topicId,
         topic = topic.topic,
         language = topic.lang,

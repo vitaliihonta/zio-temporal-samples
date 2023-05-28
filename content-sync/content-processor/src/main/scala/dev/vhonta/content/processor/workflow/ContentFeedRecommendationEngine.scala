@@ -1,6 +1,7 @@
 package dev.vhonta.content.processor.workflow
 
 import dev.vhonta.content.processor.proto.{RecommendationEngineParams, RecommendationEngineResult}
+import dev.vhonta.content.proto.ContentFeedItem
 import zio._
 import zio.temporal._
 import zio.temporal.activity._
@@ -31,16 +32,23 @@ case class ContentFeedRecommendationEngineImpl()(implicit options: ZActivityOpti
         _ <-
           ZIO.logInfo(
             s"Making recommendations for subscriber=${params.subscriberWithItems.subscriber.id.fromProto} " +
-              s"topic=${params.subscriberWithItems.topic.id.fromProto} " +
+              s"integration=${params.subscriberWithItems.integration.id.fromProto} " +
               s"num_items=${params.subscriberWithItems.items.size}"
           )
-        // Pretty dumb algorithm =)
-        chosenItems <- ZIO.randomWith(_.shuffle(params.subscriberWithItems.items))
+        chosenItems <- choseRecommendations(params)
       } yield RecommendationEngineResult(
         itemIds = chosenItems.view
-          .take(5)
           .map(_.id)
           .toList
       )
     }
+
+  // Pretty dumb algorithm =)
+  private def choseRecommendations(params: RecommendationEngineParams): Task[List[ContentFeedItem]] = {
+    ZIO
+      .randomWith(
+        _.shuffle(params.subscriberWithItems.items)
+      )
+      .map(_.view.take(5).toList)
+  }
 }

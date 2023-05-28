@@ -190,7 +190,7 @@ case class YoutubeActivitiesImpl(
                                  YoutubeTokenInfo(
                                    integrationId = tokenInfo.integrationId,
                                    accessToken = response.getAccessToken,
-                                   refreshToken = response.getRefreshToken,
+                                   refreshToken = Option(response.getRefreshToken).getOrElse(tokenInfo.refreshToken),
                                    exchangedAt = now,
                                    expiresInSeconds = response.getExpiresInSeconds
                                  )

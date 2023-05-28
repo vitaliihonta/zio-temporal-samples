@@ -42,10 +42,11 @@ enum ContentType {
 
 message ContentFeedItem {
   required zio.temporal.protobuf.UUID id = 1;
-  optional zio.temporal.protobuf.UUID topic = 2;
-  required string title = 3;
-  optional string description = 4;
-  required string url = 5;
-  required int64 publishedAt = 6;
-  required ContentType contentType = 7;
+  required int64 integration = 2;
+  optional zio.temporal.protobuf.UUID topic = 3;
+  required string title = 4;
+  optional string description = 5;
+  required string url = 6;
+  required int64 publishedAt = 7;
+  required ContentType contentType = 8;
 }
