@@ -13,10 +13,6 @@ object SubscriberOAuth2State {
 }
 
 case class OAuth2CallbackPayload(
-  state: String,
+  state: SubscriberOAuth2State,
   code:  String,
   scope: String)
-
-object OAuth2CallbackPayload {
-  implicit val codec: Codec.AsObject[OAuth2CallbackPayload] = deriveConfiguredCodec[OAuth2CallbackPayload]
-}

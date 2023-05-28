@@ -11,7 +11,9 @@ import zio.temporal._
 import zio.temporal.activity._
 import zio.temporal.protobuf.syntax._
 import io.circe.syntax._
+
 import java.time.LocalDateTime
+import java.util.Base64
 
 @activityInterface
 trait YoutubeActivities {
@@ -27,21 +29,42 @@ trait YoutubeActivities {
   def storeYoutubeIntegration(params: StoreYoutubeIntegrationParams): StoreNewsApiIntegrationResult
 }
 
+object YoutubeActivitiesImpl {
+  val make: URLayer[
+    OAuth2Client with YoutubeClient with ContentFeedIntegrationRepository with ZActivityOptions[Any],
+    YoutubeActivities
+  ] =
+    ZLayer.fromFunction(
+      YoutubeActivitiesImpl(
+        _: OAuth2Client,
+        _: YoutubeClient,
+        _: ContentFeedIntegrationRepository
+      )(_: ZActivityOptions[Any])
+    )
+}
+
 case class YoutubeActivitiesImpl(
   oauth2Client:          OAuth2Client,
   youtubeClient:         YoutubeClient,
   integrationRepository: ContentFeedIntegrationRepository
 )(implicit options:      ZActivityOptions[Any])
     extends YoutubeActivities {
+
+  private val encoder = Base64.getEncoder
+
   override def initializeOAuth2(params: InitializeOAuth2Params): InitializeOAuth2Result = {
     ZActivity.run {
       for {
         _ <- ZIO.logInfo(s"Initializing OAuth2 flow for subscriber=${params.subscriber.fromProto}")
         authorizationUri <- oauth2Client.getAuthUri(
                               redirectUri = params.redirectUri,
-                              state = SubscriberOAuth2State(
-                                subscriberId = params.subscriber.fromProto
-                              ).asJson.noSpaces
+                              state = {
+                                encoder.encodeToString(
+                                  SubscriberOAuth2State(
+                                    subscriberId = params.subscriber.fromProto
+                                  ).asJson.noSpaces.getBytes
+                                )
+                              }
                             )
       } yield InitializeOAuth2Result(authorizationUri)
     }
@@ -74,7 +97,7 @@ case class YoutubeActivitiesImpl(
                   .take(5)
                   .runCollect
         _ <- ZIO.logInfo(
-               s"Found ${subs.size} subscriptions: ${subs.map(_.getSnippet.getChannelTitle).mkString("[", ", ", "]")}"
+               s"Found ${subs.size} subscriptions: ${subs.map(_.getSnippet.getTitle).mkString("[", ", ", "]")}"
              )
       } yield ()
 

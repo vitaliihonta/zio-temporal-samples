@@ -86,13 +86,13 @@ case class ContentSyncBotImpl(
       ZLayer.succeed(api)
 
   private val messageHandlers = chain(
-    SetupNewsApiHandlers.messageHandlers,
+    SetupIntegrationHandlers.messageHandlers,
     TopicsCommand.all,
     SettingsCommands.messageHandlers
   )
 
   private val callbackQueryHandlers = chain(
-    SetupNewsApiHandlers.callbackQueryHandlers,
+    SetupIntegrationHandlers.callbackQueryHandlers,
     SettingsCommands.callbackQueryHandlers
   )
 

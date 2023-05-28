@@ -2,27 +2,32 @@ package dev.vhonta.content.tgbot
 
 import dev.vhonta.content.newsapi.NewsApiClient
 import dev.vhonta.content.repository.{
-  DatabaseMigrator,
   ContentFeedIntegrationRepository,
   ContentFeedRecommendationRepository,
   ContentFeedRepository,
+  DatabaseMigrator,
   PostgresQuill,
   SubscriberRepository
 }
+import dev.vhonta.content.tgbot.api.YoutubeCallbackHandlingApi
 import dev.vhonta.content.tgbot.bot.ContentSyncBotImpl
 import dev.vhonta.content.tgbot.workflow.{
   AddTopicWorkflowImpl,
-  NewsApiActivities,
-  NewsApiActivitiesImpl,
   ContentFeedActivities,
   ContentFeedActivitiesImpl,
+  NewsApiActivities,
+  NewsApiActivitiesImpl,
   OnDemandPushRecommendationsWorkflowImpl,
   PushRecommendationsWorkflowImpl,
   ScheduledPushRecommendationsWorkflowImpl,
   SetupNewsApiWorkflowImpl,
+  SetupYoutubeWorkflowImpl,
   TelegramActivities,
-  TelegramActivitiesImpl
+  TelegramActivitiesImpl,
+  YoutubeActivities,
+  YoutubeActivitiesImpl
 }
+import dev.vhonta.content.youtube.{GoogleModule, OAuth2Client, YoutubeClient}
 import io.getquill.jdbczio.Quill
 import sttp.client3.httpclient.zio.HttpClientZioBackend
 import zio._
@@ -41,12 +46,14 @@ object Main extends ZIOAppDefault {
     val registerWorkflows =
       ZWorkerFactory.newWorker(TelegramModule.TaskQueue) @@
         ZWorker.addWorkflow[SetupNewsApiWorkflowImpl].fromClass @@
+        ZWorker.addWorkflow[SetupYoutubeWorkflowImpl].fromClass @@
         ZWorker.addWorkflow[AddTopicWorkflowImpl].fromClass @@
         ZWorker.addWorkflow[ScheduledPushRecommendationsWorkflowImpl].fromClass @@
         ZWorker.addWorkflow[OnDemandPushRecommendationsWorkflowImpl].fromClass @@
         ZWorker.addWorkflow[PushRecommendationsWorkflowImpl].fromClass @@
         ZWorker.addActivityImplementationService[NewsApiActivities] @@
         ZWorker.addActivityImplementationService[TelegramActivities] @@
+        ZWorker.addActivityImplementationService[YoutubeActivities] @@
         ZWorker.addActivityImplementationService[ContentFeedActivities]
 
     val program = for {
@@ -56,7 +63,8 @@ object Main extends ZIOAppDefault {
       args <- getArgs
       _    <- ZIO.serviceWithZIO[ScheduledPushStarter](_.start(args.contains("reset")))
       _    <- ZWorkerFactory.setup
-      _    <- TelegramModule.serveBot
+      _    <- TelegramModule.serveBot.fork // never returns
+      _    <- HttpApiModule.serveApi
     } yield ()
 
     program
@@ -65,6 +73,10 @@ object Main extends ZIOAppDefault {
         // http
         HttpClientZioBackend.layer(),
         NewsApiClient.make,
+        OAuth2Client.make,
+        YoutubeClient.make,
+        GoogleModule.make,
+        YoutubeCallbackHandlingApi.make,
         // repository
         SubscriberRepository.make,
         ContentFeedRepository.make,
@@ -77,6 +89,7 @@ object Main extends ZIOAppDefault {
         ContentSyncBotImpl.make,
         // activities
         NewsApiActivitiesImpl.make,
+        YoutubeActivitiesImpl.make,
         TelegramActivitiesImpl.make,
         ContentFeedActivitiesImpl.make,
         // temporal
