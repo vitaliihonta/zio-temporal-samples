@@ -4,6 +4,8 @@ Fetch various content (such as news, videos) and periodically get them through T
 ## TODOs
 - [ ] Generalize pullers 
 - [ ] Move youtube/newsapi into specific packages
+- [ ] Scaladoc
+- [ ] Testkit
 
 ## Supported integrations
 - [News API](https://newsapi.org/docs/get-started)
