@@ -29,7 +29,7 @@ class RecommendationsWorkflowImpl extends RecommendationsWorkflow {
     .withRetryOptions(
       ZRetryOptions.default.withDoNotRetry(
         nameOf[SubscriberNotFoundException],
-        nameOf[TopicNotFoundException]
+        nameOf[IntegrationNotFound]
       )
     )
     .build
@@ -45,7 +45,7 @@ class RecommendationsWorkflowImpl extends RecommendationsWorkflow {
     val checkResult = ZActivityStub.execute(
       processorActivities.checkRecommendationsExist(
         CheckRecommendationsExistParams(
-          params.subscriberWithTopic,
+          params.subscriberWithIntegration,
           params.forDate
         )
       )
@@ -57,8 +57,8 @@ class RecommendationsWorkflowImpl extends RecommendationsWorkflow {
       val subscriberWithItems = ZActivityStub.execute(
         processorActivities.loadSubscriberWithItems(
           LoadSubscriberParams(
-            subscriberId = params.subscriberWithTopic.subscriberId,
-            topicId = params.subscriberWithTopic.topicId,
+            subscriberId = params.subscriberWithIntegration.subscriberId,
+            integrationId = params.subscriberWithIntegration.integrationId,
             forDate = params.forDate
           )
         )
@@ -75,7 +75,7 @@ class RecommendationsWorkflowImpl extends RecommendationsWorkflow {
       ZActivityStub.execute(
         processorActivities.createRecommendations(
           SaveRecommendationsParams(
-            subscriberWithTopic = params.subscriberWithTopic,
+            subscriberWithIntegration = params.subscriberWithIntegration,
             forDate = params.forDate,
             itemIds = recommendations.itemIds
           )

@@ -13,7 +13,6 @@ trait ScheduledRecommendationsWorkflow {
   def makeRecommendations(): Unit
 }
 
-// TODO: handle youtube (without topics)
 class ScheduledRecommendationsWorkflowImpl extends ScheduledRecommendationsWorkflow {
   private val logger = ZWorkflow.makeLogger
 
@@ -27,7 +26,7 @@ class ScheduledRecommendationsWorkflowImpl extends ScheduledRecommendationsWorkf
     .withRetryOptions(
       ZRetryOptions.default.withDoNotRetry(
         nameOf[SubscriberNotFoundException],
-        nameOf[TopicNotFoundException]
+        nameOf[IntegrationNotFound]
       )
     )
     .build
@@ -37,18 +36,18 @@ class ScheduledRecommendationsWorkflowImpl extends ScheduledRecommendationsWorkf
   override def makeRecommendations(): Unit = {
     val startedAt = ZWorkflow.currentTimeMillis.toLocalDateTime()
 
-    val subscribersWithTopics = ZActivityStub.execute(
-      processorActivities.loadAllSubscribersWithTopics()
+    val subscribersWithIntegrations = ZActivityStub.execute(
+      processorActivities.loadAllSubscribersWithIntegrations()
     )
 
-    logger.info(s"Have ${subscribersWithTopics.subscribersWithTopics.size} topics to process today=$startedAt")
+    logger.info(s"Have ${subscribersWithIntegrations.values.size} topics to process today=$startedAt")
 
-    val started: ZAsync[Unit] = ZAsync.foreachParDiscard(subscribersWithTopics.subscribersWithTopics) {
-      subscriberWithTopic =>
+    val started: ZAsync[Unit] = ZAsync.foreachParDiscard(subscribersWithIntegrations.values) {
+      subscriberWithIntegration =>
         val recommendationsWorkflow = ZWorkflow
           .newChildWorkflowStub[RecommendationsWorkflow]
           .withWorkflowId(
-            s"${ZWorkflow.info.workflowId}/subscribers/${subscriberWithTopic.subscriberId.fromProto}/topics/${subscriberWithTopic.topicId.fromProto}"
+            s"${ZWorkflow.info.workflowId}/subscribers/${subscriberWithIntegration.subscriberId.fromProto}/int/${subscriberWithIntegration.integrationId.fromProto}"
           )
           .withWorkflowExecutionTimeout(singleProcessTimeout)
           .withRetryOptions(
@@ -59,7 +58,7 @@ class ScheduledRecommendationsWorkflowImpl extends ScheduledRecommendationsWorkf
         ZChildWorkflowStub.executeAsync(
           recommendationsWorkflow.makeRecommendations(
             RecommendationsParams(
-              subscriberWithTopic,
+              subscriberWithIntegration,
               forDate = startedAt.toProto
             )
           )

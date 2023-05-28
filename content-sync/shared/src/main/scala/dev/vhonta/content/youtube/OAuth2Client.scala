@@ -68,7 +68,6 @@ case class OAuth2Client(
         .execute()
     }
 
-  // TODO: may not work
   def refreshCredentials(refreshToken: String): IO[IOException, GoogleTokenResponse] =
     ZIO.attemptBlockingIO {
       new GoogleRefreshTokenRequest(

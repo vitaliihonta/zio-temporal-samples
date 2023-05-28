@@ -67,6 +67,7 @@ class NewsApiPullTopicNewsWorkflowImpl extends NewsApiPullTopicNewsWorkflow {
           databaseActivities.storeArticles(
             articles,
             storeParams = StoreArticlesParameters(
+              integrationId = parameters.integrationId,
               topicId = parameters.topicId
             )
           )

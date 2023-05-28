@@ -100,7 +100,14 @@ class PushRecommendationsWorkflowImpl extends PushRecommendationsWorkflow {
   }
 
   private def buildMessage(recommendation: ContentFeedRecommendationView): String = {
-    val topic = recommendation.topic
+    val integration = {
+      // TODO: decouple conversion
+      val kind =
+        if (recommendation.integration.integration.isYoutube) "Youtube ▶\uFE0F"
+        else "NewsApi ℹ\uFE0F"
+      s"<b>#${recommendation.integration.id}</b> - <b>$kind</b>"
+    }
+
     val itemsRendered = {
       if (recommendation.items.isEmpty) "Data is not available yet..."
       else {
@@ -115,6 +122,6 @@ class PushRecommendationsWorkflowImpl extends PushRecommendationsWorkflow {
       }
     }
 
-    s"<b>$topic</b> ℹ️:\n$itemsRendered"
+    s"$integration:\n$itemsRendered"
   }
 }

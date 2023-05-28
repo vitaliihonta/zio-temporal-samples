@@ -115,6 +115,7 @@ case class DatabaseActivitiesImpl(
         } yield {
           ContentFeedItem(
             id = itemId,
+            integration = storeParams.integrationId,
             topic = Some(storeParams.topicId.fromProto),
             title = article.title,
             description = article.description,
@@ -141,6 +142,7 @@ case class DatabaseActivitiesImpl(
         } yield {
           ContentFeedItem(
             id = itemId,
+            integration = params.integrationId,
             topic = None,
             title = video.title,
             description = video.description,

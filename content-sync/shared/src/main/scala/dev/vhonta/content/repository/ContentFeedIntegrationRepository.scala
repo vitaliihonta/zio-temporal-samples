@@ -24,6 +24,19 @@ case class ContentFeedIntegrationRepository(quill: PostgresQuill[SnakeCase]) {
     run(insert).as(integration)
   }
 
+  def list(subscribers: Option[Set[UUID]]): IO[SQLException, List[ContentFeedIntegration]] = {
+    subscribers match {
+      case None =>
+        val select = quote(query[ContentFeedIntegration])
+        run(select)
+      case Some(subscribers) =>
+        val select = quote {
+          query[ContentFeedIntegration].filter(t => liftQuery(subscribers).contains(t.subscriber))
+        }
+        run(select)
+    }
+  }
+
   def findById(integrationId: Long): IO[SQLException, Option[ContentFeedIntegration]] = {
     val select = quote {
       query[ContentFeedIntegration]

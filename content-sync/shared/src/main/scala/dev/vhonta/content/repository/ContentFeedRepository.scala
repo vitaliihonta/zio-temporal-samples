@@ -30,7 +30,7 @@ case class ContentFeedRepository(quill: PostgresQuill[SnakeCase]) {
     run(select).map(_.headOption)
   }
 
-  def listTopics(subscribers: Option[Set[UUID]] = None): IO[SQLException, List[ContentFeedTopic]] = {
+  def listTopics(subscribers: Option[Set[UUID]]): IO[SQLException, List[ContentFeedTopic]] = {
     subscribers match {
       case None =>
         val select = quote(query[ContentFeedTopic])
@@ -50,10 +50,10 @@ case class ContentFeedRepository(quill: PostgresQuill[SnakeCase]) {
     run(insert).unit
   }
 
-  def itemsForTopic(topicId: UUID, now: LocalDateTime): IO[SQLException, List[ContentFeedItem]] = {
+  def itemsForIntegration(integrationId: Long, now: LocalDateTime): IO[SQLException, List[ContentFeedItem]] = {
     val select = quote {
       query[ContentFeedItem]
-        .filter(_.topic == lift(Option(topicId)))
+        .filter(_.integration == lift(integrationId))
         .filter(_.publishedAt <= lift(now))
     }
     run(select)

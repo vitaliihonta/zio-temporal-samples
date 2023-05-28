@@ -4,11 +4,12 @@ package dev.vhonta.content.proto;
 
 import "zio-temporal.proto";
 import "content_feed.proto";
+import "content_integrations.proto";
 
 message ContentFeedRecommendation {
   required zio.temporal.protobuf.UUID id = 1;
   required zio.temporal.protobuf.UUID owner = 2;
-  required zio.temporal.protobuf.UUID topic = 3;
+  required int64 integration = 3;
   required int64 forDate = 4;
 }
 
@@ -18,8 +19,7 @@ message ContentFeedRecommendationItem {
 }
 
 message ContentFeedRecommendationView {
-  required zio.temporal.protobuf.UUID topicId = 1;
-  required string topic = 2;
-  required int64 date = 3;
-  repeated dev.vhonta.content.proto.ContentFeedItem items = 4;
+  required dev.vhonta.content.proto.ContentFeedIntegration integration = 1;
+  required int64 date = 2;
+  repeated dev.vhonta.content.proto.ContentFeedItem items = 3;
 }
