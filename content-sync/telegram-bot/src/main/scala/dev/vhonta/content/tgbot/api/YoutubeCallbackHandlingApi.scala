@@ -4,9 +4,11 @@ import dev.vhonta.content.tgbot.proto.YoutubeCallbackData
 import dev.vhonta.content.tgbot.workflow.SetupYoutubeWorkflow
 import zio._
 import zio.http._
-import io.circe.parser
+import zio.json._
 import zio.temporal.workflow._
+
 import java.util.Base64
+import scala.util.control.NoStackTrace
 
 object YoutubeCallbackHandlingApi {
   case class ApiConfig(botUsername: String)
@@ -20,9 +22,13 @@ object YoutubeCallbackHandlingApi {
     ZLayer.fromZIO(ZIO.config(config)) >>>
       ZLayer.fromFunction(YoutubeCallbackHandlingApi(_: ApiConfig, _: ZWorkflowClient))
   }
+
+  case class InvalidCallbackPayloadException(message: String) extends Exception(message) with NoStackTrace
 }
 
 case class YoutubeCallbackHandlingApi(config: YoutubeCallbackHandlingApi.ApiConfig, workflowClient: ZWorkflowClient) {
+  import YoutubeCallbackHandlingApi.InvalidCallbackPayloadException
+
   private val decoder = Base64.getDecoder
 
   val httpApp: HttpApp[Any, Nothing] = {
@@ -31,7 +37,7 @@ case class YoutubeCallbackHandlingApi(config: YoutubeCallbackHandlingApi.ApiConf
         callbackDataHandler
           .catchAllZIO { error =>
             val statusCode = error match {
-              case _: io.circe.Error =>
+              case _: InvalidCallbackPayloadException =>
                 Status.BadRequest
               case _ => Status.InternalServerError
             }
@@ -56,8 +62,10 @@ case class YoutubeCallbackHandlingApi(config: YoutubeCallbackHandlingApi.ApiConf
       Handler.fromZIO {
         for {
           stateDecoded <- ZIO.attempt(new String(decoder.decode(rawState))).refineToOrDie[IllegalArgumentException]
-          state        <- ZIO.fromEither(parser.decode[SubscriberOAuth2State](stateDecoded))
-          _            <- ZIO.logInfo(s"Received youtube callback from subscriber=${state.subscriberId} scope=$scope")
+          state <- ZIO
+                     .fromEither(stateDecoded.fromJson[SubscriberOAuth2State])
+                     .mapError(InvalidCallbackPayloadException)
+          _ <- ZIO.logInfo(s"Received youtube callback from subscriber=${state.subscriberId} scope=$scope")
           youtubeWorkflow <- workflowClient.newWorkflowStub[SetupYoutubeWorkflow](
                                workflowId = SetupYoutubeWorkflow.workflowId(state.subscriberId)
                              )

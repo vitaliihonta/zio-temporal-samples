@@ -1,9 +1,15 @@
 package dev.vhonta.content.repository
 
 import zio._
-import dev.vhonta.content.{ContentFeedIntegration, ContentFeedIntegrationDetails, ContentFeedIntegrationType}
+import dev.vhonta.content.{
+  ContentFeedIntegration,
+  ContentFeedRecommendationItem,
+  ContentFeedIntegrationDetails,
+  ContentFeedIntegrationType,
+  ContentFeedRecommendation,
+  ContentFeedItem
+}
 import io.getquill.{Query, SnakeCase}
-
 import java.sql.SQLException
 import java.util.UUID
 
@@ -47,14 +53,39 @@ case class ContentFeedIntegrationRepository(quill: PostgresQuill[SnakeCase]) {
     run(select).map(_.headOption)
   }
 
-  def deleteById(integrationId: Long): IO[SQLException, Boolean] = {
-    val delete = quote(
+  def deleteById(integrationId: Long): Task[Boolean] = {
+    val recommendationIds = quote {
+      query[ContentFeedRecommendation]
+        .filter(_.integration == lift(integrationId))
+        .map(_.id)
+    }
+    val deleteRecommendationItems = quote {
+      query[ContentFeedRecommendationItem]
+        .filter(item => recommendationIds.contains(item.recommendation))
+        .delete
+    }
+    val deleteRecommendations = quote {
+      query[ContentFeedRecommendation]
+        .filter(_.integration == lift(integrationId))
+        .delete
+    }
+    val deleteItems = quote {
+      query[ContentFeedItem]
+        .filter(_.integration == lift(integrationId))
+        .delete
+    }
+    val deleteSelf = quote(
       query[ContentFeedIntegration]
         .filter(_.id == lift(integrationId))
         .delete
     )
 
-    run(delete).map(_ > 0)
+    transaction {
+      run(deleteRecommendationItems) *>
+        run(deleteRecommendations) *>
+        run(deleteItems) *>
+        run(deleteSelf)
+    }.map(_ > 0)
   }
 
   def updateDetails(

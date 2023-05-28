@@ -2,11 +2,9 @@ package dev.vhonta.content
 
 import java.util.UUID
 import enumeratum.{Enum, EnumEntry}
-import io.circe.Codec
-import io.circe.generic.extras.Configuration
-import io.circe.generic.extras.semiauto._
-
+import zio.json._
 import java.time.LocalDateTime
+
 sealed trait ContentFeedIntegrationType extends EnumEntry.Snakecase
 object ContentFeedIntegrationType extends Enum[ContentFeedIntegrationType] {
   case object NewsApi extends ContentFeedIntegrationType
@@ -15,17 +13,19 @@ object ContentFeedIntegrationType extends Enum[ContentFeedIntegrationType] {
   override val values = findValues
 }
 
+@jsonDiscriminator("type")
 sealed abstract class ContentFeedIntegrationDetails(val `type`: ContentFeedIntegrationType)
     extends Product
     with Serializable
 
 object ContentFeedIntegrationDetails {
-  private implicit val config: Configuration =
-    Configuration.default.withSnakeCaseMemberNames.withSnakeCaseConstructorNames
-      .withDiscriminator("type")
 
+  @jsonMemberNames(SnakeCase)
+  @jsonHint("news_api")
   case class NewsApi(token: String) extends ContentFeedIntegrationDetails(ContentFeedIntegrationType.NewsApi)
 
+  @jsonMemberNames(SnakeCase)
+  @jsonHint("youtube")
   case class Youtube(
     accessToken:      String,
     refreshToken:     String,
@@ -33,11 +33,11 @@ object ContentFeedIntegrationDetails {
     expiresInSeconds: Long)
       extends ContentFeedIntegrationDetails(ContentFeedIntegrationType.Youtube)
 
-  private implicit val newsApiCodec: Codec.AsObject[NewsApi] = deriveConfiguredCodec[NewsApi]
-  private implicit val youtubeCodec: Codec.AsObject[Youtube] = deriveConfiguredCodec[Youtube]
+  private implicit val newsApiCodec: JsonCodec[NewsApi] = DeriveJsonCodec.gen[NewsApi]
+  private implicit val youtubeCodec: JsonCodec[Youtube] = DeriveJsonCodec.gen[Youtube]
 
-  implicit val contentFeedIntegrationDetailsCodec: Codec.AsObject[ContentFeedIntegrationDetails] =
-    deriveConfiguredCodec[ContentFeedIntegrationDetails]
+  implicit val contentFeedIntegrationDetailsCodec: JsonCodec[ContentFeedIntegrationDetails] =
+    DeriveJsonCodec.gen[ContentFeedIntegrationDetails]
 }
 
 case class ContentFeedIntegration(

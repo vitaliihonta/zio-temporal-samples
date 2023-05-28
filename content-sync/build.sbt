@@ -55,7 +55,6 @@ lazy val shared = project
         Dependencies.database ++
         Dependencies.sttp ++
         Dependencies.googleApiClient ++
-        Dependencies.circe ++
         Dependencies.enumeratum
   )
 
@@ -67,8 +66,7 @@ lazy val `content-puller` = project
     baseServiceSettings,
     libraryDependencies ++=
       Dependencies.zioBase ++
-        Dependencies.zioTemporal ++
-        Dependencies.circe
+        Dependencies.zioTemporal
   )
   .enablePlugins(JavaAppPackaging, DockerPlugin)
 
@@ -94,7 +92,6 @@ lazy val `telegram-bot` = project
       Dependencies.zioBase ++
         Dependencies.zioTemporal ++
         Dependencies.telegramium ++
-        Dependencies.circe ++
         Dependencies.zioHttp
   )
   .enablePlugins(JavaAppPackaging, DockerPlugin)
