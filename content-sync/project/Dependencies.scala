@@ -37,12 +37,16 @@ object Dependencies {
     "dev.zio"       %% "zio-logging-slf4j"   % versions.zioLogging,
     "dev.zio"       %% "zio-config"          % versions.zioConfig,
     "dev.zio"       %% "zio-config-typesafe" % versions.zioConfig,
-    "ch.qos.logback" % "logback-classic"     % "1.2.11"
+    "ch.qos.logback" % "logback-classic"     % "1.2.11",
+    "dev.zio"       %% "zio-test"            % versions.zio % Test,
+    "dev.zio"       %% "zio-test-sbt"        % versions.zio % Test
   )
 
   val zioHttp = Seq(
     "dev.zio" %% "zio-http" % "3.0.0-RC1"
   )
+
+  val zioTestFrameworks = Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
 
   val database = Seq(
     "io.getquill"   %% "quill-jdbc-zio" % "4.6.0",

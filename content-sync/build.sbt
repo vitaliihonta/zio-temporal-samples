@@ -21,7 +21,8 @@ val baseSettings = Seq(
         )
       )
     } else PB.protocDependency.value
-  }
+  },
+  testFrameworks ++= Dependencies.zioTestFrameworks
 )
 
 val baseServiceSettings = Seq(
