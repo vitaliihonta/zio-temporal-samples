@@ -2,6 +2,8 @@ package dev.vhonta.content.puller
 
 import dev.vhonta.content.newsapi.NewsApiClient
 import dev.vhonta.content.puller.workflows._
+import dev.vhonta.content.puller.workflows.newsapi.{NewsActivities, NewsActivitiesImpl, NewsApiModule}
+import dev.vhonta.content.puller.workflows.youtube.{YoutubeActivities, YoutubeActivitiesImpl, YoutubeModule}
 import dev.vhonta.content.repository._
 import dev.vhonta.content.youtube.{GoogleModule, OAuth2Client, YoutubeClient}
 import io.getquill.jdbczio.Quill
@@ -19,38 +21,28 @@ object Main extends ZIOAppDefault {
     Runtime.removeDefaultLoggers ++ SLF4J.slf4j
 
   override def run: ZIO[ZIOAppArgs with Scope, Any, Any] = {
-    val registerWorkflows = {
+    val registerWorkers = {
       ZIO.collectAllDiscard(
         List(
-          ZWorkerFactory.newWorker(NewsApiScheduledPullerStarter.TaskQueue) @@
-            ZWorker.addWorkflow[NewsApiScheduledPullerWorkflowImpl].fromClass @@
-            ZWorker.addWorkflow[NewsApiPullTopicNewsWorkflowImpl].fromClass @@
-            ZWorker.addActivityImplementationService[DatabaseActivities] @@
-            ZWorker.addActivityImplementationService[NewsActivities],
-          ZWorkerFactory.newWorker(YoutubeScheduledPullerStarter.TaskQueue) @@
-            ZWorker.addWorkflow[YoutubeScheduledPullerWorkflowImpl].fromClass @@
-            ZWorker.addWorkflow[YoutubePullSubscriptionsWorkflowImpl].fromClass @@
-            ZWorker.addActivityImplementationService[DatabaseActivities] @@
-            ZWorker.addActivityImplementationService[YoutubeActivities]
+          NewsApiModule.worker,
+          YoutubeModule.worker
         )
       )
     }
 
     val program = for {
-      _    <- registerWorkflows
+      _    <- registerWorkers
       _    <- ZWorkflowServiceStubs.setup()
       args <- getArgs
       reset = args.contains("reset")
-      _ <- ZIO.serviceWithZIO[NewsApiScheduledPullerStarter](_.start(reset))
-      _ <- ZIO.serviceWithZIO[YoutubeScheduledPullerStarter](_.start(reset))
+      _ <- NewsApiModule.start(reset)
+      _ <- YoutubeModule.start(reset)
       _ <- ZWorkerFactory.serve
     } yield ()
 
     program
       .provideSome[ZIOAppArgs with Scope](
         DatabaseMigrator.applyMigration,
-        NewsApiScheduledPullerStarter.make,
-        YoutubeScheduledPullerStarter.make,
         // http
         HttpClientZioBackend.layer(),
         NewsApiClient.make,

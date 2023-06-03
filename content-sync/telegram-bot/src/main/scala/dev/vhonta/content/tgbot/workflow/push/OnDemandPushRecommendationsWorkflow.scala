@@ -1,12 +1,12 @@
-package dev.vhonta.content.tgbot.workflow
+package dev.vhonta.content.tgbot.workflow.push
 
 import dev.vhonta.content.tgbot.proto.{NotifySubscriberParams, PushRecommendationsParams}
+import dev.vhonta.content.tgbot.workflow.common.{SubscriberNotFoundException, TelegramActivities}
 import zio._
 import zio.temporal._
 import zio.temporal.activity._
-import zio.temporal.protobuf.syntax._
-import zio.temporal.workflow._
 import zio.temporal.failure.ChildWorkflowFailure
+import zio.temporal.workflow._
 
 @workflowInterface
 trait OnDemandPushRecommendationsWorkflow {

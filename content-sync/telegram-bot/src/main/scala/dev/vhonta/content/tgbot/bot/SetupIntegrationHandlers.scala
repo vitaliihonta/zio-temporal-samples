@@ -1,19 +1,20 @@
 package dev.vhonta.content.tgbot.bot
 
-import dev.vhonta.content.{Subscriber, SubscriberSettings}
+import dev.vhonta.content.{Subscriber, SubscriberSettings, SubscriberWithSettings}
 import dev.vhonta.content.repository.SubscriberRepository
 import dev.vhonta.content.tgbot.TelegramModule
 import dev.vhonta.content.tgbot.internal.TelegramCallbackQuery.NoData
 import dev.vhonta.content.tgbot.internal.{HandlingDSL, TelegramHandler}
-import dev.vhonta.content.tgbot.proto.{CurrentSetupNewsApiStep, SetupNewsApiParams, SetupYoutubeParams}
-import dev.vhonta.content.tgbot.workflow.{SetupNewsApiWorkflow, SetupYoutubeWorkflow}
+import dev.vhonta.content.tgbot.proto.{CurrentSetupNewsApiStep, SetupNewsApiParams, SetupParams, SetupYoutubeParams}
 import io.temporal.client.WorkflowNotFoundException
 import telegramium.bots._
 import telegramium.bots.high.Api
 import zio._
-import zio.temporal.workflow.{ZWorkflowClient, ZWorkflowStub}
+import zio.temporal.workflow.{IsWorkflow, ZWorkflowClient, ZWorkflowStub}
 import zio.temporal.protobuf.syntax._
 import dev.vhonta.content.tgbot.proto
+import dev.vhonta.content.tgbot.workflow.setup.{BaseSetupWorkflow, SetupNewsApiWorkflow, SetupYoutubeWorkflow}
+import scala.reflect.ClassTag
 
 object SetupIntegrationHandlers extends HandlingDSL {
   val onStart: TelegramHandler[Api[Task] with SubscriberRepository, Message] =
@@ -72,27 +73,9 @@ object SetupIntegrationHandlers extends HandlingDSL {
     onCallbackQuery(ContentSyncCallbackQuery.SetupNewsApi) { (query, _) =>
       ZIO.foreach(query.message) { msg =>
         for {
-          subscriber <- Repositories.getOrCreateByTelegramId(query.from, msg.chat, msg.date)
-          setupWorkflow <- ZIO.serviceWithZIO[ZWorkflowClient](
-                             _.newWorkflowStub[SetupNewsApiWorkflow]
-                               .withTaskQueue(TelegramModule.TaskQueue)
-                               .withWorkflowId(setupNewsApiWorkflowId(subscriber.subscriber))
-                               .build
-                           )
-          _ <- ZWorkflowStub.start(
-                 setupWorkflow.setup(
-                   SetupNewsApiParams(subscriber.subscriber.id)
-                 )
-               )
-          _ <- execute(
-                 answerCallbackQuery(callbackQueryId = query.id)
-               )
-          _ <- execute(
-                 editMessageReplyMarkup(
-                   chatId = Some(ChatIntId(msg.chat.id)),
-                   messageId = Some(msg.messageId),
-                   replyMarkup = None
-                 )
+          _ <- startSetupWorkflow[SetupNewsApiParams, SetupNewsApiWorkflow](query, msg)(
+                 setupNewsApiWorkflowId,
+                 makeParams = subscriber => SetupNewsApiParams(subscriber.subscriber.id)
                )
           _ <-
             execute(
@@ -144,33 +127,14 @@ object SetupIntegrationHandlers extends HandlingDSL {
   val onSetupYoutube: TelegramHandler[Api[Task] with ZWorkflowClient with SubscriberRepository, CallbackQuery] =
     onCallbackQuery(ContentSyncCallbackQuery.SetupYoutube) { (query, _) =>
       ZIO.foreach(query.message) { msg =>
-        for {
-          subscriber <- Repositories.getOrCreateByTelegramId(query.from, msg.chat, msg.date)
-          setupWorkflow <- ZIO.serviceWithZIO[ZWorkflowClient](
-                             _.newWorkflowStub[SetupYoutubeWorkflow]
-                               .withTaskQueue(TelegramModule.TaskQueue)
-                               .withWorkflowId(setupYoutubeWorkflowId(subscriber.subscriber))
-                               .build
-                           )
-          _ <- ZWorkflowStub.start(
-                 setupWorkflow.setup(
-                   SetupYoutubeParams(
-                     subscriber.subscriber.id,
-                     redirectUri = "http://localhost:9092/oauth2" /*TODO: make configurable*/
-                   )
-                 )
-               )
-          _ <- execute(
-                 answerCallbackQuery(callbackQueryId = query.id)
-               )
-          _ <- execute(
-                 editMessageReplyMarkup(
-                   chatId = Some(ChatIntId(msg.chat.id)),
-                   messageId = Some(msg.messageId),
-                   replyMarkup = None
-                 )
-               )
-        } yield ()
+        startSetupWorkflow[SetupYoutubeParams, SetupYoutubeWorkflow](query, msg)(
+          makeWorkflowId = setupYoutubeWorkflowId,
+          makeParams = subscriber =>
+            SetupYoutubeParams(
+              subscriber.subscriber.id,
+              redirectUri = "http://localhost:9092/oauth2" /*TODO: make configurable*/
+            )
+        )
       }
     }
 
@@ -179,6 +143,40 @@ object SetupIntegrationHandlers extends HandlingDSL {
 
   val callbackQueryHandlers: TelegramHandler[Api[Task] with ZWorkflowClient with SubscriberRepository, CallbackQuery] =
     chain(onSetupNewsApi, onSetupYoutube, onNeverMind)
+
+  private def startSetupWorkflow[
+    Params <: SetupParams,
+    SetupWorkflow <: BaseSetupWorkflow[Params]: IsWorkflow: ClassTag
+  ](query:          CallbackQuery,
+    msg:            Message
+  )(makeWorkflowId: Subscriber => String,
+    makeParams:     SubscriberWithSettings => Params
+  ) = {
+    for {
+      subscriber <- Repositories.getOrCreateByTelegramId(query.from, msg.chat, msg.date)
+      setupWorkflow <- ZIO.serviceWithZIO[ZWorkflowClient](
+                         _.newWorkflowStub[SetupWorkflow]
+                           .withTaskQueue(TelegramModule.TaskQueue)
+                           .withWorkflowId(makeWorkflowId(subscriber.subscriber))
+                           .build
+                       )
+      _ <- ZWorkflowStub.start(
+             setupWorkflow.setup(
+               makeParams(subscriber)
+             )
+           )
+      _ <- execute(
+             answerCallbackQuery(callbackQueryId = query.id)
+           )
+      _ <- execute(
+             editMessageReplyMarkup(
+               chatId = Some(ChatIntId(msg.chat.id)),
+               messageId = Some(msg.messageId),
+               replyMarkup = None
+             )
+           )
+    } yield ()
+  }
 
   private def getCurrentSetupStepIfExists(
     subscriber: Subscriber
@@ -207,8 +205,4 @@ object SetupIntegrationHandlers extends HandlingDSL {
 
   private def setupYoutubeWorkflowId(subscriber: Subscriber): String =
     SetupYoutubeWorkflow.workflowId(subscriber.id)
-
-  private def settingsHtml(settings: SubscriberSettings): String = {
-    s"""\n<b>Timezone:</b> ${settings.timezone}\n<b>Publish at: ${settings.publishAt}</b>"""
-  }
 }

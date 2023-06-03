@@ -1,6 +1,7 @@
 package dev.vhonta.content.tgbot.workflow
 
 import dev.vhonta.content.tgbot.proto._
+import dev.vhonta.content.tgbot.workflow.common.{ContentFeedActivities, SubscriberNotFoundException, TelegramActivities}
 import zio._
 import zio.temporal._
 import zio.temporal.activity._

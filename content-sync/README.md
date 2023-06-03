@@ -2,10 +2,8 @@
 Fetch various content (such as news, videos) and periodically get them through Telegram Bot.  
 
 ## TODOs
-- [ ] Generalize pullers 
-- [ ] Move youtube/newsapi into specific packages
 - [ ] Scaladoc
-- [ ] Testkit
+- [ ] Testkit examples
 
 ## Supported integrations
 - [News API](https://newsapi.org/docs/get-started)

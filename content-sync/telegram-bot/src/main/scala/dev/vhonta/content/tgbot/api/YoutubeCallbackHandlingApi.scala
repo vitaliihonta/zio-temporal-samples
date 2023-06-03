@@ -1,7 +1,7 @@
 package dev.vhonta.content.tgbot.api
 
 import dev.vhonta.content.tgbot.proto.YoutubeCallbackData
-import dev.vhonta.content.tgbot.workflow.SetupYoutubeWorkflow
+import dev.vhonta.content.tgbot.workflow.setup.SetupYoutubeWorkflow
 import zio._
 import zio.http._
 import zio.json._

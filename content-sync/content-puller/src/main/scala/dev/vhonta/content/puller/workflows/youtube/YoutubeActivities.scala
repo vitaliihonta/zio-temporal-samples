@@ -1,26 +1,15 @@
-package dev.vhonta.content.puller.workflows
+package dev.vhonta.content.puller.workflows.youtube
 
-import com.google.api.client.http.HttpResponseException
 import dev.vhonta.content.ContentFeedIntegrationDetails
-import dev.vhonta.content.youtube.{OAuth2Client, YoutubeClient}
-import dev.vhonta.content.puller.proto.{
-  FetchVideosParams,
-  FetchVideosResult,
-  FetchVideosState,
-  YoutubeSearchResult,
-  YoutubeSubscription,
-  YoutubeSubscriptionList,
-  YoutubeTokenInfo
-}
+import dev.vhonta.content.puller.proto._
 import dev.vhonta.content.repository.ContentFeedIntegrationRepository
+import dev.vhonta.content.youtube.{OAuth2Client, YoutubeClient}
 import zio._
-import zio.stream.ZStream
 import zio.temporal._
 import zio.temporal.activity._
 import zio.temporal.protobuf.syntax._
 
 import java.time.{Instant, LocalDateTime, ZoneOffset}
-import scala.jdk.CollectionConverters._
 
 @activityInterface
 trait YoutubeActivities {

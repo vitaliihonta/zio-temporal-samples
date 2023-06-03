@@ -1,7 +1,9 @@
-package dev.vhonta.content.tgbot.workflow
+package dev.vhonta.content.tgbot.workflow.setup
 
 import dev.vhonta.content.tgbot.bot.ContentSyncCommand.ListIntegrations
 import dev.vhonta.content.tgbot.proto._
+import dev.vhonta.content.tgbot.workflow.NewsApiActivities
+import dev.vhonta.content.tgbot.workflow.common.{SubscriberNotFoundException, TelegramActivities}
 import zio._
 import zio.temporal._
 import zio.temporal.activity._
@@ -9,9 +11,7 @@ import zio.temporal.state.ZWorkflowState
 import zio.temporal.workflow._
 
 @workflowInterface
-trait SetupNewsApiWorkflow {
-  @workflowMethod
-  def setup(params: SetupNewsApiParams): SetupResult
+trait SetupNewsApiWorkflow extends BaseSetupWorkflow[SetupNewsApiParams] {
 
   @signalMethod
   def provideApiKey(apiKeyData: ProvideNewsApiKeyData): Unit

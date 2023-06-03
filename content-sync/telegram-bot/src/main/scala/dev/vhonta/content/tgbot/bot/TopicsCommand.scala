@@ -5,11 +5,7 @@ import dev.vhonta.content.Subscriber
 import dev.vhonta.content.repository.{ContentFeedRepository, SubscriberRepository}
 import dev.vhonta.content.tgbot.internal.{HandlingDSL, TelegramHandler}
 import dev.vhonta.content.tgbot.proto.{AddTopicParams, CurrentAddTopicStep, PushRecommendationsParams}
-import dev.vhonta.content.tgbot.workflow.{
-  AddTopicWorkflow,
-  OnDemandPushRecommendationsWorkflow,
-  PushRecommendationsWorkflow
-}
+import dev.vhonta.content.tgbot.workflow.AddTopicWorkflow
 import io.temporal.client.WorkflowNotFoundException
 import zio.temporal.workflow.{ZWorkflowClient, ZWorkflowStub}
 import zio._
@@ -18,6 +14,7 @@ import telegramium.bots._
 import telegramium.bots.high.Api
 import zio.temporal.protobuf.syntax._
 import dev.vhonta.content.ProtoConverters._
+import dev.vhonta.content.tgbot.workflow.push.{OnDemandPushRecommendationsWorkflow, PushRecommendationsWorkflow}
 
 object TopicsCommand extends HandlingDSL {
   val onListTopics: TelegramHandler[Api[Task] with ContentFeedRepository with SubscriberRepository, Message] =

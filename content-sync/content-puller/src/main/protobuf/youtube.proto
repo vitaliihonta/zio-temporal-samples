@@ -53,22 +53,3 @@ message YoutubeVideosList {
 message StoreVideosParameters {
   required int64 integrationId = 1;
 }
-
-message YoutubePullerParameters {
-  required int64 integrationId = 1;
-  required int64 minDate = 2;
-  required int64 maxResults = 3;
-}
-
-message YoutubePullerResetState {
-  required int64 integrationId = 1;
-}
-
-message YoutubePullerIntegrationState {
-  required int64 integrationId = 1;
-  required int64 lastProcessedAt = 2;
-}
-
-message YoutubePullerInitialState {
-  repeated YoutubePullerIntegrationState states = 1;
-}

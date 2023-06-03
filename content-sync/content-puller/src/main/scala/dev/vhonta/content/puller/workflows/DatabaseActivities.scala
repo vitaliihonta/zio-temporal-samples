@@ -22,7 +22,7 @@ import zio._
 import zio.temporal._
 import zio.temporal.activity._
 import zio.temporal.protobuf.syntax._
-
+import dev.vhonta.content.ProtoConverters._
 import java.net.URI
 import java.time.LocalDateTime
 
@@ -77,13 +77,9 @@ case class DatabaseActivitiesImpl(
             // TODO: decouple conversion
             integration = integration.integration match {
               case ContentFeedIntegrationDetails.NewsApi(token) =>
-                ContentFeedIntegration.Integration.NewsApi(
-                  ContentFeedIntegrationNewsApiDetails(token)
-                )
+                ContentFeedIntegrationNewsApiDetails(token)
               case ContentFeedIntegrationDetails.Youtube(accessToken, refreshToken, exchangedAt, expiresInSeconds) =>
-                ContentFeedIntegration.Integration.Youtube(
-                  ContentFeedIntegrationYoutubeDetails(accessToken, refreshToken, exchangedAt, expiresInSeconds)
-                )
+                ContentFeedIntegrationYoutubeDetails(accessToken, refreshToken, exchangedAt, expiresInSeconds)
             }
           )
         )

@@ -114,13 +114,9 @@ case class ProcessorActivitiesImpl(
           // TODO: decouple conversion
           integration = integration.integration match {
             case ContentFeedIntegrationDetails.NewsApi(token) =>
-              ContentFeedIntegration.Integration.NewsApi(
-                ContentFeedIntegrationNewsApiDetails(token)
-              )
+              ContentFeedIntegrationNewsApiDetails(token)
             case ContentFeedIntegrationDetails.Youtube(accessToken, refreshToken, exchangedAt, expiresInSeconds) =>
-              ContentFeedIntegration.Integration.Youtube(
-                ContentFeedIntegrationYoutubeDetails(accessToken, refreshToken, exchangedAt, expiresInSeconds)
-              )
+              ContentFeedIntegrationYoutubeDetails(accessToken, refreshToken, exchangedAt, expiresInSeconds)
           }
         ),
         items = items.map { item =>

@@ -34,6 +34,11 @@ message StoreArticlesParameters {
   required zio.temporal.protobuf.UUID topicId = 2;
 }
 
-message ContentFeedIntegrations {
-  repeated dev.vhonta.content.proto.ContentFeedIntegration integrations = 1;
+message NewsPullerActivityParameters {
+  required string apiKey = 1;
+  required string topic = 2;
+  required dev.vhonta.content.proto.ContentLanguage language = 3;
+  optional int64 from = 4;
+  required int64 to = 5;
+  required int32 page = 6;
 }
