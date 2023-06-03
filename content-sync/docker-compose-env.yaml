@@ -12,7 +12,7 @@ services:
     ports:
       - "6432:5432"
   content-puller:
-    image: vhonta/content-puller:0.1.1
+    image: vhonta/content-puller:0.2.0
     restart: always
     env_file:
       - common.env
@@ -20,7 +20,7 @@ services:
     depends_on:
       - db
   content-processor:
-    image: vhonta/content-processor:0.1.1
+    image: vhonta/content-processor:0.2.0
     restart: always
     env_file:
       - common.env
@@ -28,10 +28,14 @@ services:
     depends_on:
       - db
   telegram-bot:
-    image: vhonta/telegram-bot:0.1.1
+    image: vhonta/telegram-bot:0.2.0
     restart: always
     env_file:
       - common.env
       - secret.env
+    environment:
+      TELEGRAM_BINDING_PORT: 9092
     depends_on:
       - db
+    ports:
+      - "9092:9092"

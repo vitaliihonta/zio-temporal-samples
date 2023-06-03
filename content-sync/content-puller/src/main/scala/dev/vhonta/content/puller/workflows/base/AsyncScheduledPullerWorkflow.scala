@@ -51,8 +51,7 @@ abstract class AsyncScheduledPullerWorkflow[
       )
       .build
 
-  // TODO: backport fix
-  //  private val nextRun = ZWorkflow.newContinueAsNewStub[Self].build
+  private val nextRun = ZWorkflow.newContinueAsNewStub[Self].build
 
   override def startPulling(params: InitialState): Unit = {
     state := initializeState(params)
@@ -120,17 +119,11 @@ abstract class AsyncScheduledPullerWorkflow[
     ZWorkflow.sleep(sleepTime)
 
     // Continue as new workflow
-    // TODO: backport?
-    zio.temporal.internal.TemporalWorkflowFacade.continueAsNew[Unit](
-      null, /*may use classtag to get the type*/
-      io.temporal.workflow.ContinueAsNewOptions.getDefaultInstance,
-      List(stateForNextRun(state.snapshot))
+    ZWorkflowContinueAsNewStub.execute(
+      nextRun.startPulling(
+        stateForNextRun(state.snapshot)
+      )
     )
-//    ZWorkflowContinueAsNewStub.execute(
-//      nextRun.startPulling(
-//        stateForNextRun(state.snapshot)
-//      )
-//    )
   }
 
   override def resetState(command: PullerResetState): Unit = {
