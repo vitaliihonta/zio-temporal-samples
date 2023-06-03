@@ -1,19 +1,14 @@
-package dev.vhonta.content.tgbot.workflow
+package dev.vhonta.content.tgbot.workflow.push
 
 import dev.vhonta.content.proto.ContentFeedRecommendationView
+import dev.vhonta.content.tgbot.proto._
+import dev.vhonta.content.tgbot.workflow.common.{ContentFeedActivities, SubscriberNotFoundException, TelegramActivities}
 import zio._
 import zio.temporal._
-import zio.temporal.workflow._
 import zio.temporal.activity._
-import dev.vhonta.content.tgbot.proto.{
-  ListRecommendationsParams,
-  NotifySubscriberParams,
-  PretendTypingParams,
-  PushRecommendationsParams,
-  TelegramParseMode
-}
 import zio.temporal.protobuf.syntax._
-import dev.vhonta.content.ProtoConverters._
+import zio.temporal.workflow._
+
 import java.time.LocalDate
 
 @workflowInterface
@@ -103,7 +98,7 @@ class PushRecommendationsWorkflowImpl extends PushRecommendationsWorkflow {
     val integration = {
       // TODO: decouple conversion
       val kind =
-        if (recommendation.integration.integration.isYoutube) "Youtube ▶\uFE0F"
+        if (recommendation.integration.integration.asMessage.sealedValue.isYoutube) "Youtube ▶\uFE0F"
         else "NewsApi ℹ\uFE0F"
       s"<b>#${recommendation.integration.id}</b> - <b>$kind</b>"
     }

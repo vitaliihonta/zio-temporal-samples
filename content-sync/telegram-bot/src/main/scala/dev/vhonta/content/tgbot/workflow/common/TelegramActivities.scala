@@ -1,13 +1,14 @@
-package dev.vhonta.content.tgbot.workflow
+package dev.vhonta.content.tgbot.workflow.common
 
 import dev.vhonta.content.repository.SubscriberRepository
 import dev.vhonta.content.tgbot.bot.ContentSyncBot
-import dev.vhonta.content.tgbot.proto.{NotifySubscriberParams, TelegramParseMode, PretendTypingParams}
+import dev.vhonta.content.tgbot.proto.{NotifySubscriberParams, PretendTypingParams, TelegramParseMode}
 import telegramium.bots
 import zio._
 import zio.temporal._
 import zio.temporal.activity._
 import zio.temporal.protobuf.syntax._
+
 import java.util.UUID
 
 @activityInterface

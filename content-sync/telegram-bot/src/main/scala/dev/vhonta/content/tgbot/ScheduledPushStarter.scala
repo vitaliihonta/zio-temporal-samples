@@ -1,6 +1,6 @@
 package dev.vhonta.content.tgbot
 
-import dev.vhonta.content.tgbot.workflow.ScheduledPushRecommendationsWorkflow
+import dev.vhonta.content.tgbot.workflow.push.ScheduledPushRecommendationsWorkflow
 import io.temporal.client.WorkflowExecutionAlreadyStarted
 import zio._
 import zio.temporal._

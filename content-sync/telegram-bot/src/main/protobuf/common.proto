@@ -14,3 +14,19 @@ message SetupResult {
     string failureReason = 2;
   }
 }
+
+message SetupParams {
+  oneof sealed_value {
+    SetupNewsApiParams newsApi = 1;
+    SetupYoutubeParams youtube = 2;
+  }
+}
+
+message SetupNewsApiParams {
+  required zio.temporal.protobuf.UUID subscriber = 1;
+}
+
+message SetupYoutubeParams {
+  required zio.temporal.protobuf.UUID subscriber = 1;
+  required string redirectUri = 2;
+}

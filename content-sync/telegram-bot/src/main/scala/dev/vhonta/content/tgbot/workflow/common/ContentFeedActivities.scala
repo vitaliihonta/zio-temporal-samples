@@ -1,13 +1,7 @@
-package dev.vhonta.content.tgbot.workflow
+package dev.vhonta.content.tgbot.workflow.common
 
 import dev.vhonta.content.ProtoConverters._
-import dev.vhonta.content.proto.{
-  ContentFeedIntegration,
-  ContentFeedIntegrationNewsApiDetails,
-  ContentFeedIntegrationYoutubeDetails,
-  ContentFeedItem,
-  ContentFeedRecommendationView
-}
+import dev.vhonta.content.proto._
 import dev.vhonta.content.repository.{
   ContentFeedIntegrationRepository,
   ContentFeedRecommendationRepository,
@@ -148,17 +142,13 @@ case class ContentFeedActivitiesImpl(
               subscriber = recommendation.integration.subscriber,
               integration = recommendation.integration.integration match {
                 case ContentFeedIntegrationDetails.NewsApi(token) =>
-                  ContentFeedIntegration.Integration.NewsApi(
-                    ContentFeedIntegrationNewsApiDetails(token)
-                  )
+                  ContentFeedIntegrationNewsApiDetails(token)
                 case ContentFeedIntegrationDetails.Youtube(accessToken, refreshToken, exchangedAt, expiresInSeconds) =>
-                  ContentFeedIntegration.Integration.Youtube(
-                    ContentFeedIntegrationYoutubeDetails(
-                      accessToken,
-                      refreshToken,
-                      exchangedAt,
-                      expiresInSeconds
-                    )
+                  ContentFeedIntegrationYoutubeDetails(
+                    accessToken,
+                    refreshToken,
+                    exchangedAt,
+                    expiresInSeconds
                   )
               }
             ),

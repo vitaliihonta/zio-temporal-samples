@@ -1,21 +1,19 @@
-package dev.vhonta.content.tgbot.workflow
+package dev.vhonta.content.tgbot.workflow.setup
 
 import dev.vhonta.content.proto.ContentFeedIntegrationYoutubeDetails
 import dev.vhonta.content.tgbot.bot.ContentSyncCommand.ListIntegrations
 import dev.vhonta.content.tgbot.proto._
+import dev.vhonta.content.tgbot.workflow.YoutubeActivities
+import dev.vhonta.content.tgbot.workflow.common.{SubscriberNotFoundException, TelegramActivities}
 import zio._
 import zio.temporal._
 import zio.temporal.activity._
 import zio.temporal.state.ZWorkflowState
 import zio.temporal.workflow._
-import zio.temporal.protobuf.syntax._
-
 import java.util.UUID
 
 @workflowInterface
-trait SetupYoutubeWorkflow {
-  @workflowMethod
-  def setup(params: SetupYoutubeParams): SetupResult
+trait SetupYoutubeWorkflow extends BaseSetupWorkflow[SetupYoutubeParams] {
 
   @signalMethod
   def provideCallbackData(callbackData: YoutubeCallbackData): Unit

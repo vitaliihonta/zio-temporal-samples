@@ -11,19 +11,22 @@ import dev.vhonta.content.repository.{
 }
 import dev.vhonta.content.tgbot.api.YoutubeCallbackHandlingApi
 import dev.vhonta.content.tgbot.bot.ContentSyncBotImpl
-import dev.vhonta.content.tgbot.workflow.{
-  AddTopicWorkflowImpl,
+import dev.vhonta.content.tgbot.workflow.common.{
   ContentFeedActivities,
   ContentFeedActivitiesImpl,
-  NewsApiActivities,
-  NewsApiActivitiesImpl,
+  TelegramActivities,
+  TelegramActivitiesImpl
+}
+import dev.vhonta.content.tgbot.workflow.push.{
   OnDemandPushRecommendationsWorkflowImpl,
   PushRecommendationsWorkflowImpl,
-  ScheduledPushRecommendationsWorkflowImpl,
-  SetupNewsApiWorkflowImpl,
-  SetupYoutubeWorkflowImpl,
-  TelegramActivities,
-  TelegramActivitiesImpl,
+  ScheduledPushRecommendationsWorkflowImpl
+}
+import dev.vhonta.content.tgbot.workflow.setup.{SetupNewsApiWorkflowImpl, SetupYoutubeWorkflowImpl}
+import dev.vhonta.content.tgbot.workflow.{
+  AddTopicWorkflowImpl,
+  NewsApiActivities,
+  NewsApiActivitiesImpl,
   YoutubeActivities,
   YoutubeActivitiesImpl
 }

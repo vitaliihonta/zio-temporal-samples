@@ -22,10 +22,6 @@ message CurrentSetupNewsApiStep {
   required SetupNewsApiStep value = 1;
 }
 
-message SetupNewsApiParams {
-  required zio.temporal.protobuf.UUID subscriber = 1;
-}
-
 message TestApiKeyParams {
   required string apiKey = 1;
 }

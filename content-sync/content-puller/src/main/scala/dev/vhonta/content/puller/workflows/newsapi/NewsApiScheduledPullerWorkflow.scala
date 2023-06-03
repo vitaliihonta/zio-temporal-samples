@@ -1,6 +1,10 @@
 package dev.vhonta.content.puller.workflows.newsapi
 
-import dev.vhonta.content.proto.{ContentFeedIntegration, ContentFeedIntegrationType}
+import dev.vhonta.content.proto.{
+  ContentFeedIntegration,
+  ContentFeedIntegrationNewsApiDetails,
+  ContentFeedIntegrationType
+}
 import dev.vhonta.content.puller.proto.{
   ListTopics,
   NewsApiInitialPullerState,
@@ -12,6 +16,7 @@ import dev.vhonta.content.puller.workflows.base.{AsyncScheduledPullerWorkflow, B
 import zio.temporal._
 import zio.temporal.activity.ZActivityStub
 import zio.temporal.protobuf.syntax._
+
 import java.time.LocalDateTime
 
 @workflowInterface
@@ -51,28 +56,32 @@ class NewsApiScheduledPullerWorkflowImpl
     state:       Option[NewsApiIntegrationState],
     startedAt:   LocalDateTime
   ): Option[NewsPullerParameters] = {
-    integration.integration.newsApi.map { newsApi =>
-      val topics = ZActivityStub.execute(
-        databaseActivities.loadNewsTopics(
-          ListTopics(List(integration.subscriber))
-        )
-      )
-
-      logger.info(s"Going to pull ${topics.topics.size} topics")
-
-      NewsPullerParameters(
-        integrationId = integration.id,
-        apiKey = newsApi.token,
-        from = state.map(_.lastProcessedAt),
-        to = startedAt,
-        topics = topics.topics.map { topic =>
-          NewsPullerTopic(
-            topicId = topic.id,
-            topic = topic.topic,
-            lang = topic.lang
+    integration.integration match {
+      case ContentFeedIntegrationNewsApiDetails(token, _) =>
+        val topics = ZActivityStub.execute(
+          databaseActivities.loadNewsTopics(
+            ListTopics(List(integration.subscriber))
           )
-        }
-      )
+        )
+
+        logger.info(s"Going to pull ${topics.topics.size} topics")
+
+        Some(
+          NewsPullerParameters(
+            integrationId = integration.id,
+            apiKey = token,
+            from = state.map(_.lastProcessedAt),
+            to = startedAt,
+            topics = topics.topics.map { topic =>
+              NewsPullerTopic(
+                topicId = topic.id,
+                topic = topic.topic,
+                lang = topic.lang
+              )
+            }
+          )
+        )
+      case _ => None
     }
   }
 

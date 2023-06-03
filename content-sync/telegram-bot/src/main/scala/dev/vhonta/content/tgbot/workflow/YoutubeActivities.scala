@@ -127,13 +127,11 @@ case class YoutubeActivitiesImpl(
         integration = proto.ContentFeedIntegration(
           id = integration.id,
           subscriber = integration.subscriber,
-          integration = proto.ContentFeedIntegration.Integration.Youtube(
-            proto.ContentFeedIntegrationYoutubeDetails(
-              accessToken = params.creds.accessToken,
-              refreshToken = params.creds.refreshToken,
-              exchangedAt = params.creds.exchangedAt.toProto,
-              expiresInSeconds = params.creds.expiresInSeconds
-            )
+          integration = proto.ContentFeedIntegrationYoutubeDetails(
+            accessToken = params.creds.accessToken,
+            refreshToken = params.creds.refreshToken,
+            exchangedAt = params.creds.exchangedAt.toProto,
+            expiresInSeconds = params.creds.expiresInSeconds
           )
         )
       )

@@ -88,9 +88,7 @@ case class NewsApiActivitiesImpl(
         integration = proto.ContentFeedIntegration(
           id = integration.id,
           subscriber = integration.subscriber,
-          integration = proto.ContentFeedIntegration.Integration.NewsApi(
-            proto.ContentFeedIntegrationNewsApiDetails(params.apiKey)
-          )
+          integration = proto.ContentFeedIntegrationNewsApiDetails(params.apiKey)
         )
       )
     }

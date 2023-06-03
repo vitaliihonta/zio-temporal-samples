@@ -1,6 +1,10 @@
 package dev.vhonta.content.puller.workflows.youtube
 
-import dev.vhonta.content.proto.{ContentFeedIntegration, ContentFeedIntegrationType}
+import dev.vhonta.content.proto.{
+  ContentFeedIntegration,
+  ContentFeedIntegrationType,
+  ContentFeedIntegrationYoutubeDetails
+}
 import dev.vhonta.content.puller.proto.{
   YoutubePullerInitialState,
   YoutubePullerIntegrationState,
@@ -9,6 +13,7 @@ import dev.vhonta.content.puller.proto.{
 import dev.vhonta.content.puller.workflows.base.{AsyncScheduledPullerWorkflow, BaseScheduledPullerWorkflow}
 import zio.temporal._
 import zio.temporal.protobuf.syntax._
+
 import java.time.LocalDateTime
 
 @workflowInterface
@@ -52,16 +57,21 @@ class YoutubeScheduledPullerWorkflowImpl
     integration: ContentFeedIntegration,
     state:       Option[YoutubePullerIntegrationState],
     startedAt:   LocalDateTime
-  ): Option[YoutubePullerParameters] =
-    integration.integration.youtube.map { youtubeDetails =>
-      YoutubePullerParameters(
-        integrationId = integration.id,
-        minDate = state
-          .map(_.lastProcessedAt)
-          .getOrElse(startedAt.toLocalDate.atStartOfDay().toProto),
-        maxResults = maxResults
-      )
+  ): Option[YoutubePullerParameters] = {
+    integration.integration match {
+      case _: ContentFeedIntegrationYoutubeDetails =>
+        Some(
+          YoutubePullerParameters(
+            integrationId = integration.id,
+            minDate = state
+              .map(_.lastProcessedAt)
+              .getOrElse(startedAt.toLocalDate.atStartOfDay().toProto),
+            maxResults = maxResults
+          )
+        )
+      case _ => None
     }
+  }
 
   override protected def refreshIntegrationState(
     integrationId: Long,

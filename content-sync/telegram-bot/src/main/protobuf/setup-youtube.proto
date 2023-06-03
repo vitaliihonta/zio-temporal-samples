@@ -7,12 +7,6 @@ import "content_feed.proto";
 import "content_integrations.proto";
 import "content_feed_recommendation.proto";
 
-
-message SetupYoutubeParams {
-  required zio.temporal.protobuf.UUID subscriber = 1;
-  required string redirectUri = 2;
-}
-
 enum SetupYoutubeStep {
   InitiatingYoutubeOauth = 1;
   WaitingForCallback = 2;

@@ -1,6 +1,7 @@
-package dev.vhonta.content.tgbot.workflow
+package dev.vhonta.content.tgbot.workflow.push
 
 import dev.vhonta.content.tgbot.proto.{ListAllSubscribersParams, PushRecommendationsParams}
+import dev.vhonta.content.tgbot.workflow.common.ContentFeedActivities
 import zio._
 import zio.temporal._
 import zio.temporal.activity._
