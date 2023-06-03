@@ -1,20 +1,19 @@
 package dev.vhonta.content.puller.workflows.base
 
-import dev.vhonta.content.puller.proto.{PullingResult, YoutubePullerResetState}
-import scalapb.GeneratedMessage
+import dev.vhonta.content.puller.proto.{PullingResult, PullerResetState, ScheduledPullerParams, PullerParams}
 import zio.temporal._
 
-trait BasePullWorkflow[Params <: GeneratedMessage] {
+trait BasePullWorkflow[Params <: PullerParams] {
   @workflowMethod
   def pull(params: Params): PullingResult
 }
 
-trait BaseScheduledPullerWorkflow[InitialState <: GeneratedMessage] {
+trait BaseScheduledPullerWorkflow[Params <: ScheduledPullerParams] {
   @workflowMethod
-  def startPulling(initialState: InitialState): Unit
+  def startPulling(params: Params): Unit
 
   @signalMethod
-  def resetState(command: YoutubePullerResetState /*TODO: rename to generic*/ ): Unit
+  def resetState(command: PullerResetState): Unit
 
   @signalMethod
   def resetStateAll(): Unit

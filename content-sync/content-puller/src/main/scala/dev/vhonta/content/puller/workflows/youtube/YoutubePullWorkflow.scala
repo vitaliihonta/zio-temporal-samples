@@ -1,4 +1,4 @@
-package dev.vhonta.content.puller.workflows
+package dev.vhonta.content.puller.workflows.youtube
 
 import dev.vhonta.content.puller.proto.{
   FetchVideosParams,
@@ -7,18 +7,17 @@ import dev.vhonta.content.puller.proto.{
   YoutubePullerParameters,
   YoutubeVideosList
 }
+import dev.vhonta.content.puller.workflows.DatabaseActivities
+import dev.vhonta.content.puller.workflows.base.BasePullWorkflow
 import zio.temporal._
 import zio._
 import zio.temporal.workflow._
 import zio.temporal.activity._
 
 @workflowInterface
-trait YoutubePullSubscriptionsWorkflow {
-  @workflowMethod(name = "YoutubePullSubscriptions")
-  def pull(params: YoutubePullerParameters): PullingResult
-}
+trait YoutubePullWorkflow extends BasePullWorkflow[YoutubePullerParameters]
 
-class YoutubePullSubscriptionsWorkflowImpl extends YoutubePullSubscriptionsWorkflow {
+class YoutubePullWorkflowImpl extends YoutubePullWorkflow {
   private val logger = ZWorkflow.makeLogger
 
   private val youtubeActivities = ZWorkflow

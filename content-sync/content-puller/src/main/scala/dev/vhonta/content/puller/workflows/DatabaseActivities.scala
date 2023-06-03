@@ -22,7 +22,7 @@ import zio._
 import zio.temporal._
 import zio.temporal.activity._
 import zio.temporal.protobuf.syntax._
-
+import dev.vhonta.content.ProtoConverters._
 import java.net.URI
 import java.time.LocalDateTime
 

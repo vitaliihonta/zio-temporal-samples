@@ -3,54 +3,32 @@ syntax = "proto2";
 package dev.vhonta.content.puller.proto;
 
 import "zio-temporal.proto";
-import "news_api.proto";
 import "content_feed.proto";
 import "content_integrations.proto";
 
-message ListTopics {
-  repeated zio.temporal.protobuf.UUID subscribers = 1;
+message PullerParams {
+  oneof sealed_value {
+    NewsPullerParameters newsApi = 1;
+    YoutubePullerParameters youtube = 2;
+  }
 }
 
-message ListIntegrations {
-  required dev.vhonta.content.proto.ContentFeedIntegrationType  integrationType = 1;
+message NewsPullerTopic {
+  required zio.temporal.protobuf.UUID topicId = 1;
+  required string topic = 2;
+  required dev.vhonta.content.proto.ContentLanguage lang = 3;
 }
 
 message NewsPullerParameters {
-  required string apiKey = 1;
-  required int64 integrationId = 2;
-  required zio.temporal.protobuf.UUID topicId = 3;
-  required string topic = 4;
-  required dev.vhonta.content.proto.ContentLanguage language = 5;
-  optional int64 from = 6;
-  required int64 to = 7;
-}
-
-message PullingResult {
-  required int64 processed = 1;
-}
-
-message NewsPullerParametersList {
-  repeated NewsPullerParameters params = 1;
-}
-
-message NewsPullerActivityParameters {
-  required string apiKey = 1;
-  required string topic = 2;
-  required dev.vhonta.content.proto.ContentLanguage language = 3;
+  required int64 integrationId = 1;
+  required string apiKey = 2;
   optional int64 from = 4;
   required int64 to = 5;
-  required int32 page = 6;
+  repeated NewsPullerTopic topics = 6;
 }
 
-message ResetPuller {
-  required zio.temporal.protobuf.UUID topicId = 1;
-}
-
-message PullerTopicState {
-  required zio.temporal.protobuf.UUID topicId = 1;
-  required int64 lastProcessedAt = 2;
-}
-
-message InitialPullerState {
-  repeated PullerTopicState states = 1;
+message YoutubePullerParameters {
+  required int64 integrationId = 1;
+  required int64 minDate = 2;
+  required int64 maxResults = 3;
 }

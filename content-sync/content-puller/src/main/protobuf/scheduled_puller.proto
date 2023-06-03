@@ -1,0 +1,32 @@
+syntax = "proto2";
+
+package dev.vhonta.content.puller.proto;
+
+import "zio-temporal.proto";
+
+message ScheduledPullerParams {
+  oneof sealed_value {
+    NewsApiInitialPullerState newsApi = 1;
+    YoutubePullerInitialState youtube = 2;
+  }
+}
+
+// News API
+message NewsApiIntegrationState {
+  required int64 integrationId = 1;
+  required int64 lastProcessedAt = 2;
+}
+
+message NewsApiInitialPullerState {
+  repeated NewsApiIntegrationState values = 1;
+}
+
+// Youtube
+message YoutubePullerIntegrationState {
+  required int64 integrationId = 1;
+  required int64 lastProcessedAt = 2;
+}
+
+message YoutubePullerInitialState {
+  repeated YoutubePullerIntegrationState states = 1;
+}
