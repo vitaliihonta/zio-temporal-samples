@@ -32,3 +32,16 @@ message YoutubePullerParameters {
   required int64 minDate = 2;
   required int64 maxResults = 3;
 }
+
+message PullerConfig {
+  required int64 pullInterval = 1;
+  required int64 singlePullTimeout = 2;
+}
+
+message YoutubePullerConfig {
+  required int32 maxResults = 1;
+}
+
+message GetConfigurationParams {
+  required dev.vhonta.content.proto.ContentFeedIntegrationType integrationType = 1;
+}

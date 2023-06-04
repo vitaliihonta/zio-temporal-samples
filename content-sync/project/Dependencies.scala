@@ -37,12 +37,20 @@ object Dependencies {
     "dev.zio"       %% "zio-logging-slf4j"   % versions.zioLogging,
     "dev.zio"       %% "zio-config"          % versions.zioConfig,
     "dev.zio"       %% "zio-config-typesafe" % versions.zioConfig,
-    "ch.qos.logback" % "logback-classic"     % "1.2.11"
+    "ch.qos.logback" % "logback-classic"     % "1.2.11",
+    "dev.zio"       %% "zio-test"            % versions.zio % Test,
+    "dev.zio"       %% "zio-test-sbt"        % versions.zio % Test
   )
 
   val zioHttp = Seq(
     "dev.zio" %% "zio-http" % "3.0.0-RC1"
   )
+
+  val mockito = Seq(
+    "org.mockito" %% "mockito-scala" % "1.17.14" % Test
+  )
+
+  val zioTestFrameworks = Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
 
   val database = Seq(
     "io.getquill"   %% "quill-jdbc-zio" % "4.6.0",
@@ -63,5 +71,9 @@ object Dependencies {
 
   val enumeratum = Seq(
     "com.beachape" %% "enumeratum" % versions.enumeratum
+  )
+
+  val chimney = Seq(
+    "io.scalaland" %% "chimney" % "0.7.5"
   )
 }
