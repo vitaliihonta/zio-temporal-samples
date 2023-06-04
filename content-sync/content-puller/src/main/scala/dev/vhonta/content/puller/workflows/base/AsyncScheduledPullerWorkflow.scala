@@ -1,14 +1,22 @@
 package dev.vhonta.content.puller.workflows.base
 
 import dev.vhonta.content.proto.{ContentFeedIntegration, ContentFeedIntegrationType}
-import dev.vhonta.content.puller.proto.{ListIntegrations, PullerParams, PullerResetState, ScheduledPullerParams}
-import dev.vhonta.content.puller.workflows.DatabaseActivities
+import dev.vhonta.content.puller.proto.{
+  GetConfigurationParams,
+  ListIntegrations,
+  PullerParams,
+  PullerResetState,
+  ScheduledPullerParams
+}
+import dev.vhonta.content.puller.workflows.{ConfigurationActivities, DatabaseActivities}
 import org.slf4j.Logger
 import zio._
 import zio.temporal._
 import zio.temporal.state._
 import zio.temporal.workflow._
 import zio.temporal.activity._
+import zio.temporal.protobuf.syntax._
+import dev.vhonta.content.ProtoConverters._
 import java.time.LocalDateTime
 import scala.reflect.ClassTag
 
@@ -38,10 +46,6 @@ abstract class AsyncScheduledPullerWorkflow[
 
   private val state = ZWorkflowState.emptyMap[Long, IntegrationState]
 
-  // TODO: make configurable
-  private val pullInterval      = 15.minutes
-  private val singlePullTimeout = 10.minutes
-
   protected val databaseActivities: ZActivityStub.Of[DatabaseActivities] =
     ZWorkflow
       .newActivityStub[DatabaseActivities]
@@ -51,10 +55,25 @@ abstract class AsyncScheduledPullerWorkflow[
       )
       .build
 
+  protected val configurationActivities: ZActivityStub.Of[ConfigurationActivities] =
+    ZWorkflow
+      .newActivityStub[ConfigurationActivities]
+      .withStartToCloseTimeout(30.seconds)
+      .withRetryOptions(
+        ZRetryOptions.default.withDoNotRetry(nameOf[Config.Error])
+      )
+      .build
+
   private val nextRun = ZWorkflow.newContinueAsNewStub[Self].build
 
   override def startPulling(params: InitialState): Unit = {
     state := initializeState(params)
+
+    val pullerConfig = ZActivityStub.execute(
+      configurationActivities.getBasePullerConfig(GetConfigurationParams(integrationType))
+    )
+
+    logger.info(s"Using puller config: $pullerConfig")
 
     val startedAt = ZWorkflow.currentTimeMillis.toLocalDateTime()
 
@@ -88,7 +107,7 @@ abstract class AsyncScheduledPullerWorkflow[
         .newChildWorkflowStub[PullerWorkflow]
         .withWorkflowId(s"$thisWorkflowId/$integrationType/$integrationId")
         // Limit the pull time
-        .withWorkflowExecutionTimeout(singlePullTimeout)
+        .withWorkflowExecutionTimeout(pullerConfig.singlePullTimeout.fromProto)
         .build
 
       ZChildWorkflowStub
@@ -111,7 +130,7 @@ abstract class AsyncScheduledPullerWorkflow[
     }
 
     val finishedAt = ZWorkflow.currentTimeMillis.toLocalDateTime()
-    val sleepTime  = pullInterval minus java.time.Duration.between(startedAt, finishedAt)
+    val sleepTime  = pullerConfig.pullInterval.fromProto minus java.time.Duration.between(startedAt, finishedAt)
 
     logger.info(s"Next pull starts after $sleepTime")
 

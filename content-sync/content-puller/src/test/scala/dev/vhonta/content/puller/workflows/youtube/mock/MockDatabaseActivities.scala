@@ -1,4 +1,4 @@
-package dev.vhonta.content.puller.workflows.youtube
+package dev.vhonta.content.puller.workflows.youtube.mock
 
 import dev.vhonta.content.proto.{
   ContentFeedIntegration,
@@ -12,12 +12,7 @@ import zio._
 import zio.temporal.activity._
 import zio.temporal.protobuf.syntax._
 
-object MockDatabaseActivities {
-  val make: URLayer[ZActivityOptions[Any], DatabaseActivities] =
-    ZLayer.fromFunction(new MockDatabaseActivities()(_: ZActivityOptions[Any]))
-}
-
-class MockDatabaseActivities(implicit options: ZActivityOptions[Any]) extends DatabaseActivities {
+case class MockDatabaseActivities()(implicit options: ZActivityOptions[Any]) extends DatabaseActivities {
   override def loadIntegrations(list: ListIntegrations): ContentFeedIntegrations = {
     ZActivity.run {
       for {

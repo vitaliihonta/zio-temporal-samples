@@ -1,7 +1,7 @@
 package dev.vhonta.content.puller.workflows.newsapi
 
 import dev.vhonta.content.puller.proto.NewsApiInitialPullerState
-import dev.vhonta.content.puller.workflows.DatabaseActivities
+import dev.vhonta.content.puller.workflows.{ConfigurationActivities, DatabaseActivities}
 import dev.vhonta.content.puller.workflows.base.{ScheduledPullerStarter, ScheduledPullerStarterImpl}
 import zio._
 import zio.temporal.worker.{ZWorker, ZWorkerFactory}
@@ -20,12 +20,17 @@ object NewsApiModule {
       )
     )
 
-  val worker: ZIO[NewsActivities with DatabaseActivities with ZWorkerFactory, Nothing, ZWorker] =
+  val worker: ZIO[
+    ConfigurationActivities with NewsActivities with DatabaseActivities with ZWorkerFactory,
+    Nothing,
+    ZWorker
+  ] =
     ZWorkerFactory.newWorker(taskQueue) @@
       ZWorker.addWorkflow[NewsApiScheduledPullerWorkflowImpl].fromClass @@
       ZWorker.addWorkflow[NewsApiPullWorkflowImpl].fromClass @@
       ZWorker.addActivityImplementationService[DatabaseActivities] @@
-      ZWorker.addActivityImplementationService[NewsActivities]
+      ZWorker.addActivityImplementationService[NewsActivities] @@
+      ZWorker.addActivityImplementationService[ConfigurationActivities]
 
   def start(reset: Boolean): ZIO[ZWorkflowClient, Throwable, Unit] =
     ZIO

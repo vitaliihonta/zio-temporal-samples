@@ -1,17 +1,12 @@
-package dev.vhonta.content.puller.workflows.youtube
+package dev.vhonta.content.puller.workflows.youtube.mock
 
+import dev.vhonta.content.puller.proto.{FetchVideosParams, FetchVideosResult, YoutubeSearchResult}
+import dev.vhonta.content.puller.workflows.youtube.YoutubeActivities
 import zio._
-import zio.temporal._
 import zio.temporal.activity._
 import zio.temporal.protobuf.syntax._
-import dev.vhonta.content.puller.proto.{FetchVideosParams, FetchVideosResult, YoutubeSearchResult}
 
-object MockYoutubeActivities {
-  def make(videosCount: Int): URLayer[ZActivityOptions[Any], YoutubeActivities] =
-    ZLayer.fromFunction(new MockYoutubeActivities(videosCount)(_: ZActivityOptions[Any]))
-}
-
-class MockYoutubeActivities(videosCount: Int)(implicit options: ZActivityOptions[Any]) extends YoutubeActivities {
+case class MockYoutubeActivities(videosCount: Int)(implicit options: ZActivityOptions[Any]) extends YoutubeActivities {
   override def fetchVideos(params: FetchVideosParams): FetchVideosResult = {
     ZActivity.run {
       for {

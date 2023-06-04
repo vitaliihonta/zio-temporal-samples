@@ -1,7 +1,7 @@
 package dev.vhonta.content.puller.workflows.youtube
 
 import dev.vhonta.content.puller.proto.YoutubePullerParameters
-import dev.vhonta.content.puller.workflows.DatabaseActivities
+import dev.vhonta.content.puller.workflows.youtube.mock.{MockDatabaseActivities, MockYoutubeActivities}
 import zio._
 import zio.logging.backend.SLF4J
 import zio.test._
@@ -17,16 +17,18 @@ object YoutubePullWorkflowSpec extends ZIOSpecDefault {
 
   override val spec = suite("YoutubePullWorkflow")(
     test("pulls everything") {
-      val videosCount = 5
 
-      val testCase = for {
+      for {
         uuid <- ZIO.randomWith(_.nextUUID)
-        taskQueue = s"youtube-$uuid"
+        taskQueue   = s"youtube-$uuid"
+        videosCount = 5
+
+        activityOptions <- ZTestWorkflowEnvironment.activityOptions[Any]
 
         _ <- ZTestWorkflowEnvironment.newWorker(taskQueue) @@
                ZWorker.addWorkflow[YoutubePullWorkflowImpl].fromClass @@
-               ZWorker.addActivityImplementationService[YoutubeActivities] @@
-               ZWorker.addActivityImplementationService[DatabaseActivities]
+               ZWorker.addActivityImplementation(MockYoutubeActivities(videosCount)(activityOptions)) @@
+               ZWorker.addActivityImplementation(MockDatabaseActivities()(activityOptions))
 
         _ <- ZTestWorkflowEnvironment.setup()
 
@@ -44,18 +46,6 @@ object YoutubePullWorkflowSpec extends ZIOSpecDefault {
       } yield {
         assertTrue(result.processed == videosCount)
       }
-
-      testCase.provideSome[ZTestWorkflowEnvironment[Any] with Scope](
-        MockDatabaseActivities.make,
-        MockYoutubeActivities.make(videosCount),
-        // todo: backport layer func?
-        ZLayer.fromZIO(ZTestWorkflowEnvironment.activityOptions[Any])
-      )
     }
-  ).provideSome[Scope](
-    ZTestWorkflowEnvironment.make[Any],
-    ZTestEnvironmentOptions.make,
-    ZWorkerFactoryOptions.make,
-    ZWorkflowClientOptions.make @@ ZWorkflowClientOptions.withDataConverter(ProtobufDataConverter.makeAutoLoad())
-  )
+  ).provideSome[Scope](TestModule.make) @@ TestAspect.withLiveClock
 }

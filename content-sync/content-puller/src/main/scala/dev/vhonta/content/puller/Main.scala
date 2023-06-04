@@ -58,6 +58,7 @@ object Main extends ZIOAppDefault {
         DatabaseActivitiesImpl.make,
         NewsActivitiesImpl.make,
         YoutubeActivitiesImpl.make,
+        ConfigurationActivitiesImpl.make,
         // temporal
         ZWorkflowClient.make,
         ZActivityOptions.default,
