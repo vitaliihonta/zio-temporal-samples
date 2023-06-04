@@ -1,7 +1,7 @@
 package dev.vhonta.content.repository
 
 import zio._
-import dev.vhonta.content.{ContentFeedItem, ContentFeedTopic}
+import dev.vhonta.content.{ContentFeedItem, ContentFeedRecommendationItem, ContentFeedTopic}
 import io.getquill.SnakeCase
 import java.sql.SQLException
 import java.time.LocalDateTime
@@ -28,6 +28,35 @@ case class ContentFeedRepository(quill: PostgresQuill[SnakeCase]) {
       query[ContentFeedTopic].filter(_.id == lift(topicId)).take(1)
     }
     run(select).map(_.headOption)
+  }
+
+  def deleteTopicById(topicId: UUID): Task[Boolean] = {
+    val itemIds = quote {
+      query[ContentFeedItem]
+        .filter(_.topic == lift(Option(topicId)))
+        .map(_.id)
+    }
+    val deleteRecommendationItems = quote {
+      query[ContentFeedRecommendationItem]
+        .filter(rc => itemIds.contains(rc.item))
+        .delete
+    }
+    val deleteItems = quote {
+      query[ContentFeedItem]
+        .filter(_.topic == lift(Option(topicId)))
+        .delete
+    }
+    val deleteSelf = quote {
+      query[ContentFeedTopic]
+        .filter(_.id == lift(topicId))
+        .delete
+    }
+
+    transaction {
+      run(deleteRecommendationItems) *>
+        run(deleteItems) *>
+        run(deleteSelf)
+    }.map(_ > 0)
   }
 
   def listTopics(subscribers: Option[Set[UUID]]): IO[SQLException, List[ContentFeedTopic]] = {

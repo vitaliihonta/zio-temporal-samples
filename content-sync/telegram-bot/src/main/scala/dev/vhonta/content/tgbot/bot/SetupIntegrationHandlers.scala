@@ -1,10 +1,9 @@
 package dev.vhonta.content.tgbot.bot
 
-import dev.vhonta.content.{Subscriber, SubscriberSettings, SubscriberWithSettings}
-import dev.vhonta.content.repository.SubscriberRepository
+import dev.vhonta.content.{Subscriber, SubscriberWithSettings}
 import dev.vhonta.content.tgbot.TelegramModule
 import dev.vhonta.content.tgbot.internal.TelegramCallbackQuery.NoData
-import dev.vhonta.content.tgbot.internal.{HandlingDSL, TelegramHandler}
+import dev.vhonta.content.tgbot.internal.TelegramHandler
 import dev.vhonta.content.tgbot.proto.{CurrentSetupNewsApiStep, SetupNewsApiParams, SetupParams, SetupYoutubeParams}
 import io.temporal.client.WorkflowNotFoundException
 import telegramium.bots._
@@ -16,12 +15,38 @@ import dev.vhonta.content.tgbot.proto
 import dev.vhonta.content.tgbot.workflow.setup.{BaseSetupWorkflow, SetupNewsApiWorkflow, SetupYoutubeWorkflow}
 import scala.reflect.ClassTag
 
-object SetupIntegrationHandlers extends HandlingDSL {
-  val onStart: TelegramHandler[Api[Task] with SubscriberRepository, Message] =
+object SetupIntegrationHandlers {
+  case class SetupIntegrationsConfig(
+    youtubeRedirectUri: String)
+
+  val config: Config[SetupIntegrationsConfig] =
+    Config
+      .string("youtube_redirect_uri")
+      .map(SetupIntegrationsConfig(_))
+      .nested("telegram", "setup")
+
+  val make: ZLayer[SubscribersService with ZWorkflowClient, Config.Error, SetupIntegrationHandlers] =
+    ZLayer.fromZIO(ZIO.config(config)) >>>
+      ZLayer.fromFunction(
+        SetupIntegrationHandlers(
+          _: SetupIntegrationsConfig,
+          _: SubscribersService,
+          _: ZWorkflowClient
+        )
+      )
+}
+
+case class SetupIntegrationHandlers(
+  config:             SetupIntegrationHandlers.SetupIntegrationsConfig,
+  subscribersService: SubscribersService,
+  workflowClient:     ZWorkflowClient)
+    extends BaseCommandHandler {
+
+  private val onStart: TelegramHandler[Api[Task], Message] =
     onCommand(ContentSyncCommand.Start) { msg =>
       ZIO.foreach(msg.from) { tgUser =>
         for {
-          subscriber <- Repositories.getOrCreateByTelegramId(tgUser, msg.chat, msg.date)
+          subscriber <- subscribersService.getOrCreateByTelegramId(tgUser, msg.chat, msg.date)
           _ <- execute(
                  sendMessage(
                    chatId = ChatIntId(subscriber.subscriber.telegramChatId),
@@ -47,7 +72,7 @@ object SetupIntegrationHandlers extends HandlingDSL {
       }
     }
 
-  val onNeverMind: TelegramHandler[Api[Task], CallbackQuery] =
+  private val onNeverMind: TelegramHandler[Api[Task], CallbackQuery] =
     onCallbackQuery(ContentSyncCallbackQuery.NewerMind) { (query, _) =>
       ZIO.foreach(query.message) { msg =>
         for {
@@ -69,7 +94,7 @@ object SetupIntegrationHandlers extends HandlingDSL {
       }
     }
 
-  val onSetupNewsApi: TelegramHandler[Api[Task] with ZWorkflowClient with SubscriberRepository, CallbackQuery] =
+  private val onSetupNewsApi: TelegramHandler[Api[Task], CallbackQuery] =
     onCallbackQuery(ContentSyncCallbackQuery.SetupNewsApi) { (query, _) =>
       ZIO.foreach(query.message) { msg =>
         for {
@@ -89,10 +114,10 @@ object SetupIntegrationHandlers extends HandlingDSL {
       }
     }
 
-  val handleNewsApiSetup: TelegramHandler[Api[Task] with ZWorkflowClient with SubscriberRepository, Message] =
+  private val handleNewsApiSetup: TelegramHandler[Api[Task], Message] =
     onMessage { msg =>
       whenSome(msg.from) { tgUser =>
-        Repositories.getOrCreateByTelegramId(tgUser, msg.chat, msg.date).flatMap { subscriber =>
+        subscribersService.getOrCreateByTelegramId(tgUser, msg.chat, msg.date).flatMap { subscriber =>
           whenSomeZIO(getCurrentSetupStepIfExists(subscriber.subscriber)) {
             case (setupWorkflow, step) if step.value.isWaitingForApiKey =>
               whenSome(msg.text) { apiKey =>
@@ -124,7 +149,7 @@ object SetupIntegrationHandlers extends HandlingDSL {
       }
     }
 
-  val onSetupYoutube: TelegramHandler[Api[Task] with ZWorkflowClient with SubscriberRepository, CallbackQuery] =
+  private val onSetupYoutube: TelegramHandler[Api[Task], CallbackQuery] =
     onCallbackQuery(ContentSyncCallbackQuery.SetupYoutube) { (query, _) =>
       ZIO.foreach(query.message) { msg =>
         startSetupWorkflow[SetupYoutubeParams, SetupYoutubeWorkflow](query, msg)(
@@ -132,16 +157,16 @@ object SetupIntegrationHandlers extends HandlingDSL {
           makeParams = subscriber =>
             SetupYoutubeParams(
               subscriber.subscriber.id,
-              redirectUri = "http://localhost:9092/oauth2" /*TODO: make configurable*/
+              redirectUri = config.youtubeRedirectUri
             )
         )
       }
     }
 
-  val messageHandlers: TelegramHandler[Api[Task] with ZWorkflowClient with SubscriberRepository, Message] =
+  override val messageHandlers: TelegramHandler[Api[Task], Message] =
     chain(onStart, handleNewsApiSetup)
 
-  val callbackQueryHandlers: TelegramHandler[Api[Task] with ZWorkflowClient with SubscriberRepository, CallbackQuery] =
+  override val callbackQueryHandlers: TelegramHandler[Api[Task], CallbackQuery] =
     chain(onSetupNewsApi, onSetupYoutube, onNeverMind)
 
   private def startSetupWorkflow[
@@ -153,13 +178,12 @@ object SetupIntegrationHandlers extends HandlingDSL {
     makeParams:     SubscriberWithSettings => Params
   ) = {
     for {
-      subscriber <- Repositories.getOrCreateByTelegramId(query.from, msg.chat, msg.date)
-      setupWorkflow <- ZIO.serviceWithZIO[ZWorkflowClient](
-                         _.newWorkflowStub[SetupWorkflow]
-                           .withTaskQueue(TelegramModule.TaskQueue)
-                           .withWorkflowId(makeWorkflowId(subscriber.subscriber))
-                           .build
-                       )
+      subscriber <- subscribersService.getOrCreateByTelegramId(query.from, msg.chat, msg.date)
+      setupWorkflow <- workflowClient
+                         .newWorkflowStub[SetupWorkflow]
+                         .withTaskQueue(TelegramModule.TaskQueue)
+                         .withWorkflowId(makeWorkflowId(subscriber.subscriber))
+                         .build
       _ <- ZWorkflowStub.start(
              setupWorkflow.setup(
                makeParams(subscriber)
@@ -180,12 +204,10 @@ object SetupIntegrationHandlers extends HandlingDSL {
 
   private def getCurrentSetupStepIfExists(
     subscriber: Subscriber
-  ): RIO[ZWorkflowClient, Option[(ZWorkflowStub.Of[SetupNewsApiWorkflow], CurrentSetupNewsApiStep)]] = {
+  ): Task[Option[(ZWorkflowStub.Of[SetupNewsApiWorkflow], CurrentSetupNewsApiStep)]] = {
     for {
-      setupWorkflow <- ZIO.serviceWithZIO[ZWorkflowClient](
-                         _.newWorkflowStub[SetupNewsApiWorkflow](
-                           workflowId = setupNewsApiWorkflowId(subscriber)
-                         )
+      setupWorkflow <- workflowClient.newWorkflowStub[SetupNewsApiWorkflow](
+                         workflowId = setupNewsApiWorkflowId(subscriber)
                        )
       result <- ZWorkflowStub
                   .query(

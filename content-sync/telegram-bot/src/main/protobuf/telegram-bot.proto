@@ -12,10 +12,25 @@ enum TelegramParseMode {
   Html = 2;
 }
 
+message InlineKeyboardButton {
+  required string text = 1;
+  optional string url = 2;
+  optional string callbackData = 3;
+}
+
+message InlineKeyboardButtonGroup {
+  repeated InlineKeyboardButton buttons = 1;
+}
+
+message InlineKeyboardMarkup {
+  repeated InlineKeyboardButtonGroup groups = 1;
+}
+
 message NotifySubscriberParams {
   required zio.temporal.protobuf.UUID subscriber = 1;
   required string message = 2;
   optional TelegramParseMode parseMode = 3;
+  optional InlineKeyboardMarkup replyMarkup = 4;
 }
 
 message PretendTypingParams {
@@ -30,9 +45,14 @@ message SpecifyTopic {
   required string value = 1;
 }
 
+message SpecifyLanguage {
+  required dev.vhonta.content.proto.ContentLanguage value = 1;
+}
+
 enum AddTopicStep {
   WaitingForTopic = 1;
-  StoringTopic = 2;
+  WaitingForLanguage = 2;
+  StoringTopic = 3;
 }
 message CurrentAddTopicStep {
   required AddTopicStep value = 1;
@@ -41,6 +61,7 @@ message CurrentAddTopicStep {
 message CreateTopicParams {
   required zio.temporal.protobuf.UUID subscriber = 1;
   required string topic = 2;
+  required dev.vhonta.content.proto.ContentLanguage lang = 3;
 }
 
 message ListTopicsParams {

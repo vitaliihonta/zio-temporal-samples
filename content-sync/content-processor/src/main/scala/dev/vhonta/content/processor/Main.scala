@@ -21,7 +21,8 @@ object Main extends ZIOAppDefault {
         ZWorker.addWorkflow[RecommendationsWorkflowImpl].fromClass @@
         ZWorker.addWorkflow[ScheduledRecommendationsWorkflowImpl].fromClass @@
         ZWorker.addActivityImplementationService[ProcessorActivities] @@
-        ZWorker.addActivityImplementationService[ContentFeedRecommendationEngine]
+        ZWorker.addActivityImplementationService[ContentFeedRecommendationEngine] @@
+        ZWorker.addActivityImplementationService[ProcessorConfigurationActivities]
 
     val program = for {
       _    <- registerWorkflow
@@ -45,6 +46,7 @@ object Main extends ZIOAppDefault {
         // activities
         ProcessorActivitiesImpl.make,
         ContentFeedRecommendationEngineImpl.make,
+        ProcessorConfigurationActivitiesImpl.make,
         // temporal
         ZWorkflowClient.make,
         ZActivityOptions.default,

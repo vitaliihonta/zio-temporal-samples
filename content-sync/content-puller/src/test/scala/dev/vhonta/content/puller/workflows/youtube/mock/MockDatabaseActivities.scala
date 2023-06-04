@@ -44,7 +44,7 @@ case class MockDatabaseActivities()(implicit options: ZActivityOptions[Any]) ext
     }
   }
 
-  // TODO: make meaningful
+  /*NOTE: override in case of usages in tests*/
   override def loadNewsTopics(list: ListTopics): NewsSyncTopics =
     NewsSyncTopics(Nil)
 

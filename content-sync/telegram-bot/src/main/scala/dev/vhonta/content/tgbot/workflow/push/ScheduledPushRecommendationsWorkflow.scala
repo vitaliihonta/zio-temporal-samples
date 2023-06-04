@@ -2,6 +2,7 @@ package dev.vhonta.content.tgbot.workflow.push
 
 import dev.vhonta.content.tgbot.proto.{ListAllSubscribersParams, PushRecommendationsParams}
 import dev.vhonta.content.tgbot.workflow.common.ContentFeedActivities
+import dev.vhonta.content.ProtoConverters._
 import zio._
 import zio.temporal._
 import zio.temporal.activity._
@@ -17,16 +18,21 @@ trait ScheduledPushRecommendationsWorkflow {
 class ScheduledPushRecommendationsWorkflowImpl extends ScheduledPushRecommendationsWorkflow {
   private val logger = ZWorkflow.makeLogger
 
-  // TODO: make configurable
-  private val pushInterval      = 15.minutes
-  private val singlePushTimeout = 10.minutes
-
-  private val newsFeedActivities = ZWorkflow
+  private val contentFeedActivities = ZWorkflow
     .newActivityStub[ContentFeedActivities]
     .withStartToCloseTimeout(10.seconds)
     .withRetryOptions(
       ZRetryOptions.default
         .withMaximumAttempts(3)
+    )
+    .build
+
+  private val configurationActivities = ZWorkflow
+    .newActivityStub[PushConfigurationActivities]
+    .withStartToCloseTimeout(10.seconds)
+    .withRetryOptions(
+      ZRetryOptions.default
+        .withDoNotRetry(nameOf[Config.Error])
     )
     .build
 
@@ -37,11 +43,15 @@ class ScheduledPushRecommendationsWorkflowImpl extends ScheduledPushRecommendati
 
     logger.info("Tick")
 
+    val pushConfig = ZActivityStub.execute(
+      configurationActivities.getPushConfiguration
+    )
+
     val subscribers = ZActivityStub.execute(
-      newsFeedActivities.listAllSubscribers(
+      contentFeedActivities.listAllSubscribers(
         ListAllSubscribersParams(
           now = startedAt.toProto,
-          deltaMinutes = pushInterval.toMinutes
+          deltaMinutes = pushConfig.pushInterval.fromProto[Duration].toMinutes
         )
       )
     )
@@ -52,7 +62,7 @@ class ScheduledPushRecommendationsWorkflowImpl extends ScheduledPushRecommendati
       val pushRecommendationsWorkflow = ZWorkflow
         .newChildWorkflowStub[PushRecommendationsWorkflow]
         .withWorkflowId(s"${ZWorkflow.info.workflowId}/push/${subscriberWithSettings.subscriber.id.fromProto}")
-        .withWorkflowExecutionTimeout(singlePushTimeout)
+        .withWorkflowExecutionTimeout(pushConfig.singlePushTimeout.fromProto)
         .build
 
       ZChildWorkflowStub
@@ -67,7 +77,7 @@ class ScheduledPushRecommendationsWorkflowImpl extends ScheduledPushRecommendati
     pushes.run.getOrThrow
 
     val finishedAt = ZWorkflow.currentTimeMillis.toLocalDateTime()
-    val sleepTime  = pushInterval minus java.time.Duration.between(startedAt, finishedAt)
+    val sleepTime  = pushConfig.pushInterval.fromProto minus java.time.Duration.between(startedAt, finishedAt)
 
     logger.info(s"Next push starts after $sleepTime")
 

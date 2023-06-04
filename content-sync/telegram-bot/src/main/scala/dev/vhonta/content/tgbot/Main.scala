@@ -10,7 +10,13 @@ import dev.vhonta.content.repository.{
   SubscriberRepository
 }
 import dev.vhonta.content.tgbot.api.YoutubeCallbackHandlingApi
-import dev.vhonta.content.tgbot.bot.ContentSyncBotImpl
+import dev.vhonta.content.tgbot.bot.{
+  ContentSyncBotImpl,
+  SettingsCommandsHandler,
+  SetupIntegrationHandlers,
+  SubscribersService,
+  TopicsCommandHandler
+}
 import dev.vhonta.content.tgbot.workflow.common.{
   ContentFeedActivities,
   ContentFeedActivitiesImpl,
@@ -19,6 +25,8 @@ import dev.vhonta.content.tgbot.workflow.common.{
 }
 import dev.vhonta.content.tgbot.workflow.push.{
   OnDemandPushRecommendationsWorkflowImpl,
+  PushConfigurationActivities,
+  PushConfigurationActivitiesImpl,
   PushRecommendationsWorkflowImpl,
   ScheduledPushRecommendationsWorkflowImpl
 }
@@ -57,7 +65,8 @@ object Main extends ZIOAppDefault {
         ZWorker.addActivityImplementationService[NewsApiActivities] @@
         ZWorker.addActivityImplementationService[TelegramActivities] @@
         ZWorker.addActivityImplementationService[YoutubeActivities] @@
-        ZWorker.addActivityImplementationService[ContentFeedActivities]
+        ZWorker.addActivityImplementationService[ContentFeedActivities] @@
+        ZWorker.addActivityImplementationService[PushConfigurationActivities]
 
     val program = for {
       _    <- ZIO.logInfo("Started Telegram push!")
@@ -90,11 +99,16 @@ object Main extends ZIOAppDefault {
         // telegram
         TelegramModule.makeApi,
         ContentSyncBotImpl.make,
+        SetupIntegrationHandlers.make,
+        SettingsCommandsHandler.make,
+        TopicsCommandHandler.make,
+        SubscribersService.make,
         // activities
         NewsApiActivitiesImpl.make,
         YoutubeActivitiesImpl.make,
         TelegramActivitiesImpl.make,
         ContentFeedActivitiesImpl.make,
+        PushConfigurationActivitiesImpl.make,
         // temporal
         ScheduledPushStarter.make,
         ZWorkflowClient.make,

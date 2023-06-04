@@ -55,3 +55,8 @@ message RecommendationsParams {
   required SubscriberWithIntegration subscriberWithIntegration = 1;
   required int64 forDate = 2;
 }
+
+message ProcessorConfiguration {
+  required int64 processInterval = 1;
+  required int64 singleProcessTimeout = 2;
+}

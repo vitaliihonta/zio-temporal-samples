@@ -1,24 +1,31 @@
 package dev.vhonta.content.tgbot.bot
 
 import dev.vhonta.content.{ContentFeedIntegrationDetails, SubscriberSettings}
-import dev.vhonta.content.repository.{ContentFeedIntegrationRepository, SubscriberRepository}
-import dev.vhonta.content.tgbot.internal.{HandlingDSL, TelegramHandler}
+import dev.vhonta.content.repository.ContentFeedIntegrationRepository
+import dev.vhonta.content.tgbot.internal.TelegramHandler
 import telegramium.bots.high.Api
-import telegramium.bots.{CallbackQuery, ChatIntId, Html, InlineKeyboardButton, InlineKeyboardMarkup, Message}
-import zio.{Task, ZIO}
-
+import telegramium.bots.{CallbackQuery, ChatIntId, Html, InlineKeyboardMarkup, Message}
+import zio._
 import java.time.LocalTime
 
-object SettingsCommands extends HandlingDSL {
-  val onListIntegrations
-    : TelegramHandler[Api[Task] with ContentFeedIntegrationRepository with SubscriberRepository, Message] =
+object SettingsCommandsHandler {
+  val make: URLayer[SubscribersService with ContentFeedIntegrationRepository, SettingsCommandsHandler] =
+    ZLayer.fromFunction(
+      SettingsCommandsHandler(_: SubscribersService, _: ContentFeedIntegrationRepository)
+    )
+}
+
+case class SettingsCommandsHandler(
+  subscribersService:               SubscribersService,
+  contentFeedIntegrationRepository: ContentFeedIntegrationRepository)
+    extends BaseCommandHandler {
+
+  private val onListIntegrations: TelegramHandler[Api[Task], Message] =
     onCommand(ContentSyncCommand.ListIntegrations) { msg =>
       ZIO.foreach(msg.from) { tgUser =>
         for {
-          subscriber <- Repositories.getOrCreateByTelegramId(tgUser, msg.chat, msg.date)
-          integrations <- ZIO.serviceWithZIO[ContentFeedIntegrationRepository](
-                            _.findAllOwnedBy(subscriber.subscriber.id)
-                          )
+          subscriber   <- subscribersService.getOrCreateByTelegramId(tgUser, msg.chat, msg.date)
+          integrations <- contentFeedIntegrationRepository.findAllOwnedBy(subscriber.subscriber.id)
           integrationsButtons = integrations
                                   .groupBy(_.integration.`type`)
                                   .view
@@ -45,13 +52,11 @@ object SettingsCommands extends HandlingDSL {
       }
     }
 
-  val onGetIntegrationDetails: TelegramHandler[Api[Task] with ContentFeedIntegrationRepository, CallbackQuery] =
+  private val onGetIntegrationDetails: TelegramHandler[Api[Task], CallbackQuery] =
     onCallbackQuery(ContentSyncCallbackQuery.IntegrationDetails) { (query, integrationId) =>
       ZIO.foreach(query.message) { msg =>
         for {
-          integration <- ZIO.serviceWithZIO[ContentFeedIntegrationRepository](
-                           _.findById(integrationId)
-                         )
+          integration <- contentFeedIntegrationRepository.findById(integrationId)
           _ <- ZIO
                  .foreach(integration) { integration =>
                    val text = integration.integration match {
@@ -89,18 +94,14 @@ object SettingsCommands extends HandlingDSL {
       }
     }
 
-  val onDeleteIntegration: TelegramHandler[Api[Task] with ContentFeedIntegrationRepository, CallbackQuery] =
+  private val onDeleteIntegration: TelegramHandler[Api[Task], CallbackQuery] =
     onCallbackQuery(ContentSyncCallbackQuery.DeleteIntegration) { (query, integrationId) =>
       ZIO.foreach(query.message) { msg =>
         for {
-          integration <- ZIO.serviceWithZIO[ContentFeedIntegrationRepository](
-                           _.findById(integrationId)
-                         )
+          integration <- contentFeedIntegrationRepository.findById(integrationId)
           _ <- ZIO
                  .foreach(integration) { integration =>
-                   ZIO.serviceWithZIO[ContentFeedIntegrationRepository](
-                     _.deleteById(integrationId)
-                   ) *>
+                   contentFeedIntegrationRepository.deleteById(integrationId) *>
                      execute(
                        sendMessage(
                          chatId = ChatIntId(msg.chat.id),
@@ -122,12 +123,12 @@ object SettingsCommands extends HandlingDSL {
       }
     }
 
-  val onGetSettings: TelegramHandler[Api[Task] with SubscriberRepository, Message] =
+  private val onGetSettings: TelegramHandler[Api[Task], Message] =
     onCommand(ContentSyncCommand.GetSettings) { msg =>
       ZIO
         .foreach(msg.from) { tgUser =>
           for {
-            subscriber <- Repositories.getOrCreateByTelegramId(tgUser, msg.chat, msg.date)
+            subscriber <- subscribersService.getOrCreateByTelegramId(tgUser, msg.chat, msg.date)
             _          <- ZIO.logInfo(s"Getting settings subscriber=${subscriber.subscriber.id}")
             _ <- execute(
                    sendMessage(
@@ -141,21 +142,19 @@ object SettingsCommands extends HandlingDSL {
     }
 
   // TODO: allows updating publishAt
-  val onUpdateSettings: TelegramHandler[Api[Task] with SubscriberRepository, Message] =
+  private val onUpdateSettings: TelegramHandler[Api[Task], Message] =
     onCommand(ContentSyncCommand.UpdateSettings) { msg =>
       ZIO.foreach(msg.from) { tgUser =>
         for {
-          subscriber <- Repositories.getOrCreateByTelegramId(tgUser, msg.chat, msg.date)
+          subscriber <- subscribersService.getOrCreateByTelegramId(tgUser, msg.chat, msg.date)
           _          <- ZIO.logInfo(s"Updating settings subscriber=${subscriber.subscriber.id}")
           now        <- ZIO.clockWith(_.localDateTime)
           timezone = Shared.getTimezone(msg.date, now)
-          updated <- ZIO.serviceWithZIO[SubscriberRepository](
-                       _.updateSettings(
-                         subscriber = subscriber.subscriber.id,
-                         timezone = timezone,
-                         publishAt = LocalTime.of(19, 0),
-                         modifiedAt = now
-                       )
+          updated <- subscribersService.updateSettings(
+                       subscriber = subscriber.subscriber.id,
+                       timezone = timezone,
+                       publishAt = LocalTime.of(19, 0),
+                       modifiedAt = now
                      )
           _ <- ZIO.foreachDiscard(updated) { updated =>
                  execute(
@@ -170,15 +169,14 @@ object SettingsCommands extends HandlingDSL {
       }
     }
 
-  val messageHandlers
-    : TelegramHandler[Api[Task] with ContentFeedIntegrationRepository with SubscriberRepository, Message] =
+  override val messageHandlers: TelegramHandler[Api[Task], Message] =
     chain(
       onListIntegrations,
       onGetSettings,
       onUpdateSettings
     )
 
-  val callbackQueryHandlers: TelegramHandler[Api[Task] with ContentFeedIntegrationRepository, CallbackQuery] =
+  override val callbackQueryHandlers: TelegramHandler[Api[Task], CallbackQuery] =
     chain(
       onGetIntegrationDetails,
       onDeleteIntegration

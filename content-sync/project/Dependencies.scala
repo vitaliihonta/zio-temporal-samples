@@ -72,8 +72,4 @@ object Dependencies {
   val enumeratum = Seq(
     "com.beachape" %% "enumeratum" % versions.enumeratum
   )
-
-  val chimney = Seq(
-    "io.scalaland" %% "chimney" % "0.7.5"
-  )
 }

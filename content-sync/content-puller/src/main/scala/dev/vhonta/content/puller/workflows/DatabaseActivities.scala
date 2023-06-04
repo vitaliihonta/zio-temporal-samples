@@ -1,12 +1,7 @@
 package dev.vhonta.content.puller.workflows
 
-import dev.vhonta.content.{ContentFeedIntegrationDetails, ContentFeedItem, ContentType}
-import dev.vhonta.content.proto.{
-  ContentFeedIntegration,
-  ContentFeedIntegrationNewsApiDetails,
-  ContentFeedIntegrationYoutubeDetails,
-  ContentFeedTopic
-}
+import dev.vhonta.content.{ContentFeedItem, ContentType}
+import dev.vhonta.content.proto.ContentFeedTopic
 import dev.vhonta.content.puller.proto.{
   ContentFeedIntegrations,
   ListIntegrations,
@@ -25,6 +20,7 @@ import zio.temporal.protobuf.syntax._
 import dev.vhonta.content.ProtoConverters._
 import java.net.URI
 import java.time.LocalDateTime
+import dev.vhonta.content.ProtoConverters._
 
 @activityInterface
 trait DatabaseActivities {
@@ -56,7 +52,7 @@ object DatabaseActivitiesImpl {
 }
 
 case class DatabaseActivitiesImpl(
-  newsFeedRepository:     ContentFeedRepository,
+  contentFeedRepository:  ContentFeedRepository,
   integrationsRepository: ContentFeedIntegrationRepository,
   youtubeBaseUri:         URI
 )(implicit options:       ZActivityOptions[Any])
@@ -70,19 +66,7 @@ case class DatabaseActivitiesImpl(
                           list.integrationType.fromProto
                         )
       } yield ContentFeedIntegrations(
-        integrations.map(integration =>
-          ContentFeedIntegration(
-            id = integration.id,
-            subscriber = integration.subscriber,
-            // TODO: decouple conversion
-            integration = integration.integration match {
-              case ContentFeedIntegrationDetails.NewsApi(token) =>
-                ContentFeedIntegrationNewsApiDetails(token)
-              case ContentFeedIntegrationDetails.Youtube(accessToken, refreshToken, exchangedAt, expiresInSeconds) =>
-                ContentFeedIntegrationYoutubeDetails(accessToken, refreshToken, exchangedAt, expiresInSeconds)
-            }
-          )
-        )
+        integrations.map(_.toProto)
       )
     }
 
@@ -90,7 +74,7 @@ case class DatabaseActivitiesImpl(
     ZActivity.run {
       for {
         _      <- ZIO.logInfo("Loading news topics...")
-        topics <- newsFeedRepository.listTopics(subscribers = Some(list.subscribers.map(_.fromProto).toSet))
+        topics <- contentFeedRepository.listTopics(subscribers = Some(list.subscribers.map(_.fromProto).toSet))
       } yield NewsSyncTopics(
         topics = topics.map { topic =>
           ContentFeedTopic(
@@ -125,7 +109,7 @@ case class DatabaseActivitiesImpl(
       for {
         items <- contentFeedItemsZIO
         _     <- ZIO.logInfo(s"Storing articles topicId=${storeParams.topicId.fromProto}")
-        _     <- newsFeedRepository.storeItems(items)
+        _     <- contentFeedRepository.storeItems(items)
       } yield ()
     }
   }
@@ -152,7 +136,7 @@ case class DatabaseActivitiesImpl(
       for {
         items <- contentFeedItemsZIO
         _     <- ZIO.logInfo("Storing videos")
-        _     <- newsFeedRepository.storeItems(items)
+        _     <- contentFeedRepository.storeItems(items)
       } yield ()
     }
   }

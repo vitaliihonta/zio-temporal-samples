@@ -1,6 +1,5 @@
 package dev.vhonta.content.puller.workflows
 
-import dev.vhonta.content.proto.ContentFeedIntegrationType
 import zio._
 import zio.temporal._
 import zio.temporal.activity._
@@ -10,18 +9,18 @@ import dev.vhonta.content.puller.proto.GetConfigurationParams
 import dev.vhonta.content.puller.{PullerConfig, YoutubePullerConfig, proto}
 
 @activityInterface
-trait ConfigurationActivities {
+trait PullConfigurationActivities {
   def getBasePullerConfig(params: GetConfigurationParams): proto.PullerConfig
 
   def getYoutubePullerConfig: proto.YoutubePullerConfig
 }
 
-object ConfigurationActivitiesImpl {
-  val make: URLayer[ZActivityOptions[Any], ConfigurationActivities] =
-    ZLayer.fromFunction(new ConfigurationActivitiesImpl()(_: ZActivityOptions[Any]))
+object PullConfigurationActivitiesImpl {
+  val make: URLayer[ZActivityOptions[Any], PullConfigurationActivities] =
+    ZLayer.fromFunction(new PullConfigurationActivitiesImpl()(_: ZActivityOptions[Any]))
 }
 
-class ConfigurationActivitiesImpl()(implicit options: ZActivityOptions[Any]) extends ConfigurationActivities {
+class PullConfigurationActivitiesImpl()(implicit options: ZActivityOptions[Any]) extends PullConfigurationActivities {
   override def getBasePullerConfig(params: GetConfigurationParams): proto.PullerConfig =
     ZActivity.run {
       ZIO

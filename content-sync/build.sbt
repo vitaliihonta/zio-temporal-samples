@@ -56,8 +56,7 @@ lazy val shared = project
         Dependencies.database ++
         Dependencies.sttp ++
         Dependencies.googleApiClient ++
-        Dependencies.enumeratum ++
-        Dependencies.chimney
+        Dependencies.enumeratum
   )
 
 lazy val `content-puller` = project
