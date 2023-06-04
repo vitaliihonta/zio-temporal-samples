@@ -1,5 +1,5 @@
 ThisBuild / version      := "0.1.0-SNAPSHOT"
-ThisBuild / scalaVersion := "3.2.2"
+ThisBuild / scalaVersion := "3.3.0"
 
 lazy val root = (project in file("."))
   .settings(
@@ -13,7 +13,7 @@ lazy val cryptostock = project
   .settings(
     name := "cryptostock",
     libraryDependencies ++= {
-      val zioTemporalVersion = "0.2.0-RC3"
+      val zioTemporalVersion = "0.2.0-NIGHTLY-2023-06-04"
       val zioVersion         = "2.0.12"
       val zioLoggingVersion  = "2.1.12"
 

@@ -2,10 +2,10 @@ import mill._, mill.scalalib._, mill.scalalib.scalafmt._
 import $ivy.`com.lihaoyi::mill-contrib-scalapblib:$MILL_VERSION`, contrib.scalapblib._
 
 object versions {
-  val scala3      = "3.2.2"
+  val scala3      = "3.3.0"
   val zio         = "2.0.12"
   val ziologging  = "2.1.12"
-  val ziotemporal = "0.2.0-RC3"
+  val ziotemporal = "0.2.0-NIGHTLY-2023-06-04"
   val logback     = "1.2.11"
 }
 

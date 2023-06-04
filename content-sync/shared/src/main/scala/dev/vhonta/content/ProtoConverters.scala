@@ -15,10 +15,6 @@ trait ProtoConverters {
   implicit val contentProtoType: ProtoType.Of[ContentType, proto.ContentType] =
     EnumProtoType(proto.ContentType).to(ContentType)
 
-  // TODO: backport to zio-temporal
-  implicit val durationProtoType: ProtoType.Of[Duration, Long] =
-    ProtoType.longType.convertTo(Duration.fromNanos)(_.toNanos)
-
   implicit val contentFeedIntegrationProtoType: ProtoType.Of[ContentFeedIntegration, proto.ContentFeedIntegration] =
     new ProtoType[ContentFeedIntegration] {
       override final type Repr = proto.ContentFeedIntegration

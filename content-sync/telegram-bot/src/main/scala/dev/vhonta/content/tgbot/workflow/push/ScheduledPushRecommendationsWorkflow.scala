@@ -2,7 +2,6 @@ package dev.vhonta.content.tgbot.workflow.push
 
 import dev.vhonta.content.tgbot.proto.{ListAllSubscribersParams, PushRecommendationsParams}
 import dev.vhonta.content.tgbot.workflow.common.ContentFeedActivities
-import dev.vhonta.content.ProtoConverters._
 import zio._
 import zio.temporal._
 import zio.temporal.activity._
@@ -62,7 +61,7 @@ class ScheduledPushRecommendationsWorkflowImpl extends ScheduledPushRecommendati
       val pushRecommendationsWorkflow = ZWorkflow
         .newChildWorkflowStub[PushRecommendationsWorkflow]
         .withWorkflowId(s"${ZWorkflow.info.workflowId}/push/${subscriberWithSettings.subscriber.id.fromProto}")
-        .withWorkflowExecutionTimeout(pushConfig.singlePushTimeout.fromProto)
+        .withWorkflowExecutionTimeout(pushConfig.singlePushTimeout.fromProto[Duration])
         .build
 
       ZChildWorkflowStub
@@ -77,7 +76,8 @@ class ScheduledPushRecommendationsWorkflowImpl extends ScheduledPushRecommendati
     pushes.run.getOrThrow
 
     val finishedAt = ZWorkflow.currentTimeMillis.toLocalDateTime()
-    val sleepTime  = pushConfig.pushInterval.fromProto minus java.time.Duration.between(startedAt, finishedAt)
+    val sleepTime = pushConfig.pushInterval.fromProto[Duration] minus
+      java.time.Duration.between(startedAt, finishedAt)
 
     logger.info(s"Next push starts after $sleepTime")
 

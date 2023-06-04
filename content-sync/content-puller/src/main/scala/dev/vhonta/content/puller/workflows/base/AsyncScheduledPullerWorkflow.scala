@@ -16,7 +16,6 @@ import zio.temporal.state._
 import zio.temporal.workflow._
 import zio.temporal.activity._
 import zio.temporal.protobuf.syntax._
-import dev.vhonta.content.ProtoConverters._
 import java.time.LocalDateTime
 import scala.reflect.ClassTag
 
@@ -107,7 +106,7 @@ abstract class AsyncScheduledPullerWorkflow[
         .newChildWorkflowStub[PullerWorkflow]
         .withWorkflowId(s"$thisWorkflowId/$integrationType/$integrationId")
         // Limit the pull time
-        .withWorkflowExecutionTimeout(pullerConfig.singlePullTimeout.fromProto)
+        .withWorkflowExecutionTimeout(pullerConfig.singlePullTimeout.fromProto[Duration])
         .build
 
       ZChildWorkflowStub
@@ -130,7 +129,8 @@ abstract class AsyncScheduledPullerWorkflow[
     }
 
     val finishedAt = ZWorkflow.currentTimeMillis.toLocalDateTime()
-    val sleepTime  = pullerConfig.pullInterval.fromProto minus java.time.Duration.between(startedAt, finishedAt)
+    val sleepTime = pullerConfig.pullInterval.fromProto[Duration] minus
+      java.time.Duration.between(startedAt, finishedAt)
 
     logger.info(s"Next pull starts after $sleepTime")
 

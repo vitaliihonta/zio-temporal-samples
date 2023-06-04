@@ -2,7 +2,7 @@ import sbt._
 
 object Dependencies {
   private object versions {
-    val zioTemporal = "0.2.0-NIGHTLY-2023-06-03"
+    val zioTemporal = "0.2.0-NIGHTLY-2023-06-04"
     val zio         = "2.0.12"
     val zioLogging  = "2.1.12"
     val zioConfig   = "4.0.0-RC14"

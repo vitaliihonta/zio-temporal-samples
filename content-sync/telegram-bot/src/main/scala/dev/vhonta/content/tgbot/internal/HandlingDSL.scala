@@ -26,8 +26,8 @@ trait HandlingDSL extends Methods {
   def onCallbackQuery[R](thunk: CallbackQuery => RIO[R, Handle[R]]): TelegramHandler[R, CallbackQuery] =
     TelegramHandler[R, CallbackQuery](thunk)
 
-  def onCallbackQuery[R, Matcher <: TelegramCallbackQuery.Matcher](
-    matcher: Matcher
+  def onCallbackQuery[R](
+    matcher: TelegramCallbackQuery.Matcher
   )(thunk:   (CallbackQuery, matcher.Data) => RIO[R, Any]
   ): TelegramHandler[R, CallbackQuery] =
     onCallbackQuery(query =>
