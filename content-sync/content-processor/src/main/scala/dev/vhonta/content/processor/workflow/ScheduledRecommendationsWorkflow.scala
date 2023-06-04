@@ -59,7 +59,7 @@ class ScheduledRecommendationsWorkflowImpl extends ScheduledRecommendationsWorkf
           .withWorkflowId(
             s"${ZWorkflow.info.workflowId}/subscribers/${subscriberWithIntegration.subscriberId.fromProto}/int/${subscriberWithIntegration.integrationId.fromProto}"
           )
-          .withWorkflowExecutionTimeout(processorConfig.singleProcessTimeout.fromProto)
+          .withWorkflowExecutionTimeout(processorConfig.singleProcessTimeout.fromProto[Duration])
           .withRetryOptions(
             ZRetryOptions.default.withMaximumAttempts(2)
           )
@@ -79,7 +79,8 @@ class ScheduledRecommendationsWorkflowImpl extends ScheduledRecommendationsWorkf
     started.run.getOrThrow
 
     val finishedAt = ZWorkflow.currentTimeMillis.toLocalDateTime()
-    val sleepTime  = processorConfig.processInterval.fromProto minus java.time.Duration.between(startedAt, finishedAt)
+    val sleepTime = processorConfig.processInterval.fromProto[Duration] minus
+      java.time.Duration.between(startedAt, finishedAt)
 
     logger.info(s"Next processing starts after $sleepTime")
 

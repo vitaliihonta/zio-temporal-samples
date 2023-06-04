@@ -4,7 +4,13 @@ import dev.vhonta.content.{Subscriber, SubscriberWithSettings}
 import dev.vhonta.content.tgbot.TelegramModule
 import dev.vhonta.content.tgbot.internal.TelegramCallbackQuery.NoData
 import dev.vhonta.content.tgbot.internal.TelegramHandler
-import dev.vhonta.content.tgbot.proto.{CurrentSetupNewsApiStep, SetupNewsApiParams, SetupParams, SetupYoutubeParams}
+import dev.vhonta.content.tgbot.proto.{
+  CurrentSetupNewsApiStep,
+  SetupNewsApiParams,
+  SetupNewsApiStep,
+  SetupParams,
+  SetupYoutubeParams
+}
 import io.temporal.client.WorkflowNotFoundException
 import telegramium.bots._
 import telegramium.bots.high.Api
@@ -13,6 +19,7 @@ import zio.temporal.workflow.{IsWorkflow, ZWorkflowClient, ZWorkflowStub}
 import zio.temporal.protobuf.syntax._
 import dev.vhonta.content.tgbot.proto
 import dev.vhonta.content.tgbot.workflow.setup.{BaseSetupWorkflow, SetupNewsApiWorkflow, SetupYoutubeWorkflow}
+
 import scala.reflect.ClassTag
 
 object SetupIntegrationHandlers {
@@ -119,7 +126,7 @@ case class SetupIntegrationHandlers(
       whenSome(msg.from) { tgUser =>
         subscribersService.getOrCreateByTelegramId(tgUser, msg.chat, msg.date).flatMap { subscriber =>
           whenSomeZIO(getCurrentSetupStepIfExists(subscriber.subscriber)) {
-            case (setupWorkflow, step) if step.value.isWaitingForApiKey =>
+            case (setupWorkflow, CurrentSetupNewsApiStep(SetupNewsApiStep.WaitingForApiKey, _)) =>
               whenSome(msg.text) { apiKey =>
                 handled {
                   ZWorkflowStub.signal(
@@ -134,7 +141,7 @@ case class SetupIntegrationHandlers(
                   )
                 }
               }
-            case (_, step) if step.value.isValidatingKey =>
+            case (_, CurrentSetupNewsApiStep(SetupNewsApiStep.ValidatingKey, _)) =>
               handled {
                 execute(
                   sendMessage(

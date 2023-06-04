@@ -93,9 +93,9 @@ class ExchangeClientService(client: ZWorkflowClient) {
   private def resultToOrder(orderView: ExchangeOrderResult): ExchangeOrder =
     ExchangeOrder(
       orderId = orderView.id.fromProto,
-      sellerId = orderView.seller.map(_.fromProto),
-      amount = orderView.amount.map(_.fromProto),
-      currency = orderView.currency.map(_.fromProto),
+      sellerId = orderView.seller.fromProto,
+      amount = orderView.amount.fromProto,
+      currency = orderView.currency.fromProto,
       status = orderView.status.fromProto,
       buyerInfo = orderView.buyerInfo.map { buyerInfo =>
         ExchangeOrderBuyer(id = buyerInfo.buyerId.fromProto, screenshotUrl = buyerInfo.screenshotUrl)
