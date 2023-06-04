@@ -15,26 +15,34 @@ object ContentSyncBotImpl {
       with ContentFeedRepository
       with ContentFeedIntegrationRepository
       with ZWorkflowClient
+      with SetupIntegrationHandlers
+      with TopicsCommandHandler
+      with SettingsCommandsHandler
       with Api[Task],
     ContentSyncBot
   ] =
     ZLayer.fromFunction(
-      ContentSyncBotImpl(_: SubscriberRepository,
-                         _: ContentFeedRepository,
-                         _: ContentFeedIntegrationRepository,
-                         _: ZWorkflowClient
-      )(
-        _: Api[Task]
-      )
+      ContentSyncBotImpl(
+        _: SubscriberRepository,
+        _: ContentFeedRepository,
+        _: ContentFeedIntegrationRepository,
+        _: ZWorkflowClient,
+        _: SetupIntegrationHandlers,
+        _: TopicsCommandHandler,
+        _: SettingsCommandsHandler
+      )(_: Api[Task])
     )
 }
 
 case class ContentSyncBotImpl(
-  subscriberRepository:  SubscriberRepository,
-  contentFeedRepository: ContentFeedRepository,
-  integrationRepository: ContentFeedIntegrationRepository,
-  workflowClient:        ZWorkflowClient
-)(implicit api:          Api[Task])
+  subscriberRepository:     SubscriberRepository,
+  contentFeedRepository:    ContentFeedRepository,
+  integrationRepository:    ContentFeedIntegrationRepository,
+  workflowClient:           ZWorkflowClient,
+  setupIntegrationHandlers: SetupIntegrationHandlers,
+  topicsCommandHandler:     TopicsCommandHandler,
+  settingsCommandsHandler:  SettingsCommandsHandler
+)(implicit api:             Api[Task])
     extends LongPollBot[Task](api)
     with ContentSyncBot
     with HandlingDSL {
@@ -51,13 +59,19 @@ case class ContentSyncBotImpl(
         .unit
   }
 
-  override def notifySubscriber(subscriber: Subscriber, message: String, parseMode: Option[ParseMode]): Task[Unit] =
+  override def notifySubscriber(
+    subscriber:           Subscriber,
+    message:              String,
+    parseMode:            Option[ParseMode],
+    inlineKeyboardMarkup: Option[InlineKeyboardMarkup]
+  ): Task[Unit] =
     api
       .execute(
         sendMessage(
           chatId = ChatIntId(subscriber.telegramChatId),
           text = message,
-          parseMode = parseMode
+          parseMode = parseMode,
+          replyMarkup = inlineKeyboardMarkup
         )
       )
       .unit
@@ -72,28 +86,18 @@ case class ContentSyncBotImpl(
       )
       .unit
 
-  private val depsLayer: ULayer[
-    SubscriberRepository
-      with ContentFeedRepository
-      with ContentFeedIntegrationRepository
-      with ZWorkflowClient
-      with Api[Task]
-  ] =
-    ZLayer.succeed(subscriberRepository) ++
-      ZLayer.succeed(contentFeedRepository) ++
-      ZLayer.succeed(integrationRepository) ++
-      ZLayer.succeed(workflowClient) ++
-      ZLayer.succeed(api)
+  private val apiLayer = ZLayer.succeed(api)
 
   private val messageHandlers = chain(
-    SetupIntegrationHandlers.messageHandlers,
-    TopicsCommand.all,
-    SettingsCommands.messageHandlers
+    setupIntegrationHandlers.messageHandlers,
+    topicsCommandHandler.messageHandlers,
+    settingsCommandsHandler.messageHandlers
   )
 
   private val callbackQueryHandlers = chain(
-    SetupIntegrationHandlers.callbackQueryHandlers,
-    SettingsCommands.callbackQueryHandlers
+    setupIntegrationHandlers.callbackQueryHandlers,
+    settingsCommandsHandler.callbackQueryHandlers,
+    topicsCommandHandler.callbackQueryHandlers
   )
 
   override def onMessage(msg: Message): Task[Unit] = {
@@ -109,7 +113,7 @@ case class ContentSyncBotImpl(
             ZIO.logInfo("Not a user message, skip")
         }
       }
-      .provide(depsLayer)
+      .provide(apiLayer)
       .unit
   }
 
@@ -119,7 +123,7 @@ case class ContentSyncBotImpl(
       .handleOrElseZIO {
         ZIO.logInfo(s"Received query=$query")
       }
-      .provide(depsLayer)
+      .provide(apiLayer)
       .unit
   }
 }

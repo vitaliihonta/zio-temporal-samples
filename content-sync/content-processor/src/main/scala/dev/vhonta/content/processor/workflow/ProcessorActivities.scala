@@ -1,26 +1,19 @@
 package dev.vhonta.content.processor.workflow
 
 import dev.vhonta.content.processor.proto._
-import dev.vhonta.content.proto.{
-  ContentFeedIntegration,
-  ContentFeedIntegrationNewsApiDetails,
-  ContentFeedIntegrationYoutubeDetails,
-  ContentFeedItem,
-  ContentFeedTopic,
-  Subscriber
-}
+import dev.vhonta.content.proto.{ContentFeedItem, Subscriber}
 import dev.vhonta.content.repository.{
   ContentFeedIntegrationRepository,
   ContentFeedRecommendationRepository,
   ContentFeedRepository,
   SubscriberRepository
 }
-import dev.vhonta.content.{ContentFeedIntegrationDetails, ContentFeedRecommendation, ContentFeedRecommendationItem}
+import dev.vhonta.content.{ContentFeedRecommendation, ContentFeedRecommendationItem}
 import zio._
 import zio.temporal._
 import zio.temporal.activity._
 import zio.temporal.protobuf.syntax._
-
+import dev.vhonta.content.ProtoConverters._
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -108,17 +101,7 @@ case class ProcessorActivitiesImpl(
           id = subscriber.id,
           registeredAt = subscriber.registeredAt
         ),
-        integration = ContentFeedIntegration(
-          id = integration.id,
-          subscriber = integration.subscriber,
-          // TODO: decouple conversion
-          integration = integration.integration match {
-            case ContentFeedIntegrationDetails.NewsApi(token) =>
-              ContentFeedIntegrationNewsApiDetails(token)
-            case ContentFeedIntegrationDetails.Youtube(accessToken, refreshToken, exchangedAt, expiresInSeconds) =>
-              ContentFeedIntegrationYoutubeDetails(accessToken, refreshToken, exchangedAt, expiresInSeconds)
-          }
-        ),
+        integration = integration.toProto,
         items = items.map { item =>
           ContentFeedItem(
             id = item.id,

@@ -3,7 +3,7 @@ package dev.vhonta.content.puller.workflows.youtube
 import dev.vhonta.content.proto.ContentFeedIntegrationType
 import dev.vhonta.content.puller.proto.{PullingResult, YoutubePullerInitialState}
 import dev.vhonta.content.puller.workflows.youtube.mock.{
-  MockConfigurationActivities,
+  MockPullConfigurationActivities,
   MockDatabaseActivities,
   MockYoutubePullWorkflow
 }
@@ -29,7 +29,7 @@ object YoutubeScheduledPullWorkflow extends ZIOSpecDefault {
   private val youtubePullerConfig = YoutubePullerConfig(maxResults = 100)
 
   private val mockConfigurationActivities =
-    MockConfigurationActivities(
+    MockPullConfigurationActivities(
       ContentFeedIntegrationType.values.view.map(_ -> pullerConfig).toMap,
       youtubePullerConfig
     )

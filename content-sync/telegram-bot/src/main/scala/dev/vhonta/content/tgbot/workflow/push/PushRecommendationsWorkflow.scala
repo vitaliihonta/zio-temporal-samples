@@ -20,7 +20,7 @@ trait PushRecommendationsWorkflow {
 class PushRecommendationsWorkflowImpl extends PushRecommendationsWorkflow {
   private val logger = ZWorkflow.makeLogger
 
-  private val newsFeedActivities = ZWorkflow
+  private val contentFeedActivities = ZWorkflow
     .newActivityStub[ContentFeedActivities]
     .withStartToCloseTimeout(10.seconds)
     .withRetryOptions(
@@ -45,7 +45,7 @@ class PushRecommendationsWorkflowImpl extends PushRecommendationsWorkflow {
     logger.info("Going to push content feed recommendations...")
 
     val recommendations = ZActivityStub.execute(
-      newsFeedActivities.listRecommendations(
+      contentFeedActivities.listRecommendations(
         ListRecommendationsParams(
           params.subscriberWithSettings,
           date = params.date
@@ -96,7 +96,6 @@ class PushRecommendationsWorkflowImpl extends PushRecommendationsWorkflow {
 
   private def buildMessage(recommendation: ContentFeedRecommendationView): String = {
     val integration = {
-      // TODO: decouple conversion
       val kind =
         if (recommendation.integration.integration.asMessage.sealedValue.isYoutube) "Youtube ▶\uFE0F"
         else "NewsApi ℹ\uFE0F"

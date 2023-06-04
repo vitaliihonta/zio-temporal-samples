@@ -4,6 +4,7 @@ import dev.vhonta.content.repository.SubscriberRepository
 import dev.vhonta.content.tgbot.bot.ContentSyncBot
 import dev.vhonta.content.tgbot.proto.{NotifySubscriberParams, PretendTypingParams, TelegramParseMode}
 import telegramium.bots
+import telegramium.bots.{InlineKeyboardButton, InlineKeyboardMarkup}
 import zio._
 import zio.temporal._
 import zio.temporal.activity._
@@ -47,7 +48,28 @@ case class TelegramActivitiesImpl(
                       case TelegramParseMode.Markdown2       => Some(bots.Markdown2)
                       case TelegramParseMode.Unrecognized(_) => None
                     }
-        _ <- bot.notifySubscriber(subscriber, params.message, parseMode)
+        _ <- bot.notifySubscriber(
+               subscriber = subscriber,
+               message = params.message,
+               parseMode = parseMode,
+               inlineKeyboardMarkup = params.replyMarkup.map(markup =>
+                 InlineKeyboardMarkup(
+                   markup.groups.view
+                     .map(
+                       _.buttons.view
+                         .map(button =>
+                           InlineKeyboardButton(
+                             text = button.text,
+                             url = button.url,
+                             callbackData = button.callbackData
+                           )
+                         )
+                         .toList
+                     )
+                     .toList
+                 )
+               )
+             )
       } yield ()
     }
 

@@ -30,3 +30,8 @@ message SetupYoutubeParams {
   required zio.temporal.protobuf.UUID subscriber = 1;
   required string redirectUri = 2;
 }
+
+message PushConfiguration {
+  required int64 pushInterval = 1;
+  required int64 singlePushTimeout = 2;
+}

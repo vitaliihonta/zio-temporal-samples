@@ -16,10 +16,6 @@ trait ScheduledRecommendationsWorkflow {
 class ScheduledRecommendationsWorkflowImpl extends ScheduledRecommendationsWorkflow {
   private val logger = ZWorkflow.makeLogger
 
-  // TODO: make configurable
-  private val processInterval      = 15.minutes
-  private val singleProcessTimeout = 10.minutes
-
   private val processorActivities = ZWorkflow
     .newActivityStub[ProcessorActivities]
     .withStartToCloseTimeout(10.seconds)
@@ -31,10 +27,24 @@ class ScheduledRecommendationsWorkflowImpl extends ScheduledRecommendationsWorkf
     )
     .build
 
+  private val configurationActivities = ZWorkflow
+    .newActivityStub[ProcessorConfigurationActivities]
+    .withStartToCloseTimeout(10.seconds)
+    .withRetryOptions(
+      ZRetryOptions.default.withDoNotRetry(
+        nameOf[Config.Error]
+      )
+    )
+    .build
+
   private val nextRun = ZWorkflow.newContinueAsNewStub[ScheduledRecommendationsWorkflow].build
 
   override def makeRecommendations(): Unit = {
     val startedAt = ZWorkflow.currentTimeMillis.toLocalDateTime()
+
+    val processorConfig = ZActivityStub.execute(
+      configurationActivities.getProcessorConfiguration
+    )
 
     val subscribersWithIntegrations = ZActivityStub.execute(
       processorActivities.loadAllSubscribersWithIntegrations()
@@ -49,7 +59,7 @@ class ScheduledRecommendationsWorkflowImpl extends ScheduledRecommendationsWorkf
           .withWorkflowId(
             s"${ZWorkflow.info.workflowId}/subscribers/${subscriberWithIntegration.subscriberId.fromProto}/int/${subscriberWithIntegration.integrationId.fromProto}"
           )
-          .withWorkflowExecutionTimeout(singleProcessTimeout)
+          .withWorkflowExecutionTimeout(processorConfig.singleProcessTimeout.fromProto)
           .withRetryOptions(
             ZRetryOptions.default.withMaximumAttempts(2)
           )
@@ -69,7 +79,7 @@ class ScheduledRecommendationsWorkflowImpl extends ScheduledRecommendationsWorkf
     started.run.getOrThrow
 
     val finishedAt = ZWorkflow.currentTimeMillis.toLocalDateTime()
-    val sleepTime  = processInterval minus java.time.Duration.between(startedAt, finishedAt)
+    val sleepTime  = processorConfig.processInterval.fromProto minus java.time.Duration.between(startedAt, finishedAt)
 
     logger.info(s"Next processing starts after $sleepTime")
 

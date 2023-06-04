@@ -85,8 +85,7 @@ case class ContentFeedActivitiesImpl(
                  id = topicId,
                  owner = params.subscriber.fromProto,
                  topic = params.topic,
-                 // TODO: make configurable
-                 lang = ContentLanguage.English
+                 lang = params.lang.fromProto
                )
              )
       } yield ()

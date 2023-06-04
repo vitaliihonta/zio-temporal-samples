@@ -8,7 +8,7 @@ import dev.vhonta.content.puller.proto.{
   PullerResetState,
   ScheduledPullerParams
 }
-import dev.vhonta.content.puller.workflows.{ConfigurationActivities, DatabaseActivities}
+import dev.vhonta.content.puller.workflows.{PullConfigurationActivities, DatabaseActivities}
 import org.slf4j.Logger
 import zio._
 import zio.temporal._
@@ -55,9 +55,9 @@ abstract class AsyncScheduledPullerWorkflow[
       )
       .build
 
-  protected val configurationActivities: ZActivityStub.Of[ConfigurationActivities] =
+  protected val configurationActivities: ZActivityStub.Of[PullConfigurationActivities] =
     ZWorkflow
-      .newActivityStub[ConfigurationActivities]
+      .newActivityStub[PullConfigurationActivities]
       .withStartToCloseTimeout(30.seconds)
       .withRetryOptions(
         ZRetryOptions.default.withDoNotRetry(nameOf[Config.Error])
