@@ -56,7 +56,8 @@ lazy val shared = project
         Dependencies.database ++
         Dependencies.sttp ++
         Dependencies.googleApiClient ++
-        Dependencies.enumeratum
+        Dependencies.enumeratum ++
+        Dependencies.chimney
   )
 
 lazy val `content-puller` = project
@@ -67,7 +68,8 @@ lazy val `content-puller` = project
     baseServiceSettings,
     libraryDependencies ++=
       Dependencies.zioBase ++
-        Dependencies.zioTemporal
+        Dependencies.zioTemporal ++
+        Dependencies.mockito
   )
   .enablePlugins(JavaAppPackaging, DockerPlugin)
 

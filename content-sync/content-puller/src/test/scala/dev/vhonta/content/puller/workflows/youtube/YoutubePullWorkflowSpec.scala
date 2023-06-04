@@ -5,8 +5,6 @@ import dev.vhonta.content.puller.workflows.youtube.mock.{MockDatabaseActivities,
 import zio._
 import zio.logging.backend.SLF4J
 import zio.test._
-import zio.temporal._
-import zio.temporal.protobuf.ProtobufDataConverter
 import zio.temporal.worker._
 import zio.temporal.workflow._
 import zio.temporal.testkit._
@@ -47,5 +45,5 @@ object YoutubePullWorkflowSpec extends ZIOSpecDefault {
         assertTrue(result.processed == videosCount)
       }
     }
-  ).provideSome[Scope](TestModule.make) @@ TestAspect.withLiveClock
+  ).provideSome[Scope](TestModule.workflowTestEnv) @@ TestAspect.withLiveClock
 }

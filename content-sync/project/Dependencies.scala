@@ -46,6 +46,10 @@ object Dependencies {
     "dev.zio" %% "zio-http" % "3.0.0-RC1"
   )
 
+  val mockito = Seq(
+    "org.mockito" %% "mockito-scala" % "1.17.14" % Test
+  )
+
   val zioTestFrameworks = Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
 
   val database = Seq(
@@ -67,5 +71,9 @@ object Dependencies {
 
   val enumeratum = Seq(
     "com.beachape" %% "enumeratum" % versions.enumeratum
+  )
+
+  val chimney = Seq(
+    "io.scalaland" %% "chimney" % "0.7.5"
   )
 }

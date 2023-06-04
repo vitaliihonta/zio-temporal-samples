@@ -11,12 +11,10 @@ import dev.vhonta.content.puller.{PullerConfig, YoutubePullerConfig}
 import zio._
 import zio.logging.backend.SLF4J
 import zio.temporal.failure.ApplicationFailure
-import zio.temporal.protobuf.ProtobufDataConverter
-import zio.temporal.testkit.{ZTestEnvironmentOptions, ZTestWorkflowEnvironment}
-import zio.temporal.worker.{ZWorker, ZWorkerFactoryOptions}
-import zio.temporal.workflow.{ZWorkflowClientOptions, ZWorkflowStub}
+import zio.temporal.testkit.ZTestWorkflowEnvironment
+import zio.temporal.worker.ZWorker
+import zio.temporal.workflow.ZWorkflowStub
 import zio.test._
-
 import java.util.concurrent.atomic.AtomicInteger
 
 object YoutubeScheduledPullWorkflow extends ZIOSpecDefault {
@@ -122,7 +120,6 @@ object YoutubeScheduledPullWorkflow extends ZIOSpecDefault {
 
         _ <- ZIO.sleep(2.seconds)
         firstCount = invocationsCount.get()
-        // TODO: backport ZTestWorkflowEnvironment.sleep
         _ <- ZIO.serviceWithZIO[ZTestWorkflowEnvironment[Any]](_.sleep(pullerConfig.pullInterval))
         _ <- ZIO.sleep(2.seconds)
         secondCount = invocationsCount.get()
@@ -133,5 +130,5 @@ object YoutubeScheduledPullWorkflow extends ZIOSpecDefault {
         )
       }
     }
-  ).provideSome[Scope](TestModule.make) @@ TestAspect.withLiveClock
+  ).provideSome[Scope](TestModule.workflowTestEnv) @@ TestAspect.withLiveClock
 }
