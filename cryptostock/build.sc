@@ -5,7 +5,7 @@ object versions {
   val scala3      = "3.3.0"
   val zio         = "2.0.12"
   val ziologging  = "2.1.12"
-  val ziotemporal = "0.2.0-RC4"
+  val ziotemporal = "0.2.0"
   val logback     = "1.2.11"
 }
 
