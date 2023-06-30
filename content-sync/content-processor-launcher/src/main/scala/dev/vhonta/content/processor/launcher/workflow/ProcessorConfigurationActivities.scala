@@ -1,4 +1,4 @@
-package dev.vhonta.content.processor.workflow
+package dev.vhonta.content.processor.launcher.workflow
 
 import zio._
 import zio.temporal._

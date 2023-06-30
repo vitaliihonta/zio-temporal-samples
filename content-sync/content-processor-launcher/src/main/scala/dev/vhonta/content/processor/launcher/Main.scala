@@ -1,6 +1,6 @@
-package dev.vhonta.content.processor
+package dev.vhonta.content.processor.launcher
 
-import dev.vhonta.content.processor.workflow._
+import dev.vhonta.content.processor.launcher.workflow._
 import dev.vhonta.content.repository._
 import io.getquill.jdbczio.Quill
 import zio._

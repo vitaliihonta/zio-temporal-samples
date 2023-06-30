@@ -10,6 +10,7 @@ object Dependencies {
     val enumeratum  = "1.7.2"
     val sttp        = "3.8.15"
     val telegramium = "7.67.0"
+    val spark       = "3.4.1"
   }
 
   val zioTemporal = Seq(
@@ -29,17 +30,36 @@ object Dependencies {
     "com.softwaremill.sttp.client3" %% "zio-json" % versions.sttp
   )
 
-  val zioBase = Seq(
-    "dev.zio"       %% "zio"                 % versions.zio,
-    "dev.zio"       %% "zio-streams"         % versions.zio,
-    "dev.zio"       %% "zio-json"            % versions.zioJson,
-    "dev.zio"       %% "zio-logging"         % versions.zioLogging,
-    "dev.zio"       %% "zio-logging-slf4j"   % versions.zioLogging,
-    "dev.zio"       %% "zio-config"          % versions.zioConfig,
-    "dev.zio"       %% "zio-config-typesafe" % versions.zioConfig,
-    "ch.qos.logback" % "logback-classic"     % "1.2.11",
-    "dev.zio"       %% "zio-test"            % versions.zio % Test,
-    "dev.zio"       %% "zio-test-sbt"        % versions.zio % Test
+  val zioEssential = Seq(
+    "dev.zio"       %% "zio"               % versions.zio,
+    "dev.zio"       %% "zio-json"          % versions.zioJson,
+    "dev.zio"       %% "zio-logging"       % versions.zioLogging,
+    "dev.zio"       %% "zio-logging-slf4j" % versions.zioLogging,
+    "dev.zio"       %% "zio-test"          % versions.zio % Test,
+    "dev.zio"       %% "zio-test-sbt"      % versions.zio % Test,
+    "ch.qos.logback" % "logback-classic"   % "1.2.11"
+  )
+
+  val zioExt = Seq(
+    "dev.zio" %% "zio-streams"         % versions.zio,
+    "dev.zio" %% "zio-config"          % versions.zioConfig,
+    "dev.zio" %% "zio-config-typesafe" % versions.zioConfig
+  )
+
+  val zioConnect = Seq(
+    "dev.zio" %% "zio-connect-file" % "0.4.4"
+  )
+
+  val parquet = Seq(
+    "com.spotify" %% "magnolify-parquet" % "0.6.2"
+  )
+
+  val sparkCore = Seq(
+    "org.apache.spark" %% "spark-core" % versions.spark
+  )
+
+  val sparkSql = Seq(
+    "org.apache.spark" %% "spark-sql" % versions.spark
   )
 
   val zioHttp = Seq(

@@ -1,6 +1,6 @@
-package dev.vhonta.content.processor
+package dev.vhonta.content.processor.launcher
 
-import dev.vhonta.content.processor.workflow.ScheduledRecommendationsWorkflow
+import dev.vhonta.content.processor.launcher.workflow.ScheduledRecommendationsWorkflow
 import io.temporal.client.WorkflowExecutionAlreadyStarted
 import zio._
 import zio.temporal._

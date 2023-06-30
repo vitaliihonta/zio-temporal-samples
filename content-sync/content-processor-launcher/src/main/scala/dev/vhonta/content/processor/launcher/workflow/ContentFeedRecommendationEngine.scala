@@ -1,4 +1,4 @@
-package dev.vhonta.content.processor.workflow
+package dev.vhonta.content.processor.launcher.workflow
 
 import dev.vhonta.content.processor.proto.{RecommendationEngineParams, RecommendationEngineResult}
 import dev.vhonta.content.proto.ContentFeedItem
