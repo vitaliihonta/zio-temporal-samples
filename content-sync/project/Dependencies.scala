@@ -54,12 +54,17 @@ object Dependencies {
     "com.spotify" %% "magnolify-parquet" % "0.6.2"
   )
 
-  val sparkCore = Seq(
-    "org.apache.spark" %% "spark-core" % versions.spark
+  private val sparkExclusions = Vector(
+    ExclusionRule(organization = "org.slf4j", name = "jcl-over-slf4j"),
+    ExclusionRule(organization = "org.apache.logging.log4j", name = "log4j-1.2-api")
+  )
+
+  val sparkLauncher = Seq(
+    "org.apache.spark" %% "spark-launcher" % versions.spark withExclusions sparkExclusions
   )
 
   val sparkSql = Seq(
-    "org.apache.spark" %% "spark-sql" % versions.spark
+    "org.apache.spark" %% "spark-sql" % versions.spark withExclusions sparkExclusions
   )
 
   val zioHttp = Seq(

@@ -88,6 +88,8 @@ lazy val `content-puller` = project
   )
   .enablePlugins(JavaAppPackaging, DockerPlugin)
 
+lazy val contentProcessorJobMainClass = settingKey[String]("Content processor job main class")
+
 lazy val `content-processor-launcher` = project
   .in(file("content-processor-launcher"))
   .dependsOn(`service-commons`)
@@ -98,11 +100,17 @@ lazy val `content-processor-launcher` = project
       Dependencies.zioEssential ++
         Dependencies.zioExt ++
         Dependencies.zioTemporal ++
-        Dependencies.sparkCore,
+        Dependencies.sparkLauncher,
     buildInfoKeys := Seq[BuildInfoKey](
       version,
+      BuildInfoKey.map(`content-processor-job` / name) { case (_, v) =>
+        "contentProcessorJobName" -> v
+      },
       BuildInfoKey.map(`content-processor-job` / assembly / assemblyJarName) { case (_, v) =>
-        "contentProcessorJobJarName" -> v
+        "contentProcessorJobFile" -> v
+      },
+      BuildInfoKey.map(`content-processor-job` / contentProcessorJobMainClass) { case (_, v) =>
+        "contentProcessorJobMainClass" -> v
       }
     ),
     buildInfoPackage := "dev.vhonta.content.processor.launcher"
@@ -116,9 +124,15 @@ lazy val `content-processor-job` = project
     baseSettings,
     libraryDependencies ++=
       Dependencies.sparkSql,
-    assembly / mainClass := Some("dev.vhonta.content.processor.job.Main"),
+    contentProcessorJobMainClass := "dev.vhonta.content.processor.job.Main",
+    assembly / mainClass         := Some(contentProcessorJobMainClass.value),
     assemblyMergeStrategy := {
-      case "application.conf" | "reference.conf" => MergeStrategy.concat
+      case x if Assembly.isConfigFile(x)                        => MergeStrategy.concat
+      case PathList("META-INF", "io.netty.versions.properties") => MergeStrategy.first
+      // dicards
+      case "module-info.class" | "arrow-git.properties"             => MergeStrategy.discard
+      case PathList("META-INF", "versions", _, "module-info.class") => MergeStrategy.discard
+      // rest
       case x =>
         val oldStrategy = (ThisBuild / assemblyMergeStrategy).value
         oldStrategy(x)

@@ -33,9 +33,9 @@ stop-local-env:
 start-puller-local:
 	JAVA_OPTS=$(JAVA_OPTS) sbt "content-puller/run $(reset)"
 
-.PHONY: start-processor-local
-start-processor-local:
-	JAVA_OPTS=$(JAVA_OPTS) sbt "content-processor/run $(reset)"
+.PHONY: start-processor-launcher-local
+start-processor-launcher-local:
+	JAVA_OPTS=$(JAVA_OPTS) sbt "content-processor-launcher/run $(reset)"
 
 .PHONY: start-telegram-bot-local
 start-telegram-bot-local:

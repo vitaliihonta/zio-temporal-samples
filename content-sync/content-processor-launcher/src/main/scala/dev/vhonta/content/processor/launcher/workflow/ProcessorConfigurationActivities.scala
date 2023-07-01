@@ -8,14 +8,14 @@ import dev.vhonta.content.ProtoConverters._
 import dev.vhonta.content.processor.proto
 
 case class ProcessorConfiguration(
-  processInterval:      Duration,
-  singleProcessTimeout: Duration)
+  processInterval: Duration,
+  jobTimeout:      Duration)
 
 object ProcessorConfiguration {
   val definition: Config[ProcessorConfiguration] =
     (Config.duration("process_interval") ++
-      Config.duration("single_process_timeout"))
-      .nested("recommendations")
+      Config.duration("job_timeout"))
+      .nested("processor", "launcher")
       .map((ProcessorConfiguration.apply _).tupled)
 }
 
@@ -38,7 +38,7 @@ class ProcessorConfigurationActivitiesImpl()(implicit options: ZActivityOptions[
         .map(pushConfig =>
           proto.ProcessorConfiguration(
             processInterval = pushConfig.processInterval.toProto,
-            singleProcessTimeout = pushConfig.singleProcessTimeout.toProto
+            jobTimeout = pushConfig.jobTimeout.toProto
           )
         )
     }

@@ -16,6 +16,8 @@ Fetch various content (such as news, videos) and periodically get them through T
   - ZIO Config
   - ZIO JSON
   - ZIO HTTP
+- **Data processing**
+  - Apache Spark
 - **Database layer**
   - ZIO Quill
   - Flyway

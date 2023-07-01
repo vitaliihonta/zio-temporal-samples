@@ -1,8 +1,6 @@
 package dev.vhonta.content.processor.launcher
 
 import dev.vhonta.content.processor.launcher.workflow._
-import dev.vhonta.content.repository._
-import io.getquill.jdbczio.Quill
 import zio._
 import zio.config.typesafe.TypesafeConfigProvider
 import zio.logging.backend.SLF4J
@@ -17,35 +15,24 @@ object Main extends ZIOAppDefault {
 
   def run: ZIO[ZIOAppArgs with Scope, Any, Any] = {
     val registerWorkflow =
-      ZWorkerFactory.newWorker(RecommendationsProcessorStarter.TaskQueue) @@
-        ZWorker.addWorkflow[RecommendationsWorkflowImpl].fromClass @@
-        ZWorker.addWorkflow[ScheduledRecommendationsWorkflowImpl].fromClass @@
-        ZWorker.addActivityImplementationService[ProcessorActivities] @@
-        ZWorker.addActivityImplementationService[ContentFeedRecommendationEngine] @@
+      ZWorkerFactory.newWorker(ProcessorLauncherStarter.TaskQueue) @@
+        ZWorker.addWorkflow[ProcessorLauncherWorkflowImpl].fromClass @@
+        ZWorker.addActivityImplementationService[ProcessorLauncherActivity] @@
         ZWorker.addActivityImplementationService[ProcessorConfigurationActivities]
 
     val program = for {
       _    <- registerWorkflow
       _    <- ZWorkflowServiceStubs.setup()
       args <- getArgs
-      _    <- ZIO.serviceWithZIO[RecommendationsProcessorStarter](_.start(args.contains("reset")))
+      _    <- ZIO.serviceWithZIO[ProcessorLauncherStarter](_.start(args.contains("reset")))
       _    <- ZWorkerFactory.serve
     } yield ()
 
     program
       .provideSome[ZIOAppArgs with Scope](
-        DatabaseMigrator.applyMigration,
-        RecommendationsProcessorStarter.make,
-        // dao
-        SubscriberRepository.make,
-        ContentFeedRepository.make,
-        ContentFeedRecommendationRepository.make,
-        ContentFeedIntegrationRepository.make,
-        PostgresQuill.make,
-        Quill.DataSource.fromPrefix("db"),
+        ProcessorLauncherStarter.make,
         // activities
-        ProcessorActivitiesImpl.make,
-        ContentFeedRecommendationEngineImpl.make,
+        ProcessorLauncherActivityImpl.make,
         ProcessorConfigurationActivitiesImpl.make,
         // temporal
         ZWorkflowClient.make,
