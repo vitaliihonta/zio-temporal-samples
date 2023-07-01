@@ -9,12 +9,11 @@ import dev.vhonta.content.repository.{
   SubscriberRepository
 }
 import dev.vhonta.content.tgbot.proto._
-import dev.vhonta.content.{ContentFeedIntegrationDetails, ContentFeedTopic, ContentLanguage, proto}
+import dev.vhonta.content.{ContentFeedIntegrationDetails, ContentFeedTopic, proto}
 import zio._
 import zio.temporal._
 import zio.temporal.activity._
 import zio.temporal.protobuf.syntax._
-
 import java.time.{LocalDate, LocalTime}
 
 @activityInterface
@@ -136,6 +135,7 @@ case class ContentFeedActivitiesImpl(
       } yield ListRecommendationsResult(
         results = recommendations.flatten.map { recommendation =>
           ContentFeedRecommendationView(
+            id = recommendation.id,
             integration = ContentFeedIntegration(
               id = recommendation.integration.id,
               subscriber = recommendation.integration.subscriber,
@@ -153,14 +153,12 @@ case class ContentFeedActivitiesImpl(
             ),
             date = recommendation.date,
             items = recommendation.items.map { item =>
-              ContentFeedItem(
-                id = item.id,
-                integration = item.integration,
+              ContentFeedRecommendationItem(
+                recommendation = recommendation.id,
                 topic = item.topic,
                 title = item.title,
                 description = item.description,
                 url = item.url,
-                publishedAt = item.publishedAt,
                 contentType = item.contentType
               )
             }

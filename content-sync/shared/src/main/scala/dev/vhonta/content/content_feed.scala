@@ -29,7 +29,6 @@ case object ContentType extends Enum[ContentType] {
 }
 
 case class ContentFeedItem(
-  id:          UUID,
   integration: Long,
   topic:       Option[UUID],
   title:       String,

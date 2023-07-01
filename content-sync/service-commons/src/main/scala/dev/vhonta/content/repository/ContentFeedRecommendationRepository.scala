@@ -1,11 +1,6 @@
 package dev.vhonta.content.repository
 
-import dev.vhonta.content.{
-  ContentFeedIntegration,
-  ContentFeedItem,
-  ContentFeedRecommendation,
-  ContentFeedRecommendationItem
-}
+import dev.vhonta.content.{ContentFeedIntegration, ContentFeedRecommendation, ContentFeedRecommendationItem}
 import io.getquill.SnakeCase
 import zio._
 import java.sql.SQLException
@@ -36,6 +31,7 @@ case class ContentFeedRecommendationRepository(quill: PostgresQuill[SnakeCase]) 
     ).unit
   }
 
+  // TODO: unused?
   def existForDate(integrationId: Long, date: LocalDate): IO[SQLException, Boolean] = {
     val check = quote {
       query[ContentFeedRecommendation]
@@ -56,9 +52,6 @@ case class ContentFeedRecommendationRepository(quill: PostgresQuill[SnakeCase]) 
     val itemsQuery = quote {
       query[ContentFeedRecommendationItem]
         .filter(item => recommendationIdQuery.contains(item.recommendation))
-        .join(query[ContentFeedItem])
-        .on(_.item == _.id)
-        .map { case (_, art) => art }
     }
     val integrationQuery = quote {
       query[ContentFeedIntegration]
@@ -66,18 +59,21 @@ case class ContentFeedRecommendationRepository(quill: PostgresQuill[SnakeCase]) 
         .take(1)
     }
 
-    run(integrationQuery)
-      .map(_.headOption)
-      .flatMap(
-        ZIO.foreach(_) { integration =>
-          run(itemsQuery).map { items =>
-            ContentFeedRecommendation.View(
-              integration = integration,
-              date = date,
-              items = items
-            )
-          }
-        }
-      )
+    run(integrationQuery).map(_.headOption).flatMap {
+      case None => ZIO.none
+      case Some(integration) =>
+        run(recommendationIdQuery)
+          .map(_.headOption)
+          .flatMap(ZIO.foreach(_) { recommendationId =>
+            run(itemsQuery).map { items =>
+              ContentFeedRecommendation.View(
+                id = recommendationId,
+                integration = integration,
+                date = date,
+                items = items
+              )
+            }
+          })
+    }
   }
 }

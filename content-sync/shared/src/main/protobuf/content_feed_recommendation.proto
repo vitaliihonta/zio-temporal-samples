@@ -15,11 +15,16 @@ message ContentFeedRecommendation {
 
 message ContentFeedRecommendationItem {
   required zio.temporal.protobuf.UUID recommendation = 1;
-  required zio.temporal.protobuf.UUID item = 2;
+  optional zio.temporal.protobuf.UUID topic = 2;
+  required string title = 3;
+  required string description = 4;
+  required string url = 5;
+  required ContentType contentType = 6;
 }
 
 message ContentFeedRecommendationView {
-  required dev.vhonta.content.proto.ContentFeedIntegration integration = 1;
-  required int64 date = 2;
-  repeated dev.vhonta.content.proto.ContentFeedItem items = 3;
+  required zio.temporal.protobuf.UUID id = 1;
+  required dev.vhonta.content.proto.ContentFeedIntegration integration = 2;
+  required int64 date = 3;
+  repeated ContentFeedRecommendationItem items = 4;
 }

@@ -14,6 +14,7 @@ import dev.vhonta.content.puller.proto.{
 }
 import dev.vhonta.content.repository.{ContentFeedIntegrationRepository, ContentFeedRepository}
 import zio._
+import zio.stream._
 import zio.temporal._
 import zio.temporal.activity._
 import zio.temporal.protobuf.syntax._
@@ -89,12 +90,11 @@ case class DatabaseActivitiesImpl(
 
   override def storeArticles(articles: NewsApiArticles, storeParams: StoreArticlesParameters): Unit = {
     ZActivity.run {
-      val contentFeedItemsZIO = ZIO.foreach(articles.articles.toList) { article =>
-        for {
-          itemId <- ZIO.randomWith(_.nextUUID)
-        } yield {
+      // TODO: implement
+      val contentFeedItemsStream = ZStream
+        .fromIterable(articles.articles)
+        .map { article =>
           ContentFeedItem(
-            id = itemId,
             integration = storeParams.integrationId,
             topic = Some(storeParams.topicId.fromProto),
             title = article.title,
@@ -104,24 +104,21 @@ case class DatabaseActivitiesImpl(
             contentType = ContentType.Text
           )
         }
-      }
 
       for {
-        items <- contentFeedItemsZIO
-        _     <- ZIO.logInfo(s"Storing articles topicId=${storeParams.topicId.fromProto}")
-        _     <- contentFeedRepository.storeItems(items)
+        _ <- ZIO.logInfo(s"Storing articles topicId=${storeParams.topicId.fromProto}")
+        _ <- ZIO.fail(new NotImplementedError())
       } yield ()
     }
   }
 
   override def storeVideos(videos: YoutubeVideosList, params: StoreVideosParameters): Unit = {
     ZActivity.run {
-      val contentFeedItemsZIO = ZIO.foreach(videos.values.toList) { video =>
-        for {
-          itemId <- ZIO.randomWith(_.nextUUID)
-        } yield {
+      // TODO: implement
+      val contentFeedItemsStream = ZStream
+        .fromIterable(videos.values)
+        .map { video =>
           ContentFeedItem(
-            id = itemId,
             integration = params.integrationId,
             topic = None,
             title = video.title,
@@ -131,12 +128,10 @@ case class DatabaseActivitiesImpl(
             contentType = ContentType.Video
           )
         }
-      }
 
       for {
-        items <- contentFeedItemsZIO
-        _     <- ZIO.logInfo("Storing videos")
-        _     <- contentFeedRepository.storeItems(items)
+        _ <- ZIO.logInfo("Storing videos")
+        _ <- ZIO.fail(new NotImplementedError())
       } yield ()
     }
   }

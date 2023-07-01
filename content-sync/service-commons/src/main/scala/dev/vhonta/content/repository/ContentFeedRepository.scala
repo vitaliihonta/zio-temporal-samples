@@ -1,10 +1,9 @@
 package dev.vhonta.content.repository
 
 import zio._
-import dev.vhonta.content.{ContentFeedItem, ContentFeedRecommendationItem, ContentFeedTopic}
+import dev.vhonta.content.{ContentFeedRecommendationItem, ContentFeedTopic}
 import io.getquill.SnakeCase
 import java.sql.SQLException
-import java.time.LocalDateTime
 import java.util.UUID
 
 object ContentFeedRepository {
@@ -31,18 +30,8 @@ case class ContentFeedRepository(quill: PostgresQuill[SnakeCase]) {
   }
 
   def deleteTopicById(topicId: UUID): Task[Boolean] = {
-    val itemIds = quote {
-      query[ContentFeedItem]
-        .filter(_.topic == lift(Option(topicId)))
-        .map(_.id)
-    }
     val deleteRecommendationItems = quote {
       query[ContentFeedRecommendationItem]
-        .filter(rc => itemIds.contains(rc.item))
-        .delete
-    }
-    val deleteItems = quote {
-      query[ContentFeedItem]
         .filter(_.topic == lift(Option(topicId)))
         .delete
     }
@@ -51,10 +40,8 @@ case class ContentFeedRepository(quill: PostgresQuill[SnakeCase]) {
         .filter(_.id == lift(topicId))
         .delete
     }
-
     transaction {
       run(deleteRecommendationItems) *>
-        run(deleteItems) *>
         run(deleteSelf)
     }.map(_ > 0)
   }
@@ -70,21 +57,5 @@ case class ContentFeedRepository(quill: PostgresQuill[SnakeCase]) {
         }
         run(select)
     }
-  }
-
-  def storeItems(items: List[ContentFeedItem]): IO[SQLException, Unit] = {
-    val insert = quote {
-      liftQuery(items).foreach(e => query[ContentFeedItem].insertValue(e))
-    }
-    run(insert).unit
-  }
-
-  def itemsForIntegration(integrationId: Long, now: LocalDateTime): IO[SQLException, List[ContentFeedItem]] = {
-    val select = quote {
-      query[ContentFeedItem]
-        .filter(_.integration == lift(integrationId))
-        .filter(_.publishedAt <= lift(now))
-    }
-    run(select)
   }
 }

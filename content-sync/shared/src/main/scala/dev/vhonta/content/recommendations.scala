@@ -1,6 +1,6 @@
 package dev.vhonta.content
 
-import java.time.LocalDate
+import java.time.{LocalDate, LocalDateTime}
 import java.util.UUID
 
 case class ContentFeedRecommendation(
@@ -11,11 +11,16 @@ case class ContentFeedRecommendation(
 
 object ContentFeedRecommendation {
   case class View(
+    id:          UUID,
     integration: ContentFeedIntegration,
     date:        LocalDate,
-    items:       List[ContentFeedItem])
+    items:       List[ContentFeedRecommendationItem])
 }
 
 case class ContentFeedRecommendationItem(
   recommendation: UUID,
-  item:           UUID)
+  topic:          Option[UUID],
+  title:          String,
+  description:    String,
+  url:            String,
+  contentType:    ContentType)
