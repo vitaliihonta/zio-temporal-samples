@@ -1,6 +1,6 @@
 package dev.vhonta.content
 
-import java.time.{LocalDate, LocalDateTime}
+import java.time.LocalDate
 import java.util.UUID
 
 case class ContentFeedRecommendation(

@@ -1,6 +1,5 @@
 package dev.vhonta.content
 
-import zio._
 import zio.temporal.protobuf.{EnumProtoType, ProtoType}
 import zio.temporal.protobuf.syntax._
 import java.time.LocalDateTime

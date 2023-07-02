@@ -21,7 +21,10 @@ val baseSettings = Seq(
         )
       )
     } else PB.protocDependency.value
-  },
+  }
+)
+
+val baseBackendSettings = Seq(
   testFrameworks ++= Dependencies.zioTestFrameworks
 )
 
@@ -40,7 +43,7 @@ lazy val root = project
     name                := "content-sync-root"
   )
   .aggregate(
-    shared,
+    model,
     `service-commons`,
     `content-puller`,
     `content-processor-launcher`,
@@ -48,27 +51,29 @@ lazy val root = project
     `telegram-bot`
   )
 
-lazy val shared = project
-  .in(file("shared"))
+lazy val model = project
+  .in(file("model"))
   .settings(
     baseSettings,
     libraryDependencies ++=
-      Dependencies.zio ++
-        Dependencies.zioTemporal ++
-        Dependencies.enumeratum ++
-        Dependencies.database
+      Dependencies.json ++
+        Dependencies.enumeratum
   )
 
 lazy val `service-commons` = project
   .in(file("service-commons"))
-  .dependsOn(shared)
+  .dependsOn(model)
   .settings(
     baseSettings,
-    libraryDependencies ++=
+    baseBackendSettings,
+    libraryDependencies ++= {
       Dependencies.zio ++
         Dependencies.zioTemporal ++
         Dependencies.sttp ++
-        Dependencies.googleApiClient
+        Dependencies.googleApiClient ++
+        Dependencies.quill ++
+        Dependencies.database
+    }
   )
 
 lazy val `content-puller` = project
@@ -76,12 +81,14 @@ lazy val `content-puller` = project
   .dependsOn(`service-commons`)
   .settings(
     baseSettings,
+    baseBackendSettings,
     baseServiceSettings,
-    libraryDependencies ++=
+    libraryDependencies ++= {
       Dependencies.zio ++
         Dependencies.zioTemporal ++
         Dependencies.parquet ++
         Dependencies.mockito
+    }
   )
   .enablePlugins(JavaAppPackaging, DockerPlugin)
 
@@ -92,11 +99,13 @@ lazy val `content-processor-launcher` = project
   .dependsOn(`service-commons`)
   .settings(
     baseSettings,
+    baseBackendSettings,
     baseServiceSettings,
-    libraryDependencies ++=
+    libraryDependencies ++= {
       Dependencies.zio ++
         Dependencies.zioTemporal ++
-        Dependencies.sparkLauncher,
+        Dependencies.sparkLauncher
+    },
     buildInfoKeys := Seq[BuildInfoKey](
       version,
       BuildInfoKey.map(`content-processor-job` / name) { case (_, v) =>
@@ -115,11 +124,13 @@ lazy val `content-processor-launcher` = project
 
 lazy val `content-processor-job` = project
   .in(file("content-processor-job"))
-  .dependsOn(shared)
+  .dependsOn(model)
   .settings(
     baseSettings,
-    libraryDependencies ++=
-      Dependencies.sparkSql,
+    libraryDependencies ++= {
+      Dependencies.sparkSql ++
+        Dependencies.database
+    },
     contentProcessorJobMainClass := "dev.vhonta.content.processor.job.Main",
     assembly / mainClass         := Some(contentProcessorJobMainClass.value),
     assemblyMergeStrategy := {
@@ -141,6 +152,7 @@ lazy val `telegram-bot` = project
   .dependsOn(`service-commons`)
   .settings(
     baseSettings,
+    baseBackendSettings,
     baseServiceSettings,
     libraryDependencies ++=
       Dependencies.zio ++

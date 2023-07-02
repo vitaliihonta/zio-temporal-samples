@@ -32,7 +32,6 @@ object Dependencies {
 
   val zio = Seq(
     "dev.zio"       %% "zio"                 % versions.zio,
-    "dev.zio"       %% "zio-json"            % versions.zioJson,
     "dev.zio"       %% "zio-logging"         % versions.zioLogging,
     "dev.zio"       %% "zio-logging-slf4j2"  % versions.zioLogging,
     "dev.zio"       %% "zio-streams"         % versions.zio,
@@ -41,6 +40,10 @@ object Dependencies {
     "dev.zio"       %% "zio-test"            % versions.zio % Test,
     "dev.zio"       %% "zio-test-sbt"        % versions.zio % Test,
     "ch.qos.logback" % "logback-classic"     % "1.4.8"
+  )
+
+  val json = Seq(
+    "dev.zio" %% "zio-json" % versions.zioJson
   )
 
   val parquet = Seq(
@@ -73,9 +76,12 @@ object Dependencies {
   val zioTestFrameworks = Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
 
   val database = Seq(
-    "io.getquill"   %% "quill-jdbc-zio" % "4.6.0",
-    "org.postgresql" % "postgresql"     % "42.5.4",
-    "org.flywaydb"   % "flyway-core"    % "9.16.0"
+    "org.postgresql" % "postgresql" % "42.5.4"
+  )
+
+  val quill = Seq(
+    "io.getquill" %% "quill-jdbc-zio" % "4.6.0",
+    "org.flywaydb" % "flyway-core"    % "9.16.0"
   )
 
   val telegramium = Seq(
