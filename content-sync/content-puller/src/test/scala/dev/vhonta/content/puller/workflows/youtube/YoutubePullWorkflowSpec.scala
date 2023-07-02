@@ -1,7 +1,11 @@
 package dev.vhonta.content.puller.workflows.youtube
 
 import dev.vhonta.content.puller.proto.YoutubePullerParameters
-import dev.vhonta.content.puller.workflows.youtube.mock.{MockDatabaseActivities, MockYoutubeActivities}
+import dev.vhonta.content.puller.workflows.youtube.mock.{
+  MockDatabaseActivities,
+  MockDatalakeActivities,
+  MockYoutubeActivities
+}
 import zio._
 import zio.logging.backend.SLF4J
 import zio.test._
@@ -26,7 +30,8 @@ object YoutubePullWorkflowSpec extends ZIOSpecDefault {
         _ <- ZTestWorkflowEnvironment.newWorker(taskQueue) @@
                ZWorker.addWorkflow[YoutubePullWorkflowImpl].fromClass @@
                ZWorker.addActivityImplementation(MockYoutubeActivities(videosCount)(activityOptions)) @@
-               ZWorker.addActivityImplementation(MockDatabaseActivities()(activityOptions))
+               ZWorker.addActivityImplementation(MockDatabaseActivities()(activityOptions)) @@
+               ZWorker.addActivityImplementation(MockDatalakeActivities()(activityOptions))
 
         _ <- ZTestWorkflowEnvironment.setup()
 
@@ -38,7 +43,12 @@ object YoutubePullWorkflowSpec extends ZIOSpecDefault {
 
         result <- ZWorkflowStub.execute(
                     youtubeWorkflow.pull(
-                      YoutubePullerParameters(integrationId = 1, minDate = 0, maxResults = 10)
+                      YoutubePullerParameters(
+                        integrationId = 1,
+                        minDate = 0,
+                        maxResults = 10,
+                        datalakeOutputDir = "./test/datalake"
+                      )
                     )
                   )
       } yield {

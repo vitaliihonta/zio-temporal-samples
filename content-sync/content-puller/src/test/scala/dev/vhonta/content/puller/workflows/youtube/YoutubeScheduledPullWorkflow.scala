@@ -23,7 +23,8 @@ object YoutubeScheduledPullWorkflow extends ZIOSpecDefault {
 
   private val pullerConfig = PullerConfig(
     pullInterval = 15.minutes,
-    singlePullTimeout = 5.minutes
+    singlePullTimeout = 5.minutes,
+    datalakeOutputDir = "./test/datalake"
   )
 
   private val youtubePullerConfig = YoutubePullerConfig(maxResults = 100)

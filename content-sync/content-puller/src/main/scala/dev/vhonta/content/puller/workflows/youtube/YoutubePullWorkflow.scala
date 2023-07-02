@@ -7,7 +7,7 @@ import dev.vhonta.content.puller.proto.{
   YoutubePullerParameters,
   YoutubeVideosList
 }
-import dev.vhonta.content.puller.workflows.DatabaseActivities
+import dev.vhonta.content.puller.workflows.DatalakeActivities
 import dev.vhonta.content.puller.workflows.base.BasePullWorkflow
 import zio.temporal._
 import zio._
@@ -32,8 +32,8 @@ class YoutubePullWorkflowImpl extends YoutubePullWorkflow {
     )
     .build
 
-  private val databaseActivities = ZWorkflow
-    .newActivityStub[DatabaseActivities]
+  private val datalakeActivities = ZWorkflow
+    .newActivityStub[DatalakeActivities]
     .withStartToCloseTimeout(1.minute)
     .withRetryOptions(
       ZRetryOptions.default.withMaximumAttempts(5)
@@ -61,10 +61,11 @@ class YoutubePullWorkflowImpl extends YoutubePullWorkflow {
       val videosCount = videos.values.size
       logger.info(s"Going to store $videosCount videos...")
       ZActivityStub.execute(
-        databaseActivities.storeVideos(
+        datalakeActivities.storeVideos(
           videos = YoutubeVideosList(videos.values),
           params = StoreVideosParameters(
-            integrationId = params.integrationId
+            integrationId = params.integrationId,
+            datalakeOutputDir = params.datalakeOutputDir
           )
         )
       )

@@ -2,7 +2,7 @@ package dev.vhonta.content.puller.workflows.youtube
 
 import zio._
 import dev.vhonta.content.puller.proto.YoutubePullerInitialState
-import dev.vhonta.content.puller.workflows.{PullConfigurationActivities, DatabaseActivities}
+import dev.vhonta.content.puller.workflows.{DatabaseActivities, DatalakeActivities, PullConfigurationActivities}
 import dev.vhonta.content.puller.workflows.base.{ScheduledPullerStarter, ScheduledPullerStarterImpl}
 import zio._
 import zio.temporal.worker.{ZWorker, ZWorkerFactory}
@@ -22,7 +22,11 @@ object YoutubeModule {
     )
 
   val worker: ZIO[
-    PullConfigurationActivities with YoutubeActivities with DatabaseActivities with ZWorkerFactory,
+    PullConfigurationActivities
+      with YoutubeActivities
+      with DatabaseActivities
+      with DatalakeActivities
+      with ZWorkerFactory,
     Nothing,
     ZWorker
   ] =
@@ -30,6 +34,7 @@ object YoutubeModule {
       ZWorker.addWorkflow[YoutubeScheduledPullerWorkflowImpl].fromClass @@
       ZWorker.addWorkflow[YoutubePullWorkflowImpl].fromClass @@
       ZWorker.addActivityImplementationService[DatabaseActivities] @@
+      ZWorker.addActivityImplementationService[DatalakeActivities] @@
       ZWorker.addActivityImplementationService[YoutubeActivities] @@
       ZWorker.addActivityImplementationService[PullConfigurationActivities]
 

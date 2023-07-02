@@ -8,7 +8,7 @@ import dev.vhonta.content.puller.proto.{
   PullingResult,
   StoreArticlesParameters
 }
-import dev.vhonta.content.puller.workflows.DatabaseActivities
+import dev.vhonta.content.puller.workflows.DatalakeActivities
 import dev.vhonta.content.puller.workflows.base.BasePullWorkflow
 import zio.temporal._
 import zio._
@@ -33,8 +33,8 @@ class NewsApiPullWorkflowImpl extends NewsApiPullWorkflow {
     )
     .build
 
-  private val databaseActivities = ZWorkflow
-    .newActivityStub[DatabaseActivities]
+  private val datalakeActivities = ZWorkflow
+    .newActivityStub[DatalakeActivities]
     .withStartToCloseTimeout(1.minute)
     .withRetryOptions(
       ZRetryOptions.default.withMaximumAttempts(5)
@@ -66,7 +66,8 @@ class NewsApiPullWorkflowImpl extends NewsApiPullWorkflow {
             topicId = topic.topicId,
             language = topic.lang,
             from = params.from,
-            to = params.to
+            to = params.to,
+            datalakeOutputDir = params.datalakeOutputDir
           )
 
           pauseBeforeNext()
@@ -82,13 +83,14 @@ class NewsApiPullWorkflowImpl extends NewsApiPullWorkflow {
   }
 
   private def processTopic(
-    integrationId: Long,
-    apiKey:        String,
-    topic:         String,
-    topicId:       zio.temporal.protobuf.UUID,
-    language:      ContentLanguage,
-    from:          Option[Long],
-    to:            Long
+    integrationId:     Long,
+    apiKey:            String,
+    topic:             String,
+    topicId:           zio.temporal.protobuf.UUID,
+    language:          ContentLanguage,
+    from:              Option[Long],
+    to:                Long,
+    datalakeOutputDir: String
   ): Long = {
     @tailrec
     def go(
@@ -112,11 +114,12 @@ class NewsApiPullWorkflowImpl extends NewsApiPullWorkflow {
       else {
         // save into database
         ZActivityStub.execute(
-          databaseActivities.storeArticles(
+          datalakeActivities.storeArticles(
             articles,
             storeParams = StoreArticlesParameters(
               integrationId = integrationId,
-              topicId = topicId
+              topicId = topicId,
+              datalakeOutputDir = datalakeOutputDir
             )
           )
         )

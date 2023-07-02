@@ -16,7 +16,8 @@ case class MockPullConfigurationActivities(
     val config = pullerConfig(params.integrationType)
     proto.PullerConfig(
       pullInterval = config.pullInterval.toProto,
-      singlePullTimeout = config.singlePullTimeout.toProto
+      singlePullTimeout = config.singlePullTimeout.toProto,
+      datalakeOutputDir = config.datalakeOutputDir
     )
   }
 

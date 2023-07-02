@@ -4,11 +4,12 @@ import dev.vhonta.content.proto.{ContentFeedIntegration, ContentFeedIntegrationT
 import dev.vhonta.content.puller.proto.{
   GetConfigurationParams,
   ListIntegrations,
+  PullerConfig,
   PullerParams,
   PullerResetState,
   ScheduledPullerParams
 }
-import dev.vhonta.content.puller.workflows.{PullConfigurationActivities, DatabaseActivities}
+import dev.vhonta.content.puller.workflows.{DatabaseActivities, PullConfigurationActivities}
 import org.slf4j.Logger
 import zio._
 import zio.temporal._
@@ -16,6 +17,7 @@ import zio.temporal.state._
 import zio.temporal.workflow._
 import zio.temporal.activity._
 import zio.temporal.protobuf.syntax._
+
 import java.time.LocalDateTime
 import scala.reflect.ClassTag
 
@@ -35,9 +37,10 @@ abstract class AsyncScheduledPullerWorkflow[
   protected def refreshIntegrationState(integrationId: Long, processedAt: LocalDateTime): IntegrationState
 
   protected def constructPullParams(
-    integration: ContentFeedIntegration,
-    state:       Option[IntegrationState],
-    startedAt:   LocalDateTime
+    integration:  ContentFeedIntegration,
+    state:        Option[IntegrationState],
+    startedAt:    LocalDateTime,
+    pullerConfig: PullerConfig
   ): Option[PullParams]
 
   protected val logger: Logger         = ZWorkflow.makeLogger
@@ -88,7 +91,8 @@ abstract class AsyncScheduledPullerWorkflow[
       constructPullParams(
         integration = integration,
         state = state.get(integration.id),
-        startedAt = startedAt
+        startedAt = startedAt,
+        pullerConfig = pullerConfig
       ).map(integration.id -> _)
     }.toMap
 

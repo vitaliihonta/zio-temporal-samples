@@ -56,6 +56,7 @@ object Main extends ZIOAppDefault {
         Quill.DataSource.fromPrefix("db"),
         // activities
         DatabaseActivitiesImpl.make,
+        DatalakeActivitiesImpl.make,
         NewsActivitiesImpl.make,
         YoutubeActivitiesImpl.make,
         PullConfigurationActivitiesImpl.make,

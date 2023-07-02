@@ -4,11 +4,14 @@ import zio._
 
 case class PullerConfig(
   pullInterval:      Duration,
-  singlePullTimeout: Duration)
+  singlePullTimeout: Duration,
+  datalakeOutputDir: String)
 
 object PullerConfig {
   val definition: Config[PullerConfig] =
-    (Config.duration("pull_interval") ++ Config.duration("single_pull_timeout"))
+    (Config.duration("pull_interval") ++
+      Config.duration("single_pull_timeout") ++
+      Config.string("datalake_output_dir"))
       .map((PullerConfig.apply _).tupled)
 }
 
