@@ -6,7 +6,7 @@ import dev.vhonta.content.puller.proto.{
   StoreVideosParameters,
   YoutubeVideosList
 }
-import dev.vhonta.content.puller.workflows.DatalakeActivities
+import dev.vhonta.content.puller.workflows.storage.DatalakeActivities
 import zio._
 import zio.temporal.activity.{ZActivity, ZActivityOptions}
 

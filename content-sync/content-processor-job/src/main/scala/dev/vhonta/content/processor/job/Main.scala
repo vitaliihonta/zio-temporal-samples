@@ -9,12 +9,29 @@ object Main {
 
   def main(args: Array[String]): Unit = {
     logger.info("Starting spark session...")
-    Using.resource(SparkSession.builder().getOrCreate()) { spark =>
+    Using.resource(buildSparkSession()) { spark =>
       import spark.implicits._
 
-      val data = List(1, 2, 3).toDF("id")
-      data.show(truncate = false)
+      spark.read
+        .parquet(datalakePath())
+        .show(truncate = false)
     }
     logger.info("Job finished successfully!")
   }
+
+  private def buildSparkSession(): SparkSession = {
+    sys.env.get("JOB_MODE") match {
+      case Some("submit") =>
+        SparkSession.builder().getOrCreate()
+      case _ =>
+        SparkSession
+          .builder()
+          .master("local[*]")
+          .appName("local-job")
+          .getOrCreate()
+    }
+  }
+
+  private def datalakePath(): String =
+    sys.env.getOrElse("DATALAKE_PATH", sys.env("PWD") + "/datalake")
 }

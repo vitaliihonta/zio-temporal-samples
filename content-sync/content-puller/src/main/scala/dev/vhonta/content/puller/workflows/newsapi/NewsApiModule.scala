@@ -1,8 +1,9 @@
 package dev.vhonta.content.puller.workflows.newsapi
 
 import dev.vhonta.content.puller.proto.NewsApiInitialPullerState
-import dev.vhonta.content.puller.workflows.{DatabaseActivities, DatalakeActivities, PullConfigurationActivities}
+import dev.vhonta.content.puller.workflows.PullConfigurationActivities
 import dev.vhonta.content.puller.workflows.base.{ScheduledPullerStarter, ScheduledPullerStarterImpl}
+import dev.vhonta.content.puller.workflows.storage.{DatabaseActivities, DatalakeActivities}
 import zio._
 import zio.temporal.worker.{ZWorker, ZWorkerFactory}
 import zio.temporal.workflow.ZWorkflowClient

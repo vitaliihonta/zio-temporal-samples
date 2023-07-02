@@ -9,7 +9,8 @@ import dev.vhonta.content.puller.proto.{
   PullerResetState,
   ScheduledPullerParams
 }
-import dev.vhonta.content.puller.workflows.{DatabaseActivities, PullConfigurationActivities}
+import dev.vhonta.content.puller.workflows.PullConfigurationActivities
+import dev.vhonta.content.puller.workflows.storage.DatabaseActivities
 import org.slf4j.Logger
 import zio._
 import zio.temporal._
@@ -115,7 +116,7 @@ abstract class AsyncScheduledPullerWorkflow[
 
       ZChildWorkflowStub
         .executeAsync(
-          pullerWorkflow.pull(parameters: PullParams)
+          pullerWorkflow.pull(parameters)
         )
         .map { result =>
           logger.info(s"Puller integrationId=$integrationId processed ${result.processed} records")

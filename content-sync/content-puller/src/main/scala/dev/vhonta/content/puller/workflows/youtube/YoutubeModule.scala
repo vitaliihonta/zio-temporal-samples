@@ -2,8 +2,9 @@ package dev.vhonta.content.puller.workflows.youtube
 
 import zio._
 import dev.vhonta.content.puller.proto.YoutubePullerInitialState
-import dev.vhonta.content.puller.workflows.{DatabaseActivities, DatalakeActivities, PullConfigurationActivities}
+import dev.vhonta.content.puller.workflows.PullConfigurationActivities
 import dev.vhonta.content.puller.workflows.base.{ScheduledPullerStarter, ScheduledPullerStarterImpl}
+import dev.vhonta.content.puller.workflows.storage.{DatabaseActivities, DatalakeActivities}
 import zio._
 import zio.temporal.worker.{ZWorker, ZWorkerFactory}
 import zio.temporal.workflow.ZWorkflowClient

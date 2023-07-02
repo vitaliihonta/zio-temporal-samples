@@ -53,9 +53,10 @@ lazy val shared = project
   .settings(
     baseSettings,
     libraryDependencies ++=
-      Dependencies.zioEssential ++
+      Dependencies.zio ++
         Dependencies.zioTemporal ++
-        Dependencies.enumeratum
+        Dependencies.enumeratum ++
+        Dependencies.database
   )
 
 lazy val `service-commons` = project
@@ -64,10 +65,8 @@ lazy val `service-commons` = project
   .settings(
     baseSettings,
     libraryDependencies ++=
-      Dependencies.zioEssential ++
-        Dependencies.zioExt ++
+      Dependencies.zio ++
         Dependencies.zioTemporal ++
-        Dependencies.database ++
         Dependencies.sttp ++
         Dependencies.googleApiClient
   )
@@ -79,10 +78,8 @@ lazy val `content-puller` = project
     baseSettings,
     baseServiceSettings,
     libraryDependencies ++=
-      Dependencies.zioEssential ++
-        Dependencies.zioExt ++
+      Dependencies.zio ++
         Dependencies.zioTemporal ++
-        Dependencies.zioConnect ++
         Dependencies.parquet ++
         Dependencies.mockito
   )
@@ -97,8 +94,7 @@ lazy val `content-processor-launcher` = project
     baseSettings,
     baseServiceSettings,
     libraryDependencies ++=
-      Dependencies.zioEssential ++
-        Dependencies.zioExt ++
+      Dependencies.zio ++
         Dependencies.zioTemporal ++
         Dependencies.sparkLauncher,
     buildInfoKeys := Seq[BuildInfoKey](
@@ -147,8 +143,7 @@ lazy val `telegram-bot` = project
     baseSettings,
     baseServiceSettings,
     libraryDependencies ++=
-      Dependencies.zioEssential ++
-        Dependencies.zioExt ++
+      Dependencies.zio ++
         Dependencies.zioTemporal ++
         Dependencies.telegramium ++
         Dependencies.zioHttp

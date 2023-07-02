@@ -1,20 +1,22 @@
-package dev.vhonta.content.puller.workflows
+package dev.vhonta.content.puller.workflows.storage
 
-import zio._
-import zio.stream._
-import zio.temporal._
-import zio.temporal.activity._
-import zio.temporal.protobuf.syntax._
-import dev.vhonta.content.{ContentFeedItem, ContentType}
 import dev.vhonta.content.puller.proto.{
   NewsApiArticles,
   StoreArticlesParameters,
   StoreVideosParameters,
   YoutubeVideosList
 }
-
+import dev.vhonta.content.{ContentFeedIntegrationType, ContentFeedItem, ContentType}
+import zio._
+import zio.stream._
+import zio.temporal._
+import zio.temporal.activity._
+import zio.temporal.protobuf.syntax._
 import java.net.URI
 import java.time.LocalDateTime
+import ParquetSerializers._
+import com.github.mjakubowski84.parquet4s.ParquetWriter
+import java.io.IOException
 
 @activityInterface
 trait DatalakeActivities {
@@ -37,15 +39,14 @@ object DatalakeActivitiesImpl {
 case class DatalakeActivitiesImpl(youtubeBaseUri: URI)(implicit options: ZActivityOptions[Any])
     extends DatalakeActivities {
 
-  override def storeArticles(articles: NewsApiArticles, storeParams: StoreArticlesParameters): Unit = {
+  override def storeArticles(articles: NewsApiArticles, params: StoreArticlesParameters): Unit = {
     ZActivity.run {
-      // TODO: implement
       val contentFeedItemsStream = ZStream
         .fromIterable(articles.articles)
         .map { article =>
           ContentFeedItem(
-            integration = storeParams.integrationId,
-            topic = Some(storeParams.topicId.fromProto),
+            integration = params.integrationId,
+            topic = Some(params.topicId.fromProto),
             title = article.title,
             description = article.description,
             url = article.url,
@@ -55,15 +56,15 @@ case class DatalakeActivitiesImpl(youtubeBaseUri: URI)(implicit options: ZActivi
         }
 
       for {
-        _ <- ZIO.logInfo(s"Storing articles topicId=${storeParams.topicId.fromProto}")
-        _ <- ZIO.fail(new NotImplementedError())
+        _       <- ZIO.logInfo(s"Storing articles topicId=${params.topicId.fromProto}")
+        written <- writeToParquet(contentFeedItemsStream, params.datalakeOutputDir, ContentFeedIntegrationType.NewsApi)
+        _       <- ZIO.logInfo(s"Written $written articles")
       } yield ()
     }
   }
 
   override def storeVideos(videos: YoutubeVideosList, params: StoreVideosParameters): Unit = {
     ZActivity.run {
-      // TODO: implement
       val contentFeedItemsStream = ZStream
         .fromIterable(videos.values)
         .map { video =>
@@ -79,9 +80,31 @@ case class DatalakeActivitiesImpl(youtubeBaseUri: URI)(implicit options: ZActivi
         }
 
       for {
-        _ <- ZIO.logInfo("Storing videos")
-        _ <- ZIO.fail(new NotImplementedError())
+        _       <- ZIO.logInfo("Storing videos")
+        written <- writeToParquet(contentFeedItemsStream, params.datalakeOutputDir, ContentFeedIntegrationType.Youtube)
+        _       <- ZIO.logInfo(s"Written $written videos")
       } yield ()
     }
+  }
+
+  private def writeToParquet(
+    contentFeedItemsStream: UStream[ContentFeedItem],
+    datalakeOutputDir:      String,
+    integrationType:        ContentFeedIntegrationType
+  ): IO[IOException, Long] = {
+    for {
+      now <- ZIO.clockWith(_.instant)
+      written <- contentFeedItemsStream
+                   .grouped(20)
+                   .mapZIO(
+                     ParquetWritingFacade.write(
+                       ParquetWriter.of[ContentFeedItem],
+                       now,
+                       datalakeOutputDir,
+                       integrationType
+                     )
+                   )
+                   .runCount
+    } yield written
   }
 }

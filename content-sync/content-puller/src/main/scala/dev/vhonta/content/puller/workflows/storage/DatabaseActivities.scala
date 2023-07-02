@@ -1,5 +1,6 @@
-package dev.vhonta.content.puller.workflows
+package dev.vhonta.content.puller.workflows.storage
 
+import dev.vhonta.content.ProtoConverters._
 import dev.vhonta.content.proto.ContentFeedTopic
 import dev.vhonta.content.puller.proto.{ContentFeedIntegrations, ListIntegrations, ListTopics, NewsSyncTopics}
 import dev.vhonta.content.repository.{ContentFeedIntegrationRepository, ContentFeedRepository}
@@ -7,8 +8,6 @@ import zio._
 import zio.temporal._
 import zio.temporal.activity._
 import zio.temporal.protobuf.syntax._
-import dev.vhonta.content.ProtoConverters._
-import java.net.URI
 
 @activityInterface
 trait DatabaseActivities {

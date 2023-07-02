@@ -12,7 +12,7 @@ CREATE TABLE content_feed_recommendation(
     for_date DATE NOT NULL
 );
 
-CREATE UNIQUE INDEX content_feed_recommendation_for_date ON content_feed_recommendation(topic, for_date);
+CREATE UNIQUE INDEX content_feed_recommendation_for_date ON content_feed_recommendation(for_date);
 
 CREATE TABLE content_feed_recommendation_item(
     recommendation UUID NOT NULL REFERENCES content_feed_recommendation(id),
@@ -20,7 +20,7 @@ CREATE TABLE content_feed_recommendation_item(
     title varchar(4196) NOT NULL,
     description varchar(8392) NOT NULL,
     url varchar(512) NOT NULL,
-    content_type VARCHAR(128) NOT NULL,
+    content_type VARCHAR(128) NOT NULL
 );
 
 CREATE INDEX content_feed_recommendation_item_id ON content_feed_recommendation_item(recommendation);

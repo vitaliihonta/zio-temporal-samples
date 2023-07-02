@@ -69,7 +69,7 @@ class YoutubeScheduledPullerWorkflowImpl
             integrationId = integration.id,
             minDate = state
               .map(_.lastProcessedAt)
-              .getOrElse(startedAt.toLocalDate.atStartOfDay().toProto),
+              .getOrElse(startedAt.toLocalDate.minusDays(1).atStartOfDay().toProto),
             maxResults = youtubePullerConfig.maxResults,
             datalakeOutputDir = pullerConfig.datalakeOutputDir
           )

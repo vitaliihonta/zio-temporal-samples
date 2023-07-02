@@ -7,8 +7,8 @@ import dev.vhonta.content.puller.proto.{
   YoutubePullerParameters,
   YoutubeVideosList
 }
-import dev.vhonta.content.puller.workflows.DatalakeActivities
 import dev.vhonta.content.puller.workflows.base.BasePullWorkflow
+import dev.vhonta.content.puller.workflows.storage.DatalakeActivities
 import zio.temporal._
 import zio._
 import zio.temporal.workflow._

@@ -30,28 +30,23 @@ object Dependencies {
     "com.softwaremill.sttp.client3" %% "zio-json" % versions.sttp
   )
 
-  val zioEssential = Seq(
-    "dev.zio"       %% "zio"               % versions.zio,
-    "dev.zio"       %% "zio-json"          % versions.zioJson,
-    "dev.zio"       %% "zio-logging"       % versions.zioLogging,
-    "dev.zio"       %% "zio-logging-slf4j" % versions.zioLogging,
-    "dev.zio"       %% "zio-test"          % versions.zio % Test,
-    "dev.zio"       %% "zio-test-sbt"      % versions.zio % Test,
-    "ch.qos.logback" % "logback-classic"   % "1.2.11"
-  )
-
-  val zioExt = Seq(
-    "dev.zio" %% "zio-streams"         % versions.zio,
-    "dev.zio" %% "zio-config"          % versions.zioConfig,
-    "dev.zio" %% "zio-config-typesafe" % versions.zioConfig
-  )
-
-  val zioConnect = Seq(
-    "dev.zio" %% "zio-connect-file" % "0.4.4"
+  val zio = Seq(
+    "dev.zio"       %% "zio"                 % versions.zio,
+    "dev.zio"       %% "zio-json"            % versions.zioJson,
+    "dev.zio"       %% "zio-logging"         % versions.zioLogging,
+    "dev.zio"       %% "zio-logging-slf4j2"  % versions.zioLogging,
+    "dev.zio"       %% "zio-streams"         % versions.zio,
+    "dev.zio"       %% "zio-config"          % versions.zioConfig,
+    "dev.zio"       %% "zio-config-typesafe" % versions.zioConfig,
+    "dev.zio"       %% "zio-test"            % versions.zio % Test,
+    "dev.zio"       %% "zio-test-sbt"        % versions.zio % Test,
+    "ch.qos.logback" % "logback-classic"     % "1.4.8"
   )
 
   val parquet = Seq(
-    "com.spotify" %% "magnolify-parquet" % "0.6.2"
+    // No way to write parquet without hadoop dependency
+    "org.apache.hadoop"         % "hadoop-client"  % "3.3.6" exclude ("org.slf4j", "slf4j-reload4j"),
+    "com.github.mjakubowski84" %% "parquet4s-core" % "2.11.0"
   )
 
   private val sparkExclusions = Vector(
@@ -85,7 +80,7 @@ object Dependencies {
 
   val telegramium = Seq(
     "io.github.apimorphism" %% "telegramium-core" % versions.telegramium,
-    "io.github.apimorphism" %% "telegramium-high" % versions.telegramium,
+    "io.github.apimorphism" %% "telegramium-high" % versions.telegramium exclude ("org.slf4j", "slf4j-simple"),
     "dev.zio"               %% "zio-interop-cats" % "23.0.0.4"
   )
 

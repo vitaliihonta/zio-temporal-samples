@@ -7,7 +7,7 @@ import dev.vhonta.content.proto.{
   ContentFeedIntegrationYoutubeDetails
 }
 import dev.vhonta.content.puller.proto._
-import dev.vhonta.content.puller.workflows.DatabaseActivities
+import dev.vhonta.content.puller.workflows.storage.DatabaseActivities
 import zio._
 import zio.temporal.activity._
 import zio.temporal.protobuf.syntax._
