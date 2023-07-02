@@ -1,29 +1,39 @@
 package dev.vhonta.content.processor.job
 
+import com.typesafe.scalalogging.LazyLogging
+import dev.vhonta.content.processor.job.processor.ContentProcessor
+import dev.vhonta.content.processor.job.recommendations.RecommendationsEngine
 import org.apache.spark.sql._
-import org.slf4j.LoggerFactory
 import scala.util.Using
 
-object Main {
-  @transient private lazy val logger = LoggerFactory.getLogger(getClass)
+object Main extends LazyLogging with Serializable {
 
   def main(args: Array[String]): Unit = {
     logger.info("Starting spark session...")
-    Using.resource(buildSparkSession()) { spark =>
-      import spark.implicits._
+    val jobParameters = JobParameters
+      .parse(args, JobParameters())
+      .getOrElse {
+        throw new RuntimeException(s"Job parameters didn't parse args=${args.mkString(", ")}")
+      }
 
-      spark.read
-        .parquet(datalakePath())
-        .show(truncate = false)
+    logger.info(s"Running the job with parameters=$jobParameters")
+
+    Using.resource(buildSparkSession(jobParameters.mode)) { implicit spark =>
+      val recommendationsEngine = new RecommendationsEngine()
+      val contentProcessor      = new ContentProcessor(recommendationsEngine)
+      val jobRunner             = new JobRunner(contentProcessor)
+
+      jobRunner.regularProcess(jobParameters)
     }
     logger.info("Job finished successfully!")
   }
 
-  private def buildSparkSession(): SparkSession = {
-    sys.env.get("JOB_MODE") match {
-      case Some("submit") =>
+  private def buildSparkSession(mod: JobMode): SparkSession = {
+    mod match {
+      case JobMode.Submit =>
         SparkSession.builder().getOrCreate()
-      case _ =>
+
+      case JobMode.Local =>
         SparkSession
           .builder()
           .master("local[*]")
@@ -31,7 +41,4 @@ object Main {
           .getOrCreate()
     }
   }
-
-  private def datalakePath(): String =
-    sys.env.getOrElse("DATALAKE_PATH", sys.env("PWD") + "/datalake")
 }

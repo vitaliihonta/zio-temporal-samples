@@ -34,12 +34,16 @@ start-puller-local:
 	JAVA_OPTS=$(JAVA_OPTS) sbt "content-puller/run $(reset)"
 
 .PHONY: start-processor-launcher-local
-start-processor-launcher-local:
+start-processor-launcher-local: assembly-job
 	JAVA_OPTS=$(JAVA_OPTS) sbt "content-processor-launcher/run $(reset)"
 
 .PHONY: start-telegram-bot-local
 start-telegram-bot-local:
 	TELEGRAM_BINDING_PORT=$(TELEGRAM_BINDING_PORT) JAVA_OPTS=$(JAVA_OPTS) sbt "telegram-bot/run $(reset)"
+
+.PHONY: assembly-job
+assembly-job:
+	JAVA_OPTS=$(JAVA_OPTS) sbt "content-processor-job/assembly"
 
 .PHONY: psql
 psql:

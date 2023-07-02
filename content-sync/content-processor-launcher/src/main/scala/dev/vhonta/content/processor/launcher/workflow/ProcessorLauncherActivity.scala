@@ -10,6 +10,8 @@ import dev.vhonta.content.processor.proto.{SparkLaunchKubernetesParams, SparkLau
 import zio.temporal.activity._
 import zio.temporal.protobuf.syntax.FromProtoTypeSyntax
 
+import java.time.LocalDate
+
 case class SparkProcessFailedException(message: String) extends Exception(message)
 
 @activityInterface
@@ -38,20 +40,28 @@ case class ProcessorLauncherActivityImpl(
     extends ProcessorLauncherActivity {
   override def launchProcessorJob(params: SparkLauncherParams): Unit =
     ZActivity.run {
-      params match {
-        case local: SparkLaunchLocalParams    => launchLocally(local)
-        case k8s: SparkLaunchKubernetesParams => launchKubernetes(k8s)
+      ZIO.clockWith(_.localDateTime).flatMap { today =>
+        params match {
+          case local: SparkLaunchLocalParams    => launchLocally(local, today.toLocalDate)
+          case k8s: SparkLaunchKubernetesParams => launchKubernetes(k8s)
+        }
       }
     }
 
-  // TODO: use job timeout
-  private def launchLocally(params: SparkLaunchLocalParams): Task[Unit] = {
+  private def launchLocally(params: SparkLaunchLocalParams, date: LocalDate): Task[Unit] = {
     val launcher = new SparkLauncher()
       .setMainClass(BuildInfo.contentProcessorJobMainClass)
       .setAppName(BuildInfo.contentProcessorJobName)
       .setSparkHome(config.sparkHome)
       .setAppResource(
         s"${config.artifactDir}/${BuildInfo.contentProcessorJobFile}"
+      )
+      .addAppArgs(
+        // format: off
+        "--mode", "submit",
+        s"--date", date.toString,
+        s"--timeout", (params.jobTimeout.fromProto[Duration] minus 5.minutes).toSeconds.toString + "s"
+        // format: on
       )
 
     for {

@@ -11,6 +11,7 @@ object Dependencies {
     val sttp        = "3.8.15"
     val telegramium = "7.67.0"
     val spark       = "3.4.1"
+    val quill       = "4.6.0"
   }
 
   val zioTemporal = Seq(
@@ -61,8 +62,9 @@ object Dependencies {
     "org.apache.spark" %% "spark-launcher" % versions.spark withExclusions sparkExclusions
   )
 
-  val sparkSql = Seq(
-    "org.apache.spark" %% "spark-sql" % versions.spark withExclusions sparkExclusions
+  val sparkJob = Seq(
+    "org.apache.spark" %% "spark-sql" % versions.spark withExclusions sparkExclusions,
+    "com.github.scopt" %% "scopt"     % "4.1.0"
   )
 
   val zioHttp = Seq(
@@ -76,12 +78,17 @@ object Dependencies {
   val zioTestFrameworks = Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
 
   val database = Seq(
-    "org.postgresql" % "postgresql" % "42.5.4"
+    "org.postgresql" % "postgresql" % "42.5.4",
+    "io.getquill"   %% "quill-jdbc" % versions.quill
   )
 
-  val quill = Seq(
-    "io.getquill" %% "quill-jdbc-zio" % "4.6.0",
+  val zioQuill = Seq(
+    "io.getquill" %% "quill-jdbc-zio" % versions.quill,
     "org.flywaydb" % "flyway-core"    % "9.16.0"
+  )
+
+  val scalaLogging = Seq(
+    "com.typesafe.scala-logging" %% "scala-logging" % "3.9.4"
   )
 
   val telegramium = Seq(

@@ -71,7 +71,7 @@ lazy val `service-commons` = project
         Dependencies.zioTemporal ++
         Dependencies.sttp ++
         Dependencies.googleApiClient ++
-        Dependencies.quill ++
+        Dependencies.zioQuill ++
         Dependencies.database
     }
   )
@@ -128,14 +128,16 @@ lazy val `content-processor-job` = project
   .settings(
     baseSettings,
     libraryDependencies ++= {
-      Dependencies.sparkSql ++
-        Dependencies.database
+      Dependencies.sparkJob ++
+        Dependencies.database ++
+        Dependencies.scalaLogging
     },
     contentProcessorJobMainClass := "dev.vhonta.content.processor.job.Main",
     assembly / mainClass         := Some(contentProcessorJobMainClass.value),
     assemblyMergeStrategy := {
       case x if Assembly.isConfigFile(x)                        => MergeStrategy.concat
       case PathList("META-INF", "io.netty.versions.properties") => MergeStrategy.first
+      case PathList("google", "protobuf", _ @_*)                => MergeStrategy.first
       // dicards
       case "module-info.class" | "arrow-git.properties"             => MergeStrategy.discard
       case PathList("META-INF", "versions", _, "module-info.class") => MergeStrategy.discard
