@@ -46,6 +46,7 @@ lazy val root = project
     model,
     `service-commons`,
     `content-puller`,
+    `content-processor-shared`,
     `content-processor-launcher`,
     `content-processor-job`,
     `telegram-bot`
@@ -94,15 +95,26 @@ lazy val `content-puller` = project
 
 lazy val contentProcessorJobMainClass = settingKey[String]("Content processor job main class")
 
+lazy val `content-processor-shared` = project
+  .in(file("content-processor-shared"))
+  .dependsOn(model)
+  .settings(
+    baseSettings,
+    libraryDependencies ++= {
+      Dependencies.cmd
+    }
+  )
+
 lazy val `content-processor-launcher` = project
   .in(file("content-processor-launcher"))
-  .dependsOn(`service-commons`)
+  .dependsOn(`service-commons`, `content-processor-shared`)
   .settings(
     baseSettings,
     baseBackendSettings,
     baseServiceSettings,
     libraryDependencies ++= {
       Dependencies.zio ++
+        Dependencies.zioNio ++
         Dependencies.zioTemporal ++
         Dependencies.sparkLauncher
     },
@@ -124,7 +136,7 @@ lazy val `content-processor-launcher` = project
 
 lazy val `content-processor-job` = project
   .in(file("content-processor-job"))
-  .dependsOn(model)
+  .dependsOn(`content-processor-shared`)
   .settings(
     baseSettings,
     libraryDependencies ++= {

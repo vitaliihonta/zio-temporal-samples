@@ -1,7 +1,7 @@
 package dev.vhonta.content.processor.job.processor
 
 import com.typesafe.scalalogging.LazyLogging
-import dev.vhonta.content.processor.job.ContentFeedRecommendationItemRow
+import dev.vhonta.content.processor.ContentFeedRecommendationItemRow
 import io.getquill.{PostgresJdbcContext, SnakeCase}
 import dev.vhonta.content.{
   ContentFeedIntegration,

@@ -1,12 +1,14 @@
 package dev.vhonta.content.processor.launcher.workflow
 
-import dev.vhonta.content.processor.proto.SparkLaunchLocalParams
+import dev.vhonta.content.processor.proto.{SparkLaunchLocalPayload, SparkLauncherParams, SparkReadResultsParams}
 import zio._
 import zio.temporal._
 import zio.temporal.activity.ZActivityStub
 import zio.temporal.failure.ApplicationFailure
 import zio.temporal.protobuf.syntax._
 import zio.temporal.workflow._
+
+import java.time.LocalDate
 
 @workflowInterface
 trait ProcessorLauncherWorkflow {
@@ -42,13 +44,38 @@ class ProcessorLauncherWorkflowImpl extends ProcessorLauncherWorkflow {
       configurationActivities.getProcessorConfiguration
     )
 
-    logger.info("Starting processor job locally")
+    val runId = ZWorkflow.randomUUID
+
+    logger.info(s"Starting processor job runId=$runId")
     try {
       ZActivityStub.execute(
         launcherActivity.launchProcessorJob(
-          SparkLaunchLocalParams(jobTimeout = processorConfig.jobTimeout)
+          SparkLauncherParams(
+            runId = runId.toString,
+            sparkJobTimeout = processorConfig.jobTimeout.fromProto[Duration] minus 5.minutes,
+            payload = SparkLaunchLocalPayload()
+          )
         )
       )
+
+      val results = ZActivityStub.execute(
+        launcherActivity.getResults(
+          SparkReadResultsParams(runId = runId.toString)
+        )
+      )
+
+      val msg = if (results.results.isEmpty) {
+        "<no input data>"
+      } else
+        results.results.view
+          .map(res =>
+            s"ProcessingResult(integration=${res.integration}, " +
+              s"date=${res.date.fromProto[LocalDate]}, " +
+              s"inserted=${res.inserted})"
+          )
+          .mkString(", ")
+
+      logger.info(s"Processing results: $msg")
     } catch {
       case apf: ApplicationFailure =>
         logger.error(s"Launcher activity failed, ignoring", apf)

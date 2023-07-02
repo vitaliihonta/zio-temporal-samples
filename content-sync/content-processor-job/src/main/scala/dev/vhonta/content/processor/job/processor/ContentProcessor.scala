@@ -1,7 +1,7 @@
 package dev.vhonta.content.processor.job.processor
 
 import com.typesafe.scalalogging.LazyLogging
-import dev.vhonta.content.processor.job.{ContentFeedItemRow, ContentFeedRecommendationItemRow, ProcessingResult}
+import dev.vhonta.content.processor.{ContentFeedItemRow, ContentFeedRecommendationItemRow, ProcessingResult}
 import dev.vhonta.content.processor.job.recommendations.RecommendationsEngine
 import org.apache.spark.sql.{Dataset, SparkSession}
 

@@ -1,6 +1,7 @@
-package dev.vhonta.content.processor.job
+package dev.vhonta.content.processor
 
 import java.time.{Instant, LocalDate}
+import zio.json._
 
 case class ContentFeedItemRow(
   integrationType: String,
@@ -26,3 +27,8 @@ case class ProcessingResult(
   integration: Long,
   date:        LocalDate,
   inserted:    Long)
+
+object ProcessingResult {
+  implicit val processingResultCodec: JsonCodec[ProcessingResult] =
+    DeriveJsonCodec.gen[ProcessingResult]
+}

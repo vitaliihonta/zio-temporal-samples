@@ -9,16 +9,34 @@ message ProcessorConfiguration {
   required int64 jobTimeout = 2;
 }
 
-message SparkLaunchLocalParams {
-  required int64 jobTimeout = 1;
+message SparkLaunchLocalPayload {
 }
-message SparkLaunchKubernetesParams {
-  required int64 jobTimeout = 1;
+message SparkLaunchKubernetesPayload {
+}
+
+message SparkLauncherPayload {
+  oneof sealed_value {
+    SparkLaunchLocalPayload local = 1;
+    SparkLaunchKubernetesPayload kubernetes = 2;
+  }
 }
 
 message SparkLauncherParams {
-  oneof sealed_value {
-    SparkLaunchLocalParams local = 1;
-    SparkLaunchKubernetesParams kubernetes = 2;
-  }
+  required string runId = 1;
+  required int64 sparkJobTimeout = 2;
+  required SparkLauncherPayload payload = 3;
+}
+
+message SparkReadResultsParams {
+  required string runId = 1;
+}
+
+message ProcessingResult {
+  required int64 integration = 1;
+  required int64 date = 2;
+  required int64 inserted = 3;
+}
+
+message SparkReadResultsValue {
+  repeated ProcessingResult results = 1;
 }

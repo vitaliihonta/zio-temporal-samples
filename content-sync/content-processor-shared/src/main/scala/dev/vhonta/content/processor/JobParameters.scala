@@ -1,4 +1,4 @@
-package dev.vhonta.content.processor.job
+package dev.vhonta.content.processor
 
 import enumeratum.{Enum, EnumEntry}
 import java.time.LocalDate
@@ -17,6 +17,7 @@ object JobMode extends Enum[JobMode] {
 case class JobParameters(
   mode:               JobMode = JobMode.Local,
   date:               LocalDate = LocalDate.now(),
+  runId:              String = "dev",
   inputPath:          String = "",
   checkpointLocation: String = "",
   resultPath:         String = "",
@@ -33,6 +34,11 @@ object JobParameters extends OptionParser[JobParameters]("contentProcessor") wit
     .action((x, c) => c.copy(date = LocalDate.parse(x)))
     .withFallback(() => LocalDate.now().toString)
 
+  opt[String]("run-id")
+    .optional()
+    .action((x, c) => c.copy(runId = x))
+    .withFallback(() => "dev")
+
   opt[String]("input-path")
     .optional()
     .action((x, c) => c.copy(inputPath = x))
@@ -46,7 +52,7 @@ object JobParameters extends OptionParser[JobParameters]("contentProcessor") wit
   opt[String]("result-path")
     .optional()
     .action((x, c) => c.copy(resultPath = x))
-    .withFallback(() => sys.env("PWD") + "/datalake/results")
+    .withFallback(() => sys.env("PWD") + "/processor-results")
 
   opt[Duration]("timeout")
     .optional()

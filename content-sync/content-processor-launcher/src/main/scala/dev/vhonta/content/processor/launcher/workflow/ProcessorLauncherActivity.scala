@@ -1,22 +1,34 @@
 package dev.vhonta.content.processor.launcher.workflow
 
+import dev.vhonta.content.processor.ProcessingResult
 import dev.vhonta.content.processor.launcher.BuildInfo
 import org.apache.spark.launcher.SparkLauncher
 import zio.{BuildInfo => _, _}
 import zio.stream.{BuildInfo => _, _}
+import zio.json.readJsonLinesAs
 import zio.temporal._
 import dev.vhonta.content.processor.proto
-import dev.vhonta.content.processor.proto.{SparkLaunchKubernetesParams, SparkLaunchLocalParams, SparkLauncherParams}
+import dev.vhonta.content.processor.proto.{
+  SparkLaunchKubernetesPayload,
+  SparkLaunchLocalPayload,
+  SparkLauncherParams,
+  SparkReadResultsParams,
+  SparkReadResultsValue
+}
 import zio.temporal.activity._
-import zio.temporal.protobuf.syntax.FromProtoTypeSyntax
-
+import zio.temporal.protobuf.syntax._
 import java.time.LocalDate
+import zio.nio.file.Files
+import zio.nio.file.Path
+import java.nio.file.NoSuchFileException
 
 case class SparkProcessFailedException(message: String) extends Exception(message)
 
 @activityInterface
 trait ProcessorLauncherActivity {
-  def launchProcessorJob(params: proto.SparkLauncherParams): Unit
+  def launchProcessorJob(params: SparkLauncherParams): Unit
+
+  def getResults(params: SparkReadResultsParams): SparkReadResultsValue
 }
 
 object ProcessorLauncherActivityImpl {
@@ -38,17 +50,51 @@ case class ProcessorLauncherActivityImpl(
   config:           ProcessorLauncherActivityImpl.LauncherConfig
 )(implicit options: ZActivityOptions[Any])
     extends ProcessorLauncherActivity {
+
   override def launchProcessorJob(params: SparkLauncherParams): Unit =
     ZActivity.run {
       ZIO.clockWith(_.localDateTime).flatMap { today =>
-        params match {
-          case local: SparkLaunchLocalParams    => launchLocally(local, today.toLocalDate)
-          case k8s: SparkLaunchKubernetesParams => launchKubernetes(k8s)
+        val date = today.toLocalDate
+        params.payload match {
+          case local: SparkLaunchLocalPayload    => launchLocally(params, local, date)
+          case k8s: SparkLaunchKubernetesPayload => launchKubernetes(params, k8s, date)
         }
       }
     }
 
-  private def launchLocally(params: SparkLaunchLocalParams, date: LocalDate): Task[Unit] = {
+  override def getResults(params: SparkReadResultsParams): SparkReadResultsValue = {
+    ZActivity.run {
+      for {
+        _ <- ZIO.logInfo(s"Getting runId=${params.runId} result")
+        results <- Files
+                     .find(
+                       Path(sys.env("PWD"), "processor-results", params.runId),
+                       maxDepth = 1
+                     )((path, attrs) => attrs.isRegularFile && path.filename.toString.endsWith(".json"))
+                     .flatMap(path => readJsonLinesAs[ProcessingResult](path.toFile))
+                     .runCollect
+                     .catchSome { case _: NoSuchFileException =>
+                       ZIO.succeed(Chunk.empty[ProcessingResult])
+                     }
+      } yield {
+        SparkReadResultsValue(
+          results = results.map { result =>
+            proto.ProcessingResult(
+              integration = result.integration,
+              date = result.date,
+              inserted = result.inserted
+            )
+          }
+        )
+      }
+    }
+  }
+
+  private def launchLocally(
+    params:  SparkLauncherParams,
+    payload: SparkLaunchLocalPayload,
+    date:    LocalDate
+  ): Task[Unit] = {
     val launcher = new SparkLauncher()
       .setMainClass(BuildInfo.contentProcessorJobMainClass)
       .setAppName(BuildInfo.contentProcessorJobName)
@@ -59,8 +105,9 @@ case class ProcessorLauncherActivityImpl(
       .addAppArgs(
         // format: off
         "--mode", "submit",
+        s"--run-id", params.runId,
         s"--date", date.toString,
-        s"--timeout", (params.jobTimeout.fromProto[Duration] minus 5.minutes).toSeconds.toString + "s"
+        s"--timeout", params.sparkJobTimeout.fromProto[Duration].toSeconds.toString + "s"
         // format: on
       )
 
@@ -70,7 +117,7 @@ case class ProcessorLauncherActivityImpl(
       _       <- ZIO.logInfo(s"Started process pid=${process.pid()}. Waiting for the process to finish...")
 
       _ <- streamConsoleOut(process)
-             .timeout(params.jobTimeout.fromProto[Duration])
+             .timeout(params.sparkJobTimeout.fromProto[Duration] + 5.minutes)
              .map(_.isEmpty)
              .flatMap(
                ZIO.when(_)(
@@ -89,7 +136,11 @@ case class ProcessorLauncherActivityImpl(
     } yield ()
   }
 
-  private def launchKubernetes(params: SparkLaunchKubernetesParams): Task[Unit] =
+  private def launchKubernetes(
+    params:  SparkLauncherParams,
+    payload: SparkLaunchKubernetesPayload,
+    date:    LocalDate
+  ): Task[Unit] =
     ZIO.fail(new NotImplementedError("Kubernetes launcher not supported yet"))
 
   private def streamConsoleOut(process: Process): Task[Unit] = {

@@ -1,7 +1,7 @@
 package dev.vhonta.content.processor.job.recommendations
 
 import com.typesafe.scalalogging.LazyLogging
-import dev.vhonta.content.processor.job.{ContentFeedItemRow, ContentFeedRecommendationItemRow}
+import dev.vhonta.content.processor.{ContentFeedItemRow, ContentFeedRecommendationItemRow}
 import org.apache.spark.sql.{Dataset, SparkSession}
 import java.time.LocalDate
 

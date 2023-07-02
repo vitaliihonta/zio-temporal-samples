@@ -43,6 +43,10 @@ object Dependencies {
     "ch.qos.logback" % "logback-classic"     % "1.4.8"
   )
 
+  val zioNio = Seq(
+    "dev.zio" %% "zio-nio" % "2.0.1"
+  )
+
   val json = Seq(
     "dev.zio" %% "zio-json" % versions.zioJson
   )
@@ -63,8 +67,11 @@ object Dependencies {
   )
 
   val sparkJob = Seq(
-    "org.apache.spark" %% "spark-sql" % versions.spark withExclusions sparkExclusions,
-    "com.github.scopt" %% "scopt"     % "4.1.0"
+    "org.apache.spark" %% "spark-sql" % versions.spark withExclusions sparkExclusions
+  )
+
+  val cmd = Seq(
+    "com.github.scopt" %% "scopt" % "4.1.0"
   )
 
   val zioHttp = Seq(

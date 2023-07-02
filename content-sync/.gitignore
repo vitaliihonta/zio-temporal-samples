@@ -2,3 +2,4 @@ spark-home/
 secret.env
 datalake/
 checkpoint/
+processor-results/

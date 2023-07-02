@@ -1,6 +1,7 @@
 package dev.vhonta.content.processor.job
 
 import com.typesafe.scalalogging.LazyLogging
+import dev.vhonta.content.processor.{ContentFeedItemRow, JobParameters}
 import dev.vhonta.content.processor.job.processor.ContentProcessor
 import org.apache.spark.sql.streaming.Trigger
 import org.apache.spark.sql.types.StructType
@@ -26,9 +27,9 @@ class JobRunner(
         logger.info(s"Processing batch=$batchId numRecords=${contentDS.count()}")
         processor
           .process(contentDS, params.date)
+          .coalesce(1)
           .write
-          .partitionBy("date")
-          .json(params.resultPath)
+          .json(params.resultPath + s"/${params.runId}")
 
         logger.info("Results stored!")
       }
