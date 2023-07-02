@@ -95,13 +95,13 @@ case class ProcessorLauncherActivityImpl(
     payload: SparkLaunchLocalPayload,
     date:    LocalDate
   ): Task[Unit] = {
+    val fatJarPath = s"${config.artifactDir}/${BuildInfo.contentProcessorJobFile}"
     val launcher = new SparkLauncher()
       .setMainClass(BuildInfo.contentProcessorJobMainClass)
       .setAppName(BuildInfo.contentProcessorJobName)
       .setSparkHome(config.sparkHome)
-      .setAppResource(
-        s"${config.artifactDir}/${BuildInfo.contentProcessorJobFile}"
-      )
+      .setAppResource(fatJarPath)
+      .addJar(fatJarPath)
       .addAppArgs(
         // format: off
         "--mode", "submit",

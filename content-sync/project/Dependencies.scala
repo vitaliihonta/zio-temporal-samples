@@ -67,7 +67,7 @@ object Dependencies {
   )
 
   val sparkJob = Seq(
-    "org.apache.spark" %% "spark-sql" % versions.spark withExclusions sparkExclusions
+    "org.apache.spark" %% "spark-sql" % versions.spark % Provided withExclusions sparkExclusions
   )
 
   val cmd = Seq(
@@ -84,14 +84,17 @@ object Dependencies {
 
   val zioTestFrameworks = Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
 
-  val database = Seq(
-    "org.postgresql" % "postgresql" % "42.5.4",
-    "io.getquill"   %% "quill-jdbc" % versions.quill
+  private val postgres = "org.postgresql" % "postgresql" % "42.5.4"
+
+  val sparkDatabase = Seq(
+    "io.getquill" %% "quill-jdbc" % versions.quill,
+    postgres       % Provided
   )
 
   val zioQuill = Seq(
     "io.getquill" %% "quill-jdbc-zio" % versions.quill,
-    "org.flywaydb" % "flyway-core"    % "9.16.0"
+    "org.flywaydb" % "flyway-core"    % "9.16.0",
+    postgres
   )
 
   val scalaLogging = Seq(

@@ -10,7 +10,6 @@ import dev.vhonta.content.{
   ContentType,
   Subscriber
 }
-import enumeratum.{Enum, EnumEntry}
 import java.time.LocalDate
 import java.util.UUID
 

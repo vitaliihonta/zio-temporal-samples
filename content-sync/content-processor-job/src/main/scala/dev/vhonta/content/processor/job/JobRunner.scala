@@ -5,7 +5,7 @@ import dev.vhonta.content.processor.{ContentFeedItemRow, JobParameters}
 import dev.vhonta.content.processor.job.processor.ContentProcessor
 import org.apache.spark.sql.streaming.Trigger
 import org.apache.spark.sql.types.StructType
-import org.apache.spark.sql.{Dataset, Encoder, SparkSession}
+import org.apache.spark.sql.{Dataset, Encoder, SaveMode, SparkSession}
 
 class JobRunner(
   processor:      ContentProcessor
@@ -29,6 +29,7 @@ class JobRunner(
           .process(contentDS, params.date)
           .coalesce(1)
           .write
+          .mode(SaveMode.Overwrite)
           .json(params.resultPath + s"/${params.runId}")
 
         logger.info("Results stored!")

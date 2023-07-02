@@ -3,6 +3,8 @@ package dev.vhonta.content.processor.job.recommendations
 import com.typesafe.scalalogging.LazyLogging
 import dev.vhonta.content.processor.{ContentFeedItemRow, ContentFeedRecommendationItemRow}
 import org.apache.spark.sql.{Dataset, SparkSession}
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types.IntegerType
 import java.time.LocalDate
 
 class RecommendationsEngine()(implicit spark: SparkSession) extends LazyLogging with Serializable {
@@ -12,9 +14,42 @@ class RecommendationsEngine()(implicit spark: SparkSession) extends LazyLogging 
     contentDS: Dataset[ContentFeedItemRow],
     forDate:   LocalDate
   ): Dataset[ContentFeedRecommendationItemRow] = {
-    // TODO: implement
-    logger.info(s"Content for date=$forDate")
-    contentDS.show(truncate = false)
-    spark.emptyDataset[ContentFeedRecommendationItemRow]
+    contentDS
+      .where(to_date($"publishedAt") === lit(forDate))
+      .groupBy($"integration")
+      .agg(
+        // Pretty dumb algorithm ¯\_(ツ)_/¯
+        slice(
+          array_sort(
+            collect_list(
+              struct(
+                $"topic",
+                $"title",
+                coalesce($"description", lit("")).as("description"),
+                $"url",
+                lit(forDate).as("forDate"),
+                $"contentType",
+                $"publishedAt"
+              )
+            ),
+            (x, y) =>
+              (unix_timestamp(x("publishedAt")) - unix_timestamp(y("publishedAt")))
+                .cast(IntegerType)
+          ),
+          start = 1,
+          length = 5
+        ).as("recommendations")
+      )
+      .withColumn("recommendation", explode($"recommendations"))
+      .select(
+        $"integration",
+        $"recommendation.topic",
+        $"recommendation.title",
+        $"recommendation.description",
+        $"recommendation.url",
+        $"recommendation.forDate",
+        $"recommendation.contentType"
+      )
+      .as[ContentFeedRecommendationItemRow]
   }
 }

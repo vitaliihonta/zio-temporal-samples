@@ -72,8 +72,7 @@ lazy val `service-commons` = project
         Dependencies.zioTemporal ++
         Dependencies.sttp ++
         Dependencies.googleApiClient ++
-        Dependencies.zioQuill ++
-        Dependencies.database
+        Dependencies.zioQuill
     }
   )
 
@@ -141,11 +140,12 @@ lazy val `content-processor-job` = project
     baseSettings,
     libraryDependencies ++= {
       Dependencies.sparkJob ++
-        Dependencies.database ++
+        Dependencies.sparkDatabase ++
         Dependencies.scalaLogging
     },
     contentProcessorJobMainClass := "dev.vhonta.content.processor.job.Main",
     assembly / mainClass         := Some(contentProcessorJobMainClass.value),
+    // TODO: add shade rules or exclude HikariCP?
     assemblyMergeStrategy := {
       case x if Assembly.isConfigFile(x)                        => MergeStrategy.concat
       case PathList("META-INF", "io.netty.versions.properties") => MergeStrategy.first
