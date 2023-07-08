@@ -23,7 +23,7 @@ class ContentProcessor(engine: RecommendationsEngine)(implicit spark: SparkSessi
       .repartition(numPartitions = 8, $"integration")
       .groupByKey(_.integration)
       .mapGroups { (integration: Long, batch: Iterator[ContentFeedRecommendationItemRow]) =>
-        Using.resource(ContentFeedRecommendationItemRepository.create("db")) { repo =>
+        Using.resource(ContentFeedRecommendationItemRepository(configPath = "db")) { repo =>
           val inserted = batch
             .grouped(100)
             .map { items =>

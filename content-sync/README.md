@@ -61,7 +61,7 @@ Fetch various content (such as news, videos) and periodically get them through T
 **(2)** Start temporal cluster  
 (either on your own or in Docker from the [parent directory](../docker-compose.yaml))
 
-**(3)** Download the corresponding [Apache Spark](https://spark.apache.org/downloads.html) artifact to the `./spark_home` directory.  
+**(3)** Download the corresponding [Apache Spark](https://spark.apache.org/downloads.html) artifact (for Scala 2.13) into the `./spark_home` directory.  
 
 **(4a)** Run each component locally:
 ```shell

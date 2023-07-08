@@ -20,23 +20,9 @@ import java.util.UUID
 
 object ContentFeedRecommendationItemRepository extends LazyLogging {
 
-  def create(configPath: String): ContentFeedRecommendationItemRepository = {
-    val config = ConfigFactory.load()
-    logger.info(s"Loaded $config")
-    val pg = new PGSimpleDataSource()
-    // TODO: make flexible
-    pg.setServerNames(Array(config.getString(s"$configPath.serverName")))
-    pg.setPortNumbers(Array(config.getInt(s"$configPath.portNumber")))
-    pg.setUser(config.getString(s"$configPath.username"))
-    pg.setPassword(config.getString(s"$configPath.password"))
-    pg.setDatabaseName(config.getString(s"$configPath.databaseName"))
-
-    val ds = new HikariDataSource()
-    ds.setDataSource(pg)
-    // TODO: make flexible
-    ds.setMaximumPoolSize(config.getInt(s"$configPath.maximumPoolSize"))
+  def apply(configPath: String): ContentFeedRecommendationItemRepository = {
     new ContentFeedRecommendationItemRepository(
-      new PostgresJdbcContext[SnakeCase](SnakeCase, ds)
+      new PostgresJdbcContext[SnakeCase](SnakeCase, JdbcDataSources.load(configPath))
     )
   }
 }
