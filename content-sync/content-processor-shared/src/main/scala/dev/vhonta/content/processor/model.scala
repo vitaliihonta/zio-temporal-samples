@@ -4,15 +4,14 @@ import java.time.{Instant, LocalDate}
 import zio.json._
 
 case class ContentFeedItemRow(
-  integrationType: String,
-  pulledAt:        Long,
-  integration:     Long,
-  topic:           Option[String],
-  title:           String,
-  description:     Option[String],
-  url:             String,
-  publishedAt:     Instant,
-  contentType:     String)
+  pulledDate:  LocalDate,
+  integration: Long,
+  topic:       Option[String],
+  title:       String,
+  description: Option[String],
+  url:         String,
+  publishedAt: Instant,
+  contentType: String)
 
 case class ContentFeedRecommendationItemRow(
   integration: Long,

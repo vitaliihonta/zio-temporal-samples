@@ -1,6 +1,8 @@
 package dev.vhonta.content.processor.job.processor
 
+import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
+import com.zaxxer.hikari.HikariDataSource
 import dev.vhonta.content.processor.ContentFeedRecommendationItemRow
 import io.getquill.{PostgresJdbcContext, SnakeCase}
 import dev.vhonta.content.{
@@ -10,28 +12,76 @@ import dev.vhonta.content.{
   ContentType,
   Subscriber
 }
+import org.postgresql.ds.PGSimpleDataSource
+import org.postgresql.util.{PSQLException, PSQLState}
+
 import java.time.LocalDate
 import java.util.UUID
 
-object ContentFeedRecommendationItemRepository {
+object ContentFeedRecommendationItemRepository extends LazyLogging {
 
-  final object holder
-      extends ContentFeedRecommendationItemRepository(
-        new PostgresJdbcContext[SnakeCase](SnakeCase, "db")
-      ) {}
+  def create(configPath: String): ContentFeedRecommendationItemRepository = {
+    val config = ConfigFactory.load()
+    logger.info(s"Loaded $config")
+    val pg = new PGSimpleDataSource()
+    // TODO: make flexible
+    pg.setServerNames(Array(config.getString(s"$configPath.serverName")))
+    pg.setPortNumbers(Array(config.getInt(s"$configPath.portNumber")))
+    pg.setUser(config.getString(s"$configPath.username"))
+    pg.setPassword(config.getString(s"$configPath.password"))
+    pg.setDatabaseName(config.getString(s"$configPath.databaseName"))
+
+    val ds = new HikariDataSource()
+    ds.setDataSource(pg)
+    // TODO: make flexible
+    ds.setMaximumPoolSize(config.getInt(s"$configPath.maximumPoolSize"))
+    new ContentFeedRecommendationItemRepository(
+      new PostgresJdbcContext[SnakeCase](SnakeCase, ds)
+    )
+  }
 }
 
 class ContentFeedRecommendationItemRepository(@transient private val ctx: PostgresJdbcContext[SnakeCase])
     extends LazyLogging
-    with Serializable {
+    with Serializable
+    with AutoCloseable {
 
   import ctx._
 
+  override def close(): Unit = ctx.close()
+
+  // TODO: handle race
   def insert(
     integration: Long,
     forDate:     LocalDate,
     items:       Seq[ContentFeedRecommendationItemRow]
   ): Long = {
+    withOwner(integration) { owner =>
+      val recommendationId = getOrCreateRecommendationId(integration, forDate, owner)
+
+      val recommendationItems = items.map { item =>
+        ContentFeedRecommendationItem(
+          recommendation = recommendationId,
+          topic = item.topic.map(UUID.fromString),
+          title = item.title,
+          description = item.description,
+          url = item.url,
+          contentType = ContentType.withName(item.contentType)
+        )
+      }
+      val insertItems = quote {
+        liftQuery(recommendationItems).foreach(r => query[ContentFeedRecommendationItem].insertValue(r))
+      }
+
+      logger.info(
+        s"Integration=$integration creating recommendation=$recommendationId with ${recommendationItems.size} items"
+      )
+      // insert items & return
+      run(insertItems).sum
+    }
+  }
+
+  private def withOwner(integration: Long)(thunk: Subscriber => Long): Long = {
     val selectOwner = quote {
       query[Subscriber]
         .filter(subs =>
@@ -49,12 +99,34 @@ class ContentFeedRecommendationItemRepository(@transient private val ctx: Postgr
         0
 
       case Some(owner) =>
-        val recommendationId = UUID.randomUUID()
+        thunk(owner)
+    }
+  }
+
+  private def getOrCreateRecommendationId(integration: Long, forDate: LocalDate, owner: Subscriber): UUID = {
+    def findRecommendation(): Option[ContentFeedRecommendation] = {
+      val findRecommendationQuery = quote {
+        query[ContentFeedRecommendation]
+          .filter(_.integration == lift(integration))
+          .filter(_.forDate == lift(forDate))
+          .filter(_.owner == lift(owner.id))
+          .take(1)
+      }
+
+      run(findRecommendationQuery).headOption
+    }
+
+    findRecommendation() match {
+      case Some(recommendation) =>
+        recommendation.id
+
+      case None =>
+        val id = UUID.randomUUID()
         val insertRecommendation = quote {
           query[ContentFeedRecommendation].insertValue(
             lift(
               ContentFeedRecommendation(
-                id = recommendationId,
+                id = id,
                 owner = owner.id,
                 integration = integration,
                 forDate = forDate
@@ -62,25 +134,21 @@ class ContentFeedRecommendationItemRepository(@transient private val ctx: Postgr
             )
           )
         }
-        val recommendationItems = items.map { item =>
-          ContentFeedRecommendationItem(
-            recommendation = recommendationId,
-            topic = item.topic.map(UUID.fromString),
-            title = item.title,
-            description = item.description,
-            url = item.url,
-            contentType = ContentType.withName(item.contentType)
-          )
-        }
-        val insertItems = quote {
-          liftQuery(recommendationItems).foreach(r => query[ContentFeedRecommendationItem].insertValue(r))
-        }
 
-        transaction {
-          // create recommendation
+        try {
           run(insertRecommendation)
-          // insert items & return
-          run(insertItems).sum
+          id
+        } catch {
+          // in case of race conditions
+          case e: PSQLException =>
+            findRecommendation()
+              .map(_.id)
+              .getOrElse(
+                throw new RuntimeException(
+                  s"Unexpected race condition: cannot create nor find a recommendation for integration=$id date=$forDate",
+                  e
+                )
+              )
         }
     }
   }

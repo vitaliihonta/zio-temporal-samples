@@ -6,7 +6,7 @@ import dev.vhonta.content.puller.proto.{
   StoreVideosParameters,
   YoutubeVideosList
 }
-import dev.vhonta.content.{ContentFeedIntegrationType, ContentFeedItem, ContentType}
+import dev.vhonta.content.ContentType
 import zio._
 import zio.stream._
 import zio.temporal._
@@ -14,8 +14,6 @@ import zio.temporal.activity._
 import zio.temporal.protobuf.syntax._
 import java.net.URI
 import java.time.LocalDateTime
-import ParquetSerializers._
-import com.github.mjakubowski84.parquet4s.ParquetWriter
 import java.io.IOException
 
 @activityInterface
@@ -44,8 +42,7 @@ case class DatalakeActivitiesImpl(youtubeBaseUri: URI)(implicit options: ZActivi
       val contentFeedItemsStream = ZStream
         .fromIterable(articles.articles)
         .map { article =>
-          ContentFeedItem(
-            integration = params.integrationId,
+          ContentFeedItemParquetRow(
             topic = Some(params.topicId.fromProto),
             title = article.title,
             description = article.description,
@@ -56,9 +53,13 @@ case class DatalakeActivitiesImpl(youtubeBaseUri: URI)(implicit options: ZActivi
         }
 
       for {
-        _       <- ZIO.logInfo(s"Storing articles topicId=${params.topicId.fromProto}")
-        written <- writeToParquet(contentFeedItemsStream, params.datalakeOutputDir, ContentFeedIntegrationType.NewsApi)
-        _       <- ZIO.logInfo(s"Written $written articles")
+        _ <- ZIO.logInfo(s"Storing articles topicId=${params.topicId.fromProto}")
+        written <- writeToParquet(
+                     contentFeedItemsStream = contentFeedItemsStream,
+                     datalakeOutputDir = params.datalakeOutputDir,
+                     integrationId = params.integrationId
+                   )
+        _ <- ZIO.logInfo(s"Written $written articles")
       } yield ()
     }
   }
@@ -68,8 +69,7 @@ case class DatalakeActivitiesImpl(youtubeBaseUri: URI)(implicit options: ZActivi
       val contentFeedItemsStream = ZStream
         .fromIterable(videos.values)
         .map { video =>
-          ContentFeedItem(
-            integration = params.integrationId,
+          ContentFeedItemParquetRow(
             topic = None,
             title = video.title,
             description = video.description,
@@ -80,28 +80,31 @@ case class DatalakeActivitiesImpl(youtubeBaseUri: URI)(implicit options: ZActivi
         }
 
       for {
-        _       <- ZIO.logInfo("Storing videos")
-        written <- writeToParquet(contentFeedItemsStream, params.datalakeOutputDir, ContentFeedIntegrationType.Youtube)
-        _       <- ZIO.logInfo(s"Written $written videos")
+        _ <- ZIO.logInfo("Storing videos")
+        written <- writeToParquet(
+                     contentFeedItemsStream = contentFeedItemsStream,
+                     datalakeOutputDir = params.datalakeOutputDir,
+                     integrationId = params.integrationId
+                   )
+        _ <- ZIO.logInfo(s"Written $written videos")
       } yield ()
     }
   }
 
   private def writeToParquet(
-    contentFeedItemsStream: UStream[ContentFeedItem],
+    contentFeedItemsStream: UStream[ContentFeedItemParquetRow],
     datalakeOutputDir:      String,
-    integrationType:        ContentFeedIntegrationType
+    integrationId:          Long
   ): IO[IOException, Long] = {
     for {
-      now <- ZIO.clockWith(_.instant)
+      now <- ZIO.clockWith(_.localDateTime)
       written <- contentFeedItemsStream
-                   .grouped(20)
+                   .grouped(100)
                    .mapZIO(
                      ParquetWritingFacade.write(
-                       ParquetWriter.of[ContentFeedItem],
-                       now,
-                       datalakeOutputDir,
-                       integrationType
+                       now = now.toLocalDate,
+                       datalakeOutputDir = datalakeOutputDir,
+                       integrationId = integrationId
                      )
                    )
                    .runCount

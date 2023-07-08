@@ -6,6 +6,7 @@ import dev.vhonta.content.processor.job.recommendations.RecommendationsEngine
 import org.apache.spark.sql.{Dataset, SparkSession}
 
 import java.time.LocalDate
+import scala.util.Using
 
 class ContentProcessor(engine: RecommendationsEngine)(implicit spark: SparkSession)
     extends LazyLogging
@@ -22,22 +23,26 @@ class ContentProcessor(engine: RecommendationsEngine)(implicit spark: SparkSessi
       .repartition(numPartitions = 8, $"integration")
       .groupByKey(_.integration)
       .mapGroups { (integration: Long, batch: Iterator[ContentFeedRecommendationItemRow]) =>
-        val inserted = batch
-          .grouped(100)
-          .map { items =>
-            ContentFeedRecommendationItemRepository.holder.insert(
-              integration,
-              date,
-              items
-            )
-          }
-          .sum
+        Using.resource(ContentFeedRecommendationItemRepository.create("db")) { repo =>
+          val inserted = batch
+            .grouped(100)
+            .map { items =>
+              repo.insert(
+                integration,
+                date,
+                items.toList
+              )
+            }
+            .sum
 
-        ProcessingResult(
-          integration = integration,
-          date = date,
-          inserted = inserted
-        )
+          logger.info(s"Total inserted: $inserted")
+
+          ProcessingResult(
+            integration = integration,
+            date = date,
+            inserted = inserted
+          )
+        }
       }
   }
 }

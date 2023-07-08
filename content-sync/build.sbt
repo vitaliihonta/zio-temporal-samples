@@ -145,7 +145,6 @@ lazy val `content-processor-job` = project
     },
     contentProcessorJobMainClass := "dev.vhonta.content.processor.job.Main",
     assembly / mainClass         := Some(contentProcessorJobMainClass.value),
-    // TODO: add shade rules or exclude HikariCP?
     assemblyMergeStrategy := {
       case x if Assembly.isConfigFile(x)                        => MergeStrategy.concat
       case PathList("META-INF", "io.netty.versions.properties") => MergeStrategy.first

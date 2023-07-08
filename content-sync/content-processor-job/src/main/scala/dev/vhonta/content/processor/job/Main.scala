@@ -2,7 +2,7 @@ package dev.vhonta.content.processor.job
 
 import com.typesafe.scalalogging.LazyLogging
 import dev.vhonta.content.processor.{JobMode, JobParameters}
-import dev.vhonta.content.processor.job.processor.{ContentFeedRecommendationItemRepository, ContentProcessor}
+import dev.vhonta.content.processor.job.processor.ContentProcessor
 import dev.vhonta.content.processor.job.recommendations.RecommendationsEngine
 import org.apache.spark.sql._
 

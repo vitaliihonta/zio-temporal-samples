@@ -88,7 +88,7 @@ object Dependencies {
 
   val sparkDatabase = Seq(
     "io.getquill" %% "quill-jdbc" % versions.quill,
-    postgres       % Provided
+    postgres
   )
 
   val zioQuill = Seq(

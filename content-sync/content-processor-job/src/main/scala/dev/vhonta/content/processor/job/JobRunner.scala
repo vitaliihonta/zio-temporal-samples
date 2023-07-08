@@ -16,6 +16,7 @@ class JobRunner(
   import spark.implicits._
 
   def regularProcess(params: JobParameters): Unit = {
+    logger.info(s"Reading content from path=${params.inputPath} for date=${params.date}")
     val streamingQuery = spark.readStream
       .schema(schemaOf[ContentFeedItemRow])
       .parquet(params.inputPath)

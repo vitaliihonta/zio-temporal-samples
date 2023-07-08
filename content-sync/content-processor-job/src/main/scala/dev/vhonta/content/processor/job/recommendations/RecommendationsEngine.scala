@@ -14,8 +14,8 @@ class RecommendationsEngine()(implicit spark: SparkSession) extends LazyLogging 
     contentDS: Dataset[ContentFeedItemRow],
     forDate:   LocalDate
   ): Dataset[ContentFeedRecommendationItemRow] = {
-    contentDS
-      .where(to_date($"publishedAt") === lit(forDate))
+    val recommendationsDS = contentDS
+      .where($"pulledDate" === lit(forDate))
       .groupBy($"integration")
       .agg(
         // Pretty dumb algorithm ¯\_(ツ)_/¯
@@ -51,5 +51,9 @@ class RecommendationsEngine()(implicit spark: SparkSession) extends LazyLogging 
         $"recommendation.contentType"
       )
       .as[ContentFeedRecommendationItemRow]
+
+    logger.info(s"Created ${recommendationsDS.count()} recommendations!")
+
+    recommendationsDS
   }
 }
