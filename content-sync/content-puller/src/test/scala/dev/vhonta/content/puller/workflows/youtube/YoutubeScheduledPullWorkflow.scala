@@ -71,10 +71,10 @@ object YoutubeScheduledPullWorkflow extends ZIOSpecDefault {
 
         _ <- ZIO.sleep(2.seconds)
         firstCount = invocationsCount.get()
-        _ <- ZTestWorkflowEnvironment.sleep(pullerConfig.pullInterval)
+        _ <- ZTestWorkflowEnvironment.sleep(pullerConfig.pullInterval * 1.01)
         _ <- ZIO.sleep(2.seconds)
         secondCount = invocationsCount.get()
-        _ <- ZTestWorkflowEnvironment.sleep(pullerConfig.pullInterval)
+        _ <- ZTestWorkflowEnvironment.sleep(pullerConfig.pullInterval * 1.01)
         _ <- ZIO.sleep(2.seconds)
         thirdCount = invocationsCount.get()
       } yield {
@@ -85,7 +85,7 @@ object YoutubeScheduledPullWorkflow extends ZIOSpecDefault {
         )
       }
     },
-    test("survices if pull workflow fails") {
+    test("survives if pull workflow fails") {
       for {
         uuid <- ZIO.randomWith(_.nextUUID)
         taskQueue = s"youtube-scheduled-$uuid"
@@ -120,7 +120,7 @@ object YoutubeScheduledPullWorkflow extends ZIOSpecDefault {
 
         _ <- ZIO.sleep(2.seconds)
         firstCount = invocationsCount.get()
-        _ <- ZIO.serviceWithZIO[ZTestWorkflowEnvironment[Any]](_.sleep(pullerConfig.pullInterval))
+        _ <- ZTestWorkflowEnvironment.sleep(pullerConfig.pullInterval * 1.01)
         _ <- ZIO.sleep(2.seconds)
         secondCount = invocationsCount.get()
       } yield {
