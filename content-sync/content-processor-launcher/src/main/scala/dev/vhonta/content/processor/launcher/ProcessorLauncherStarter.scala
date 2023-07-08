@@ -44,7 +44,7 @@ case class ProcessorLauncherStarter(client: ZWorkflowClient, config: ProcessorCo
                             .newWorkflowStub[ProcessorLauncherWorkflow]
                             .withTaskQueue(ProcessorLauncherStarter.TaskQueue)
                             .withWorkflowId(ProcessorLauncherStarter.SchedulerId)
-                            .withWorkflowExecutionTimeout(config.jobTimeout * 1.25)
+                            .withWorkflowExecutionTimeout(config.processInterval * 1.25)
                             .withRetryOptions(
                               ZRetryOptions.default.withMaximumAttempts(2)
                             )

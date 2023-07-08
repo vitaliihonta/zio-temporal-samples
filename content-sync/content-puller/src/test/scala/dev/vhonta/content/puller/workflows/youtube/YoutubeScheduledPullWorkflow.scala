@@ -71,10 +71,10 @@ object YoutubeScheduledPullWorkflow extends ZIOSpecDefault {
 
         _ <- ZIO.sleep(2.seconds)
         firstCount = invocationsCount.get()
-        _ <- ZTestWorkflowEnvironment.sleep(pullerConfig.pullInterval)
+        _ <- ZTestWorkflowEnvironment.sleep(pullerConfig.pullInterval * 1.01)
         _ <- ZIO.sleep(2.seconds)
         secondCount = invocationsCount.get()
-        _ <- ZTestWorkflowEnvironment.sleep(pullerConfig.pullInterval)
+        _ <- ZTestWorkflowEnvironment.sleep(pullerConfig.pullInterval * 1.01)
         _ <- ZIO.sleep(2.seconds)
         thirdCount = invocationsCount.get()
       } yield {
