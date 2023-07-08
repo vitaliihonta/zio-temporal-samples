@@ -5,8 +5,6 @@ import dev.vhonta.content.ContentType
 import java.util.UUID
 
 object ParquetSerializers {
-  implicitly[ValueEncoder[Long]]
-
   implicit val contentTypeParquetCodec: OptionalValueCodec[ContentType] =
     new OptionalValueCodec[ContentType] {
       override protected def encodeNonNull(data: ContentType, configuration: ValueCodecConfiguration): Value =

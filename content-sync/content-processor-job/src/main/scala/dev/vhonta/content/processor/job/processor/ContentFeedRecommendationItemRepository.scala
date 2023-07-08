@@ -36,7 +36,6 @@ class ContentFeedRecommendationItemRepository(@transient private val ctx: Postgr
 
   override def close(): Unit = ctx.close()
 
-  // TODO: handle race
   def insert(
     integration: Long,
     forDate:     LocalDate,

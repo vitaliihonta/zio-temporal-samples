@@ -31,17 +31,6 @@ case class ContentFeedRecommendationRepository(quill: PostgresQuill[SnakeCase]) 
     ).unit
   }
 
-  // TODO: unused?
-  def existForDate(integrationId: Long, date: LocalDate): IO[SQLException, Boolean] = {
-    val check = quote {
-      query[ContentFeedRecommendation]
-        .filter(_.integration == lift(integrationId))
-        .filter(_.forDate == lift(date))
-        .nonEmpty
-    }
-    run(check)
-  }
-
   def getForDate(integrationId: Long, date: LocalDate): IO[SQLException, Option[ContentFeedRecommendation.View]] = {
     val recommendationIdQuery = quote {
       query[ContentFeedRecommendation]

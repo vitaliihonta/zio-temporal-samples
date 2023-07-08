@@ -141,7 +141,7 @@ case class SettingsCommandsHandler(
         }
     }
 
-  // TODO: allows updating publishAt
+  // TODO: allow updating publishAt
   private val onUpdateSettings: TelegramHandler[Api[Task], Message] =
     onCommand(ContentSyncCommand.UpdateSettings) { msg =>
       ZIO.foreach(msg.from) { tgUser =>
