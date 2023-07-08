@@ -28,7 +28,8 @@ class PullConfigurationActivitiesImpl()(implicit options: ZActivityOptions[Any])
         .map(pullerConfig =>
           proto.PullerConfig(
             pullInterval = pullerConfig.pullInterval.toProto,
-            singlePullTimeout = pullerConfig.singlePullTimeout.toProto
+            singlePullTimeout = pullerConfig.singlePullTimeout.toProto,
+            datalakeOutputDir = pullerConfig.datalakeOutputDir
           )
         )
     }

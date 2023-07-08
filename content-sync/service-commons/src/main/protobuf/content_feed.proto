@@ -1,0 +1,51 @@
+syntax = "proto2";
+
+package dev.vhonta.content.proto;
+
+import "zio-temporal.proto";
+
+message Subscriber {
+  required zio.temporal.protobuf.UUID id = 1;
+  required int64 registeredAt = 2;
+}
+
+message SubscriberSettings {
+  required zio.temporal.protobuf.UUID subscriber = 1;
+  required int64 modifiedAt = 2;
+  required string timezone = 3;
+  required int64 publishAt = 4;
+}
+
+message SubscriberWithSettings {
+  required Subscriber subscriber = 1;
+  required SubscriberSettings settings = 2;
+}
+
+enum ContentLanguage {
+  English = 0;
+  French = 1;
+  Spanish = 2;
+  Ukrainian = 4;
+}
+
+message ContentFeedTopic {
+  required zio.temporal.protobuf.UUID id = 1;
+  required zio.temporal.protobuf.UUID owner = 2;
+  required string topic = 3;
+  required ContentLanguage lang = 4;
+}
+
+enum ContentType {
+  Text = 0;
+  Video = 1;
+}
+
+message ContentFeedItem {
+  required int64 integration = 1;
+  optional zio.temporal.protobuf.UUID topic = 2;
+  required string title = 3;
+  optional string description = 4;
+  required string url = 5;
+  required int64 publishedAt = 6;
+  required ContentType contentType = 7;
+}

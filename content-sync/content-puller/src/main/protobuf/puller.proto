@@ -25,17 +25,20 @@ message NewsPullerParameters {
   optional int64 from = 4;
   required int64 to = 5;
   repeated NewsPullerTopic topics = 6;
+  required string datalakeOutputDir = 7;
 }
 
 message YoutubePullerParameters {
   required int64 integrationId = 1;
   required int64 minDate = 2;
   required int64 maxResults = 3;
+  required string datalakeOutputDir = 4;
 }
 
 message PullerConfig {
   required int64 pullInterval = 1;
   required int64 singlePullTimeout = 2;
+  required string datalakeOutputDir = 3;
 }
 
 message YoutubePullerConfig {

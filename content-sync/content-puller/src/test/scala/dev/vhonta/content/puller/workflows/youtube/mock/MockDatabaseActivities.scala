@@ -7,7 +7,7 @@ import dev.vhonta.content.proto.{
   ContentFeedIntegrationYoutubeDetails
 }
 import dev.vhonta.content.puller.proto._
-import dev.vhonta.content.puller.workflows.DatabaseActivities
+import dev.vhonta.content.puller.workflows.storage.DatabaseActivities
 import zio._
 import zio.temporal.activity._
 import zio.temporal.protobuf.syntax._
@@ -47,16 +47,4 @@ case class MockDatabaseActivities()(implicit options: ZActivityOptions[Any]) ext
   /*NOTE: override in case of usages in tests*/
   override def loadNewsTopics(list: ListTopics): NewsSyncTopics =
     NewsSyncTopics(Nil)
-
-  override def storeArticles(articles: NewsApiArticles, storeParams: StoreArticlesParameters): Unit = {
-    ZActivity.run {
-      ZIO.logInfo(s"Stored ${articles.articles.size} articles")
-    }
-  }
-
-  override def storeVideos(videos: YoutubeVideosList, params: StoreVideosParameters): Unit = {
-    ZActivity.run {
-      ZIO.logInfo(s"Stored ${videos.values.size} videos")
-    }
-  }
 }

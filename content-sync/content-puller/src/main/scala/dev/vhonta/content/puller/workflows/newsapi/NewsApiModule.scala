@@ -1,8 +1,9 @@
 package dev.vhonta.content.puller.workflows.newsapi
 
 import dev.vhonta.content.puller.proto.NewsApiInitialPullerState
-import dev.vhonta.content.puller.workflows.{PullConfigurationActivities, DatabaseActivities}
+import dev.vhonta.content.puller.workflows.PullConfigurationActivities
 import dev.vhonta.content.puller.workflows.base.{ScheduledPullerStarter, ScheduledPullerStarterImpl}
+import dev.vhonta.content.puller.workflows.storage.{DatabaseActivities, DatalakeActivities}
 import zio._
 import zio.temporal.worker.{ZWorker, ZWorkerFactory}
 import zio.temporal.workflow.ZWorkflowClient
@@ -21,7 +22,7 @@ object NewsApiModule {
     )
 
   val worker: ZIO[
-    PullConfigurationActivities with NewsActivities with DatabaseActivities with ZWorkerFactory,
+    PullConfigurationActivities with NewsActivities with DatabaseActivities with DatalakeActivities with ZWorkerFactory,
     Nothing,
     ZWorker
   ] =
@@ -29,6 +30,7 @@ object NewsApiModule {
       ZWorker.addWorkflow[NewsApiScheduledPullerWorkflowImpl].fromClass @@
       ZWorker.addWorkflow[NewsApiPullWorkflowImpl].fromClass @@
       ZWorker.addActivityImplementationService[DatabaseActivities] @@
+      ZWorker.addActivityImplementationService[DatalakeActivities] @@
       ZWorker.addActivityImplementationService[NewsActivities] @@
       ZWorker.addActivityImplementationService[PullConfigurationActivities]
 

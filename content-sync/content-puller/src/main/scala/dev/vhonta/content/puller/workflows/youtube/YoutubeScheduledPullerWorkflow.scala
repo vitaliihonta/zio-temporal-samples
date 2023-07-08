@@ -6,6 +6,7 @@ import dev.vhonta.content.proto.{
   ContentFeedIntegrationYoutubeDetails
 }
 import dev.vhonta.content.puller.proto.{
+  PullerConfig,
   YoutubePullerInitialState,
   YoutubePullerIntegrationState,
   YoutubePullerParameters
@@ -14,6 +15,7 @@ import dev.vhonta.content.puller.workflows.base.{AsyncScheduledPullerWorkflow, B
 import zio.temporal._
 import zio.temporal.activity.ZActivityStub
 import zio.temporal.protobuf.syntax._
+
 import java.time.LocalDateTime
 
 @workflowInterface
@@ -51,9 +53,10 @@ class YoutubeScheduledPullerWorkflowImpl
   }
 
   override protected def constructPullParams(
-    integration: ContentFeedIntegration,
-    state:       Option[YoutubePullerIntegrationState],
-    startedAt:   LocalDateTime
+    integration:  ContentFeedIntegration,
+    state:        Option[YoutubePullerIntegrationState],
+    startedAt:    LocalDateTime,
+    pullerConfig: PullerConfig
   ): Option[YoutubePullerParameters] = {
     integration.integration match {
       case _: ContentFeedIntegrationYoutubeDetails =>
@@ -66,8 +69,9 @@ class YoutubeScheduledPullerWorkflowImpl
             integrationId = integration.id,
             minDate = state
               .map(_.lastProcessedAt)
-              .getOrElse(startedAt.toLocalDate.atStartOfDay().toProto),
-            maxResults = youtubePullerConfig.maxResults
+              .getOrElse(startedAt.toLocalDate.minusDays(1).atStartOfDay().toProto),
+            maxResults = youtubePullerConfig.maxResults,
+            datalakeOutputDir = pullerConfig.datalakeOutputDir
           )
         )
       case _ => None

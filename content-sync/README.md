@@ -16,6 +16,8 @@ Fetch various content (such as news, videos) and periodically get them through T
   - ZIO Config
   - ZIO JSON
   - ZIO HTTP
+- **Data processing**
+  - Apache Spark
 - **Database layer**
   - ZIO Quill
   - Flyway
@@ -29,14 +31,17 @@ Fetch various content (such as news, videos) and periodically get them through T
   - Mockito
 
 ## How to read the code
-- [Shared](./shared) contains code shared among all components
-  - [Shared protobuf](./shared/src/main/protobuf)
-  - [Flyway migrations](./shared/src/main/resources/db/migration)
+- [Model](./model) contains definitions for domain entities
+- [Service commons](./service-commons) contains code shared among backend components
+  - [Shared protobuf](./service-commons/src/main/protobuf)
+  - [Flyway migrations](./service-commons/src/main/resources/db/migration)
 - [Content puller](./content-puller) pulls data from integrations
   - [Protobuf](./content-puller/src/main/protobuf)
   - [Tests](./content-puller/src/test)
-- [Content processor](./content-processor) processes pulled data & creates recommendation feed
-  - [Protobuf](./content-processor/src/main/protobuf)
+- [Content processor job](./content-processor-job) processes pulled data & creates recommendation feed using Apache Spark
+- [Content processor launcher](./content-processor-launcher) orchestrates the Spark job using Temporal
+  - [Protobuf](./content-processor-launcher/src/main/protobuf)
+- [Content processor shared](./content-processor-shared) code shared between the job and the launcher
 - [Telegram bot](./telegram-bot) - the bot implementation
   - [Protobuf](./telegram-bot/src/main/protobuf)
 
@@ -56,18 +61,19 @@ Fetch various content (such as news, videos) and periodically get them through T
 **(2)** Start temporal cluster  
 (either on your own or in Docker from the [parent directory](../docker-compose.yaml))
 
+**(3)** Download the corresponding [Apache Spark](https://spark.apache.org/downloads.html) artifact (for Scala 2.13) into the `./spark_home` directory.  
 
-**(3a)** Run each component locally:
+**(4a)** Run each component locally:
 ```shell
 # Initialize database
 make start-local-env
 # content sync components
 make start-puller-local
-make start-processor-local
+make start-processor-launcher-local
 make start-telegram-bot-local
 ```
 
-**(3b)** Or assemble docker images & run them:
+**(4b)** Or assemble docker images & run them:
 ```shell
 # build docker images
 sbt docker:publishLocal
@@ -76,5 +82,5 @@ sbt docker:publishLocal
 make start-dockerized-env
 ```
 
-**(4)** Interact with the Telegram bot!  
+**(5)** Interact with the Telegram bot!  
 ![Bot](media/StartTgBot.png)

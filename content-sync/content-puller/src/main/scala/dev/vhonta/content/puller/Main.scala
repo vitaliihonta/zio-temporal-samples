@@ -3,6 +3,7 @@ package dev.vhonta.content.puller
 import dev.vhonta.content.newsapi.NewsApiClient
 import dev.vhonta.content.puller.workflows._
 import dev.vhonta.content.puller.workflows.newsapi.{NewsActivities, NewsActivitiesImpl, NewsApiModule}
+import dev.vhonta.content.puller.workflows.storage.{DatabaseActivitiesImpl, DatalakeActivitiesImpl}
 import dev.vhonta.content.puller.workflows.youtube.{YoutubeActivities, YoutubeActivitiesImpl, YoutubeModule}
 import dev.vhonta.content.repository._
 import dev.vhonta.content.youtube.{GoogleModule, OAuth2Client, YoutubeClient}
@@ -56,6 +57,7 @@ object Main extends ZIOAppDefault {
         Quill.DataSource.fromPrefix("db"),
         // activities
         DatabaseActivitiesImpl.make,
+        DatalakeActivitiesImpl.make,
         NewsActivitiesImpl.make,
         YoutubeActivitiesImpl.make,
         PullConfigurationActivitiesImpl.make,

@@ -10,7 +10,8 @@ import dev.vhonta.content.puller.proto.{
   NewsApiInitialPullerState,
   NewsApiIntegrationState,
   NewsPullerParameters,
-  NewsPullerTopic
+  NewsPullerTopic,
+  PullerConfig
 }
 import dev.vhonta.content.puller.workflows.base.{AsyncScheduledPullerWorkflow, BaseScheduledPullerWorkflow}
 import zio.temporal._
@@ -52,9 +53,10 @@ class NewsApiScheduledPullerWorkflowImpl
   }
 
   override protected def constructPullParams(
-    integration: ContentFeedIntegration,
-    state:       Option[NewsApiIntegrationState],
-    startedAt:   LocalDateTime
+    integration:  ContentFeedIntegration,
+    state:        Option[NewsApiIntegrationState],
+    startedAt:    LocalDateTime,
+    pullerConfig: PullerConfig
   ): Option[NewsPullerParameters] = {
     integration.integration match {
       case ContentFeedIntegrationNewsApiDetails(token, _) =>
@@ -78,7 +80,8 @@ class NewsApiScheduledPullerWorkflowImpl
                 topic = topic.topic,
                 lang = topic.lang
               )
-            }
+            },
+            datalakeOutputDir = pullerConfig.datalakeOutputDir
           )
         )
       case _ => None

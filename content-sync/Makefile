@@ -14,7 +14,7 @@ dockerize:
 	sbt docker:publishLocal
 
 .PHONY: start-dockerized-env
-start-dockerized-env:
+start-dockerized-env: assembly-job
 	docker-compose -f docker-compose-env.yaml up -d
 
 .PHONY: stop-dockerized-env
@@ -33,13 +33,17 @@ stop-local-env:
 start-puller-local:
 	JAVA_OPTS=$(JAVA_OPTS) sbt "content-puller/run $(reset)"
 
-.PHONY: start-processor-local
-start-processor-local:
-	JAVA_OPTS=$(JAVA_OPTS) sbt "content-processor/run $(reset)"
+.PHONY: start-processor-launcher-local
+start-processor-launcher-local: assembly-job
+	JAVA_OPTS=$(JAVA_OPTS) sbt "content-processor-launcher/run $(reset)"
 
 .PHONY: start-telegram-bot-local
 start-telegram-bot-local:
 	TELEGRAM_BINDING_PORT=$(TELEGRAM_BINDING_PORT) JAVA_OPTS=$(JAVA_OPTS) sbt "telegram-bot/run $(reset)"
+
+.PHONY: assembly-job
+assembly-job:
+	JAVA_OPTS=$(JAVA_OPTS) sbt "content-processor-job/assembly"
 
 .PHONY: psql
 psql:
