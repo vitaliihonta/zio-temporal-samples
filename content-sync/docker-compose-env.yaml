@@ -17,16 +17,32 @@ services:
     env_file:
       - common.env
       - secret.env
+    environment:
+      DATALAKE_OUTPUT_DIR: /opt/datalake
+    volumes:
+      - ./datalake:/opt/datalake
     depends_on:
       - db
-  content-processor:
+  content-processor-launcher:
     image: vhonta/content-processor-launcher:0.4.0
     restart: always
     env_file:
       - common.env
       - secret.env
+    environment:
+      SPARK_HOME: /opt/spark
+      ARTIFACT_DIR: /opt/job
+      PROCESSOR_INPUT_PATH: /opt/datalake
+      PROCESSOR_CHECKPOINT_LOCATION: /opt/checkpoint
+      PROCESSOR_RESULT_PATH: /opt/processor-results
     depends_on:
       - db
+    volumes:
+      - ./spark-home:/opt/spark
+      - ./content-processor-job/target/scala-2.13:/opt/job
+      - ./datalake:/opt/datalake
+      - ./checkpoint:/opt/checkpoint
+      - ./processor-results:/opt/processor-results
   telegram-bot:
     image: vhonta/telegram-bot:0.4.0
     restart: always

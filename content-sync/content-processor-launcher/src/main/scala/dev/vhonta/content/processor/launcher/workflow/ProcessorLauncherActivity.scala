@@ -68,7 +68,7 @@ case class ProcessorLauncherActivityImpl(
         _ <- ZIO.logInfo(s"Getting runId=${params.runId} result")
         results <- Files
                      .find(
-                       Path(sys.env("PWD"), "processor-results", params.runId),
+                       Path(params.resultPath, params.runId),
                        maxDepth = 1
                      )((path, attrs) => attrs.isRegularFile && path.filename.toString.endsWith(".json"))
                      .flatMap(path => readJsonLinesAs[ProcessingResult](path.toFile))
@@ -105,9 +105,12 @@ case class ProcessorLauncherActivityImpl(
       .addAppArgs(
         // format: off
         "--mode", "submit",
-        s"--run-id", params.runId,
-        s"--date", date.toString,
-        s"--timeout", params.sparkJobTimeout.fromProto[Duration].toSeconds.toString + "s"
+        "--run-id", params.runId,
+        "--date", date.toString,
+        "--timeout", params.sparkJobTimeout.fromProto[Duration].toSeconds.toString + "s",
+        "--input-path", params.inputPath,
+        "--checkpoint-location", params.checkpointLocation,
+        "--result-path", params.resultPath
         // format: on
       )
 

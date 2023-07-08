@@ -14,7 +14,7 @@ dockerize:
 	sbt docker:publishLocal
 
 .PHONY: start-dockerized-env
-start-dockerized-env:
+start-dockerized-env: assembly-job
 	docker-compose -f docker-compose-env.yaml up -d
 
 .PHONY: stop-dockerized-env

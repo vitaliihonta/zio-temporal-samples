@@ -53,6 +53,9 @@ class ProcessorLauncherWorkflowImpl extends ProcessorLauncherWorkflow {
           SparkLauncherParams(
             runId = runId.toString,
             sparkJobTimeout = processorConfig.jobTimeout.fromProto[Duration] minus 5.minutes,
+            inputPath = processorConfig.inputPath,
+            checkpointLocation = processorConfig.checkpointLocation,
+            resultPath = processorConfig.resultPath,
             payload = SparkLaunchLocalPayload()
           )
         )
@@ -60,7 +63,10 @@ class ProcessorLauncherWorkflowImpl extends ProcessorLauncherWorkflow {
 
       val results = ZActivityStub.execute(
         launcherActivity.getResults(
-          SparkReadResultsParams(runId = runId.toString)
+          SparkReadResultsParams(
+            runId = runId.toString,
+            resultPath = processorConfig.resultPath
+          )
         )
       )
 

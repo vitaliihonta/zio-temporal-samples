@@ -16,6 +16,7 @@ class RecommendationsEngine()(implicit spark: SparkSession) extends LazyLogging 
   ): Dataset[ContentFeedRecommendationItemRow] = {
     val recommendationsDS = contentDS
       .where($"pulledDate" === lit(forDate))
+      .distinct()
       .groupBy($"integration")
       .agg(
         // Pretty dumb algorithm ¯\_(ツ)_/¯

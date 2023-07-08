@@ -8,13 +8,19 @@ import dev.vhonta.content.ProtoConverters._
 import dev.vhonta.content.processor.proto
 
 case class ProcessorConfiguration(
-  processInterval: Duration,
-  jobTimeout:      Duration)
+  processInterval:    Duration,
+  jobTimeout:         Duration,
+  inputPath:          String,
+  checkpointLocation: String,
+  resultPath:         String)
 
 object ProcessorConfiguration {
   val definition: Config[ProcessorConfiguration] =
     (Config.duration("process_interval") ++
-      Config.duration("job_timeout"))
+      Config.duration("job_timeout") ++
+      Config.string("input_path") ++
+      Config.string("checkpoint_location") ++
+      Config.string("result_path"))
       .nested("processor", "launcher")
       .map((ProcessorConfiguration.apply _).tupled)
 }
@@ -35,10 +41,13 @@ class ProcessorConfigurationActivitiesImpl()(implicit options: ZActivityOptions[
     ZActivity.run {
       ZIO
         .config(ProcessorConfiguration.definition)
-        .map(pushConfig =>
+        .map(config =>
           proto.ProcessorConfiguration(
-            processInterval = pushConfig.processInterval.toProto,
-            jobTimeout = pushConfig.jobTimeout.toProto
+            processInterval = config.processInterval.toProto,
+            jobTimeout = config.jobTimeout.toProto,
+            inputPath = config.inputPath,
+            checkpointLocation = config.checkpointLocation,
+            resultPath = config.resultPath
           )
         )
     }

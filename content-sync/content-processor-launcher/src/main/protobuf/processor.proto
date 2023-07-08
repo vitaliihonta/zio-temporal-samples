@@ -7,6 +7,9 @@ import "zio-temporal.proto";
 message ProcessorConfiguration {
   required int64 processInterval = 1;
   required int64 jobTimeout = 2;
+  required string inputPath = 3;
+  required string checkpointLocation = 4;
+  required string resultPath = 5;
 }
 
 message SparkLaunchLocalPayload {
@@ -24,11 +27,15 @@ message SparkLauncherPayload {
 message SparkLauncherParams {
   required string runId = 1;
   required int64 sparkJobTimeout = 2;
-  required SparkLauncherPayload payload = 3;
+  required string inputPath = 3;
+  required string checkpointLocation = 4;
+  required string resultPath = 5;
+  required SparkLauncherPayload payload = 6;
 }
 
 message SparkReadResultsParams {
   required string runId = 1;
+  required string resultPath = 2;
 }
 
 message ProcessingResult {
