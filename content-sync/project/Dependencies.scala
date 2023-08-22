@@ -2,16 +2,16 @@ import sbt._
 
 object Dependencies {
   private object versions {
-    val zioTemporal = "0.2.0"
-    val zio         = "2.0.12"
-    val zioLogging  = "2.1.12"
-    val zioConfig   = "4.0.0-RC14"
-    val zioJson     = "0.5.0"
+    val zioTemporal = "0.3.0"
+    val zio         = "2.0.16"
+    val zioLogging  = "2.1.14"
+    val zioConfig   = "4.0.0-RC16"
+    val zioJson     = "0.6.1"
     val enumeratum  = "1.7.2"
     val sttp        = "3.8.15"
-    val telegramium = "7.67.0"
+    val telegramium = "8.68.0"
     val spark       = "3.4.1"
-    val quill       = "4.6.0"
+    val quill       = "4.6.1"
   }
 
   val zioTemporal = Seq(
@@ -70,12 +70,13 @@ object Dependencies {
     "org.apache.spark" %% "spark-sql" % versions.spark % Provided withExclusions sparkExclusions
   )
 
+  // NOTE: used in spark
   val cmd = Seq(
     "com.github.scopt" %% "scopt" % "4.1.0"
   )
 
   val zioHttp = Seq(
-    "dev.zio" %% "zio-http" % "3.0.0-RC1"
+    "dev.zio" %% "zio-http" % "3.0.0-RC2"
   )
 
   val mockito = Seq(
@@ -98,13 +99,13 @@ object Dependencies {
   )
 
   val scalaLogging = Seq(
-    "com.typesafe.scala-logging" %% "scala-logging" % "3.9.4"
+    "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5"
   )
 
   val telegramium = Seq(
     "io.github.apimorphism" %% "telegramium-core" % versions.telegramium,
     "io.github.apimorphism" %% "telegramium-high" % versions.telegramium exclude ("org.slf4j", "slf4j-simple"),
-    "dev.zio"               %% "zio-interop-cats" % "23.0.0.4"
+    "dev.zio"               %% "zio-interop-cats" % "23.0.0.8"
   )
 
   val googleApiClient = Seq(
