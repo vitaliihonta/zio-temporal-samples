@@ -1,24 +1,23 @@
 package dev.vhonta.content.puller.workflows.youtube
 
+import dev.vhonta.content.ContentFeedIntegrationType
 import zio._
-import dev.vhonta.content.puller.proto.YoutubePullerInitialState
 import dev.vhonta.content.puller.workflows.PullConfigurationActivities
 import dev.vhonta.content.puller.workflows.base.{ScheduledPullerStarter, ScheduledPullerStarterImpl}
 import dev.vhonta.content.puller.workflows.storage.{DatabaseActivities, DatalakeActivities}
-import zio._
+import zio.temporal.schedules.ZScheduleClient
 import zio.temporal.worker.{ZWorker, ZWorkerFactory}
-import zio.temporal.workflow.ZWorkflowClient
 
 object YoutubeModule {
   val taskQueue: String = "content-youtube-pullers"
 
-  private val makeStarter: URLayer[ZWorkflowClient, ScheduledPullerStarter] =
+  private val makeStarter: URLayer[ZScheduleClient, ScheduledPullerStarter] =
     ZLayer.fromFunction(
-      ScheduledPullerStarterImpl[YoutubePullerInitialState, YoutubeScheduledPullerWorkflow](
-        _: ZWorkflowClient,
+      ScheduledPullerStarterImpl[YoutubeScheduledPullerWorkflow](
+        _: ZScheduleClient,
         taskQueue = taskQueue,
-        schedulerId = "content-youtube-scheduled-puller",
-        initialParams = YoutubePullerInitialState(Nil)
+        scheduleId = "content-pull-youtube-schedule",
+        integrationType = ContentFeedIntegrationType.Youtube
       )
     )
 
@@ -39,8 +38,8 @@ object YoutubeModule {
       ZWorker.addActivityImplementationService[YoutubeActivities] @@
       ZWorker.addActivityImplementationService[PullConfigurationActivities]
 
-  def start(reset: Boolean): ZIO[ZWorkflowClient, Throwable, Unit] =
+  def start(reset: Boolean): ZIO[ZScheduleClient, Throwable, Unit] =
     ZIO
       .serviceWithZIO[ScheduledPullerStarter](_.start(reset))
-      .provideSome[ZWorkflowClient](makeStarter)
+      .provideSome[ZScheduleClient](makeStarter)
 }

@@ -1,10 +1,11 @@
 package dev.vhonta.content.puller
 
 import dev.vhonta.content.newsapi.NewsApiClient
+import dev.vhonta.content.repository.PullerStateRepository
 import dev.vhonta.content.puller.workflows._
-import dev.vhonta.content.puller.workflows.newsapi.{NewsActivities, NewsActivitiesImpl, NewsApiModule}
+import dev.vhonta.content.puller.workflows.newsapi.{NewsActivitiesImpl, NewsApiModule}
 import dev.vhonta.content.puller.workflows.storage.{DatabaseActivitiesImpl, DatalakeActivitiesImpl}
-import dev.vhonta.content.puller.workflows.youtube.{YoutubeActivities, YoutubeActivitiesImpl, YoutubeModule}
+import dev.vhonta.content.puller.workflows.youtube.{YoutubeActivitiesImpl, YoutubeModule}
 import dev.vhonta.content.repository._
 import dev.vhonta.content.youtube.{GoogleModule, OAuth2Client, YoutubeClient}
 import io.getquill.jdbczio.Quill
@@ -16,6 +17,7 @@ import zio.temporal.protobuf.ProtobufDataConverter
 import zio.temporal.worker._
 import zio.temporal.workflow._
 import zio.config.typesafe.TypesafeConfigProvider
+import zio.temporal.schedules.{ZScheduleClient, ZScheduleClientOptions}
 
 object Main extends ZIOAppDefault {
   override val bootstrap: ZLayer[ZIOAppArgs, Any, Any] =
@@ -53,6 +55,7 @@ object Main extends ZIOAppDefault {
         // dao
         ContentFeedRepository.make,
         ContentFeedIntegrationRepository.make,
+        PullerStateRepository.make,
         PostgresQuill.make,
         Quill.DataSource.fromPrefix("db"),
         // activities
@@ -66,11 +69,13 @@ object Main extends ZIOAppDefault {
         ZActivityOptions.default,
         ZWorkflowServiceStubs.make,
         ZWorkerFactory.make,
+        ZScheduleClient.make,
         // options
         ZWorkflowServiceStubsOptions.make,
         ZWorkflowClientOptions.make @@
           ZWorkflowClientOptions.withDataConverter(ProtobufDataConverter.makeAutoLoad()),
-        ZWorkerFactoryOptions.make
+        ZWorkerFactoryOptions.make,
+        ZScheduleClientOptions.make
       )
       .withConfigProvider(
         ConfigProvider.defaultProvider orElse

@@ -1,7 +1,6 @@
 package dev.vhonta.content
 
 import enumeratum.{Enum, EnumEntry}
-import java.time.LocalDateTime
 import java.util.UUID
 
 sealed abstract class ContentLanguage(val code: String) extends EnumEntry
@@ -27,12 +26,3 @@ case object ContentType extends Enum[ContentType] {
 
   override val values = findValues
 }
-
-case class ContentFeedItem(
-  integration: Long,
-  topic:       Option[UUID],
-  title:       String,
-  description: Option[String],
-  url:         String,
-  publishedAt: LocalDateTime,
-  contentType: ContentType)

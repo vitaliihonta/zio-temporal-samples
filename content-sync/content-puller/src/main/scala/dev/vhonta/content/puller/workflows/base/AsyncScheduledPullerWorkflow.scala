@@ -4,36 +4,32 @@ import dev.vhonta.content.proto.{ContentFeedIntegration, ContentFeedIntegrationT
 import dev.vhonta.content.puller.proto.{
   GetConfigurationParams,
   ListIntegrations,
+  LoadPullerStatesParams,
   PullerConfig,
   PullerParams,
-  PullerResetState,
-  ScheduledPullerParams
+  UpsertPullerStateParams
 }
+import dev.vhonta.content.{PullerState, PullerStateValue}
 import dev.vhonta.content.puller.workflows.PullConfigurationActivities
 import dev.vhonta.content.puller.workflows.storage.DatabaseActivities
 import org.slf4j.Logger
 import zio._
 import zio.temporal._
-import zio.temporal.state._
 import zio.temporal.workflow._
 import zio.temporal.activity._
 import zio.temporal.protobuf.syntax._
-
+import io.getquill.JsonbValue
 import java.time.LocalDateTime
 import scala.reflect.ClassTag
 
 abstract class AsyncScheduledPullerWorkflow[
-  InitialState <: ScheduledPullerParams,
-  IntegrationState,
+  IntegrationState <: PullerStateValue,
   PullParams <: PullerParams,
-  PullerWorkflow <: BasePullWorkflow[PullParams]: IsWorkflow: ClassTag,
-  Self <: BaseScheduledPullerWorkflow[InitialState]: IsWorkflow: ClassTag
+  PullerWorkflow <: BasePullWorkflow[PullParams]: IsWorkflow: ClassTag
 ](integrationType: ContentFeedIntegrationType)
-    extends BaseScheduledPullerWorkflow[InitialState] {
+    extends BaseScheduledPullerWorkflow {
 
-  protected def initializeState(initialState: InitialState): Map[Long, IntegrationState]
-
-  protected def stateForNextRun(current: Map[Long, IntegrationState]): InitialState
+  protected def convertIntegrationState(raw: PullerStateValue): Option[IntegrationState]
 
   protected def refreshIntegrationState(integrationId: Long, processedAt: LocalDateTime): IntegrationState
 
@@ -46,8 +42,6 @@ abstract class AsyncScheduledPullerWorkflow[
 
   protected val logger: Logger         = ZWorkflow.makeLogger
   protected val thisWorkflowId: String = ZWorkflow.info.workflowId
-
-  private val state = ZWorkflowState.emptyMap[Long, IntegrationState]
 
   protected val databaseActivities: ZActivityStub.Of[DatabaseActivities] =
     ZWorkflow
@@ -67,11 +61,7 @@ abstract class AsyncScheduledPullerWorkflow[
       )
       .build
 
-  private val nextRun = ZWorkflow.newContinueAsNewStub[Self].build
-
-  override def startPulling(params: InitialState): Unit = {
-    state := initializeState(params)
-
+  override def pullAll(): Unit = {
     val pullerConfig = ZActivityStub.execute(
       configurationActivities.getBasePullerConfig(GetConfigurationParams(integrationType))
     )
@@ -88,19 +78,27 @@ abstract class AsyncScheduledPullerWorkflow[
 
     logger.info(s"Loaded ${integrations.integrations.size} $integrationType integrations")
 
+    val loadedStates = ZActivityStub.execute(
+      databaseActivities.loadAllPullerStates(LoadPullerStatesParams(integrationType))
+    )
+
+    val states = loadedStates.states.view.flatMap { state =>
+      for {
+        v         <- PullerState.safeFromProto(state)
+        converted <- convertIntegrationState(v.value.value)
+      } yield v.integration -> converted
+    }.toMap
+
+    logger.info(s"Loaded puller states=$states")
+
     val pullParamsByIntegration: Map[Long, PullParams] = integrations.integrations.view.flatMap { integration =>
       constructPullParams(
         integration = integration,
-        state = state.get(integration.id),
+        state = states.get(integration.id),
         startedAt = startedAt,
         pullerConfig = pullerConfig
       ).map(integration.id -> _)
     }.toMap
-
-    // remove deleted integrations
-    locally {
-      state.filterKeysInPlace(pullParamsByIntegration.contains)
-    }
 
     val pullTasks = ZAsync.foreachPar(pullParamsByIntegration.toList) { case (integrationId, parameters) =>
       logger.info(
@@ -126,38 +124,20 @@ abstract class AsyncScheduledPullerWorkflow[
     }
 
     // Wait until all completed and update puller state
-    pullTasks.run.getOrThrow.flatMap(_.toList).foreach { integrationId =>
-      state.update(
-        integrationId,
-        refreshIntegrationState(integrationId, startedAt)
-      )
-    }
+    val updatedStates = pullTasks.run.getOrThrow.view
+      .flatMap(_.toList)
+      .map { integrationId =>
+        val value = refreshIntegrationState(integrationId, startedAt)
+        PullerState(integrationId, JsonbValue(value)).toProto
+      }
+      .toList
 
-    val finishedAt = ZWorkflow.currentTimeMillis.toLocalDateTime()
-    val sleepTime = pullerConfig.pullInterval.fromProto[Duration] minus
-      java.time.Duration.between(startedAt, finishedAt)
-
-    logger.info(s"Next pull starts after $sleepTime")
-
-    // Wait for the next run
-    ZWorkflow.sleep(sleepTime)
-
-    // Continue as new workflow
-    ZWorkflowContinueAsNewStub.execute(
-      nextRun.startPulling(
-        stateForNextRun(state.snapshot)
+    ZActivityStub.execute(
+      databaseActivities.upsertPullerState(
+        UpsertPullerStateParams(updatedStates)
       )
     )
-  }
 
-  override def resetState(command: PullerResetState): Unit = {
-    val integrationId = command.integrationId
-    logger.info(s"Resetting puller state integrationId=$integrationId")
-    state -= integrationId
-  }
-
-  override def resetStateAll(): Unit = {
-    logger.info("Resetting ALL puller state")
-    state.clear()
+    logger.info("Finished pulling!")
   }
 }

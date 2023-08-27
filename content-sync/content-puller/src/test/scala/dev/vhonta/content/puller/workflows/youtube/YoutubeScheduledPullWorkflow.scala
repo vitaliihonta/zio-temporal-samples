@@ -1,7 +1,7 @@
 package dev.vhonta.content.puller.workflows.youtube
 
 import dev.vhonta.content.proto.ContentFeedIntegrationType
-import dev.vhonta.content.puller.proto.{PullingResult, YoutubePullerInitialState}
+import dev.vhonta.content.puller.proto.PullingResult
 import dev.vhonta.content.puller.workflows.youtube.mock.{
   MockPullConfigurationActivities,
   MockDatabaseActivities,
@@ -36,7 +36,7 @@ object YoutubeScheduledPullWorkflow extends ZIOSpecDefault {
     )
 
   override val spec = suite("YoutubeScheduledPullerWorkflow")(
-    test("pull successfully & repeatedly with given pullInterval") {
+    test("pull successfully") {
       for {
         uuid <- ZIO.randomWith(_.nextUUID)
         taskQueue = s"youtube-scheduled-$uuid"
@@ -62,27 +62,11 @@ object YoutubeScheduledPullWorkflow extends ZIOSpecDefault {
                              .withTaskQueue(taskQueue)
                              .withWorkflowId(s"youtube-scheduled/$uuid")
                              .build
-
-        _ <- ZWorkflowStub.start(
-               youtubeWorkflow.startPulling(
-                 YoutubePullerInitialState(Nil)
-               )
+        _ <- ZWorkflowStub.execute(
+               youtubeWorkflow.pullAll()
              )
-
-        _ <- ZIO.sleep(2.seconds)
-        firstCount = invocationsCount.get()
-        _ <- ZTestWorkflowEnvironment.sleep(pullerConfig.pullInterval * 1.01)
-        _ <- ZIO.sleep(2.seconds)
-        secondCount = invocationsCount.get()
-        _ <- ZTestWorkflowEnvironment.sleep(pullerConfig.pullInterval * 1.01)
-        _ <- ZIO.sleep(2.seconds)
-        thirdCount = invocationsCount.get()
       } yield {
-        assertTrue(
-          firstCount == 1,
-          secondCount == 2,
-          thirdCount == 3
-        )
+        assertTrue(invocationsCount.get() == 1)
       }
     },
     test("survives if pull workflow fails") {
@@ -112,21 +96,12 @@ object YoutubeScheduledPullWorkflow extends ZIOSpecDefault {
                              .withWorkflowId(s"youtube-scheduled/$uuid")
                              .build
 
-        _ <- ZWorkflowStub.start(
-               youtubeWorkflow.startPulling(
-                 YoutubePullerInitialState(Nil)
-               )
+        _ <- ZWorkflowStub.execute(
+               youtubeWorkflow.pullAll()
              )
-
-        _ <- ZIO.sleep(2.seconds)
-        firstCount = invocationsCount.get()
-        _ <- ZTestWorkflowEnvironment.sleep(pullerConfig.pullInterval * 1.01)
-        _ <- ZIO.sleep(2.seconds)
-        secondCount = invocationsCount.get()
       } yield {
         assertTrue(
-          firstCount == 1,
-          secondCount == 2
+          invocationsCount.get() == 1
         )
       }
     }

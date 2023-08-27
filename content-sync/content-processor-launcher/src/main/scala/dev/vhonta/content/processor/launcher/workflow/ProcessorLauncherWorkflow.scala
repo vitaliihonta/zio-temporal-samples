@@ -7,7 +7,6 @@ import zio.temporal.activity.ZActivityStub
 import zio.temporal.failure.ApplicationFailure
 import zio.temporal.protobuf.syntax._
 import zio.temporal.workflow._
-
 import java.time.LocalDate
 
 @workflowInterface
@@ -35,11 +34,7 @@ class ProcessorLauncherWorkflowImpl extends ProcessorLauncherWorkflow {
     .withHeartbeatTimeout(1.minute)
     .build
 
-  private val nextRun = ZWorkflow.newContinueAsNewStub[ProcessorLauncherWorkflow].build
-
   override def launch(): Unit = {
-    val startedAt = ZWorkflow.currentTimeMillis.toLocalDateTime()
-
     val processorConfig = ZActivityStub.execute(
       configurationActivities.getProcessorConfiguration
     )
@@ -87,18 +82,6 @@ class ProcessorLauncherWorkflowImpl extends ProcessorLauncherWorkflow {
         logger.error(s"Launcher activity failed, ignoring", apf)
     }
 
-    val finishedAt = ZWorkflow.currentTimeMillis.toLocalDateTime()
-    val sleepTime = processorConfig.processInterval.fromProto[Duration] minus
-      java.time.Duration.between(startedAt, finishedAt)
-
-    logger.info(s"Next processing starts after $sleepTime")
-
-    // Wait for the next run
-    ZWorkflow.sleep(sleepTime)
-
-    // Continue as new workflow
-    ZWorkflowContinueAsNewStub.execute(
-      nextRun.launch()
-    )
+    logger.info(s"Finished processing!")
   }
 }

@@ -1,9 +1,12 @@
 package dev.vhonta.content.puller.workflows.base
 
-import dev.vhonta.content.puller.proto.ScheduledPullerParams
-import io.temporal.client.WorkflowExecutionAlreadyStarted
+import dev.vhonta.content.ContentFeedIntegrationType
+import dev.vhonta.content.puller.PullerConfig
+import io.temporal.api.enums.v1.ScheduleOverlapPolicy
+import io.temporal.client.schedules.ScheduleAlreadyRunningException
 import zio._
 import zio.temporal._
+import zio.temporal.schedules._
 import zio.temporal.workflow._
 import scala.reflect.ClassTag
 
@@ -11,50 +14,64 @@ sealed trait ScheduledPullerStarter {
   def start(reset: Boolean): Task[Unit]
 }
 
-case class ScheduledPullerStarterImpl[
-  Params <: ScheduledPullerParams,
-  ScheduledWorkflow <: BaseScheduledPullerWorkflow[Params]: IsWorkflow: ClassTag
-](client:        ZWorkflowClient,
-  taskQueue:     String,
-  schedulerId:   String,
-  initialParams: Params)
+case class ScheduledPullerStarterImpl[ScheduledWorkflow <: BaseScheduledPullerWorkflow: IsWorkflow: ClassTag](
+  scheduleClient:  ZScheduleClient,
+  taskQueue:       String,
+  scheduleId:      String,
+  integrationType: ContentFeedIntegrationType)
     extends ScheduledPullerStarter {
 
-  private val workflowType = implicitly[ClassTag[ScheduledWorkflow]].runtimeClass.getName
+  private val stub = scheduleClient
+    .newScheduleStartWorkflowStub[ScheduledWorkflow]()
+    .withTaskQueue(taskQueue)
+    .withWorkflowId(s"scheduled-$integrationType")
+    .withWorkflowExecutionTimeout(1.hour)
+    .withRetryOptions(ZRetryOptions.default.withMaximumAttempts(2))
+    .build
 
   override def start(reset: Boolean): Task[Unit] = {
     for {
-      _ <- ZIO.logInfo(s"Starting $workflowType scheduler...")
-      _ <- startPuller.catchSome { case _: WorkflowExecutionAlreadyStarted =>
-             ZIO.when(reset)(resetPuller)
+      _ <- ZIO.logInfo(s"Starting $integrationType schedule...")
+      // todo: should be catchSome
+      _ <- schedulePuller.catchSomeDefect { case _: ScheduleAlreadyRunningException =>
+             ZIO.when(reset)(resetSchedule)
            }
-      _ <- ZIO.logInfo(s"Scheduler $workflowType started")
+      _ <- ZIO.logInfo(s"Schedule for integration=$integrationType started")
     } yield ()
   }
 
-  private def resetPuller: Task[Unit] = {
+  private def resetSchedule: Task[Unit] = {
     for {
-      _               <- ZIO.logInfo(s"Hard-reset $workflowType scheduler")
-      currentWorkflow <- client.newWorkflowStub[ScheduledWorkflow](schedulerId)
-      _               <- currentWorkflow.terminate(reason = Some("Hard-reset"))
-      _               <- startPuller
+      _               <- ZIO.logInfo(s"Hard-reset $integrationType scheduler")
+      currentSchedule <- scheduleClient.getHandle(scheduleId)
+      _               <- currentSchedule.delete()
+      _               <- schedulePuller
     } yield ()
   }
 
-  private def startPuller: Task[Unit] = {
+  private def schedulePuller: Task[Unit] = {
     for {
-      scheduledPullerWorkflow <- client
-                                   .newWorkflowStub[ScheduledWorkflow]
-                                   .withTaskQueue(taskQueue)
-                                   .withWorkflowId(schedulerId)
-                                   .withWorkflowExecutionTimeout(1.hour)
-                                   .withRetryOptions(
-                                     ZRetryOptions.default.withMaximumAttempts(2)
-                                   )
-                                   .build
-      _ <- ZWorkflowStub.start(
-             scheduledPullerWorkflow.startPulling(initialParams)
+      config <- ZIO.config(PullerConfig.definition.nested("puller", integrationType.entryName))
+
+      schedule = ZSchedule
+                   .withAction(
+                     ZScheduleStartWorkflowStub.start(
+                       stub.pullAll()
+                     )
+                   )
+                   .withSpec(
+                     ZScheduleSpec.intervals(
+                       every(config.pullInterval)
+                     )
+                   )
+                   .withPolicy(ZSchedulePolicy.default.withOverlap(ScheduleOverlapPolicy.SCHEDULE_OVERLAP_POLICY_SKIP))
+
+      _ <- scheduleClient.createSchedule(
+             scheduleId,
+             schedule = schedule,
+             options = ZScheduleOptions.default.withTriggerImmediately(true)
            )
+
     } yield ()
   }
 }

@@ -5,56 +5,28 @@ import dev.vhonta.content.proto.{
   ContentFeedIntegrationNewsApiDetails,
   ContentFeedIntegrationType
 }
-import dev.vhonta.content.puller.proto.{
-  ListTopics,
-  NewsApiInitialPullerState,
-  NewsApiIntegrationState,
-  NewsPullerParameters,
-  NewsPullerTopic,
-  PullerConfig
-}
+import dev.vhonta.content.puller.proto.{ListTopics, NewsPullerParameters, NewsPullerTopic, PullerConfig}
+import dev.vhonta.content.PullerStateValue
 import dev.vhonta.content.puller.workflows.base.{AsyncScheduledPullerWorkflow, BaseScheduledPullerWorkflow}
 import zio.temporal._
 import zio.temporal.activity.ZActivityStub
 import zio.temporal.protobuf.syntax._
-
 import java.time.LocalDateTime
 
 @workflowInterface
-trait NewsApiScheduledPullerWorkflow extends BaseScheduledPullerWorkflow[NewsApiInitialPullerState]
+trait NewsApiScheduledPullerWorkflow extends BaseScheduledPullerWorkflow
 
 class NewsApiScheduledPullerWorkflowImpl
     extends AsyncScheduledPullerWorkflow[
-      NewsApiInitialPullerState,
-      NewsApiIntegrationState,
+      PullerStateValue.NewsApi,
       NewsPullerParameters,
-      NewsApiPullWorkflow,
-      NewsApiScheduledPullerWorkflow
+      NewsApiPullWorkflow
     ](ContentFeedIntegrationType.news_api)
     with NewsApiScheduledPullerWorkflow {
 
-  override protected def initializeState(
-    initialState: NewsApiInitialPullerState
-  ): Map[Long, NewsApiIntegrationState] = {
-    initialState.values.view.map { state =>
-      state.integrationId -> NewsApiIntegrationState(
-        integrationId = state.integrationId,
-        lastProcessedAt = state.lastProcessedAt
-      )
-    }.toMap
-  }
-
-  override protected def stateForNextRun(
-    current: Map[Long, NewsApiIntegrationState]
-  ): NewsApiInitialPullerState = {
-    NewsApiInitialPullerState(
-      values = current.view.values.toList
-    )
-  }
-
   override protected def constructPullParams(
     integration:  ContentFeedIntegration,
-    state:        Option[NewsApiIntegrationState],
+    state:        Option[PullerStateValue.NewsApi],
     startedAt:    LocalDateTime,
     pullerConfig: PullerConfig
   ): Option[NewsPullerParameters] = {
@@ -91,6 +63,12 @@ class NewsApiScheduledPullerWorkflowImpl
   override protected def refreshIntegrationState(
     integrationId: Long,
     processedAt:   LocalDateTime
-  ): NewsApiIntegrationState =
-    NewsApiIntegrationState(integrationId, processedAt.toProto)
+  ): PullerStateValue.NewsApi =
+    PullerStateValue.NewsApi(processedAt)
+
+  override protected def convertIntegrationState(raw: PullerStateValue): Option[PullerStateValue.NewsApi] =
+    raw match {
+      case newsApi: PullerStateValue.NewsApi => Some(newsApi)
+      case _                                 => None
+    }
 }

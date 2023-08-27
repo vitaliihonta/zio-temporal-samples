@@ -1,23 +1,23 @@
 package dev.vhonta.content.puller.workflows.newsapi
 
-import dev.vhonta.content.puller.proto.NewsApiInitialPullerState
+import dev.vhonta.content.ContentFeedIntegrationType
 import dev.vhonta.content.puller.workflows.PullConfigurationActivities
 import dev.vhonta.content.puller.workflows.base.{ScheduledPullerStarter, ScheduledPullerStarterImpl}
 import dev.vhonta.content.puller.workflows.storage.{DatabaseActivities, DatalakeActivities}
 import zio._
+import zio.temporal.schedules.ZScheduleClient
 import zio.temporal.worker.{ZWorker, ZWorkerFactory}
-import zio.temporal.workflow.ZWorkflowClient
 
 object NewsApiModule {
   val taskQueue: String = "content-news-api-pullers"
 
-  private val makeStarter: URLayer[ZWorkflowClient, ScheduledPullerStarter] =
+  private val makeStarter: URLayer[ZScheduleClient, ScheduledPullerStarter] =
     ZLayer.fromFunction(
-      ScheduledPullerStarterImpl[NewsApiInitialPullerState, NewsApiScheduledPullerWorkflow](
-        _: ZWorkflowClient,
+      ScheduledPullerStarterImpl[NewsApiScheduledPullerWorkflow](
+        _: ZScheduleClient,
         taskQueue = taskQueue,
-        schedulerId = "content-news-api-scheduled-puller",
-        initialParams = NewsApiInitialPullerState(Nil)
+        scheduleId = "content-pull-news-api-schedule",
+        integrationType = ContentFeedIntegrationType.NewsApi
       )
     )
 
@@ -34,8 +34,8 @@ object NewsApiModule {
       ZWorker.addActivityImplementationService[NewsActivities] @@
       ZWorker.addActivityImplementationService[PullConfigurationActivities]
 
-  def start(reset: Boolean): ZIO[ZWorkflowClient, Throwable, Unit] =
+  def start(reset: Boolean): ZIO[ZScheduleClient, Throwable, Unit] =
     ZIO
       .serviceWithZIO[ScheduledPullerStarter](_.start(reset))
-      .provideSome[ZWorkflowClient](makeStarter)
+      .provideSome[ZScheduleClient](makeStarter)
 }
