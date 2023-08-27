@@ -1,0 +1,25 @@
+syntax = "proto2";
+
+package dev.vhonta.content.proto;
+
+import "zio-temporal.proto";
+
+message PullerState {
+  oneof sealed_value {
+    NewsApiIntegrationState newsApi = 1;
+    YoutubePullerIntegrationState youtube = 2;
+  }
+}
+
+// News API
+message NewsApiIntegrationState {
+  required int64 integrationId = 1;
+  required int64 lastProcessedAt = 2;
+}
+
+// Youtube
+message YoutubePullerIntegrationState {
+  required int64 integrationId = 1;
+  required int64 lastProcessedAt = 2;
+}
+

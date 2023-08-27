@@ -46,6 +46,7 @@ import zio.config.typesafe.TypesafeConfigProvider
 import zio.logging.backend.SLF4J
 import zio.temporal.activity.ZActivityOptions
 import zio.temporal.protobuf.ProtobufDataConverter
+import zio.temporal.schedules.{ZScheduleClient, ZScheduleClientOptions}
 import zio.temporal.worker._
 import zio.temporal.workflow._
 
@@ -112,6 +113,7 @@ object Main extends ZIOAppDefault {
         // temporal
         ScheduledPushStarter.make,
         ZWorkflowClient.make,
+        ZScheduleClient.make,
         ZActivityOptions.default,
         ZWorkflowServiceStubs.make,
         ZWorkerFactory.make,
@@ -119,7 +121,8 @@ object Main extends ZIOAppDefault {
         ZWorkflowServiceStubsOptions.make,
         ZWorkflowClientOptions.make @@
           ZWorkflowClientOptions.withDataConverter(ProtobufDataConverter.makeAutoLoad()),
-        ZWorkerFactoryOptions.make
+        ZWorkerFactoryOptions.make,
+        ZScheduleClientOptions.make
       )
       .withConfigProvider(
         ConfigProvider.defaultProvider orElse

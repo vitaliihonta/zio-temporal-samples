@@ -1,57 +1,73 @@
 package dev.vhonta.content.processor.launcher
 
 import dev.vhonta.content.processor.launcher.workflow.{ProcessorConfiguration, ProcessorLauncherWorkflow}
-import io.temporal.client.WorkflowExecutionAlreadyStarted
+import io.temporal.api.enums.v1.ScheduleOverlapPolicy
+import zio.temporal.schedules._
+import io.temporal.client.schedules.ScheduleAlreadyRunningException
 import zio._
 import zio.temporal._
-import zio.temporal.workflow._
+import zio.temporal.schedules.ZScheduleClient
 
 object ProcessorLauncherStarter {
-  val TaskQueue   = "processor-launcher"
-  val SchedulerId = "processor-launcher"
+  val TaskQueue  = "processor-launcher"
+  val ScheduleId = "processor-launcher"
 
-  val make: ZLayer[ZWorkflowClient, Config.Error, ProcessorLauncherStarter] = {
+  val make: ZLayer[ZScheduleClient, Config.Error, ProcessorLauncherStarter] = {
     ZLayer.fromZIO(ZIO.config(ProcessorConfiguration.definition)) >>>
-      ZLayer.fromFunction(ProcessorLauncherStarter(_: ZWorkflowClient, _: ProcessorConfiguration))
+      ZLayer.fromFunction(ProcessorLauncherStarter(_: ZScheduleClient, _: ProcessorConfiguration))
   }
 }
 
-case class ProcessorLauncherStarter(client: ZWorkflowClient, config: ProcessorConfiguration) {
+case class ProcessorLauncherStarter(scheduleClient: ZScheduleClient, config: ProcessorConfiguration) {
+  private val stub = scheduleClient
+    .newScheduleStartWorkflowStub[ProcessorLauncherWorkflow]()
+    .withTaskQueue(ProcessorLauncherStarter.TaskQueue)
+    .withWorkflowId(ProcessorLauncherStarter.ScheduleId + "-schedule")
+    .withWorkflowExecutionTimeout(config.processInterval * 1.25)
+    .withRetryOptions(
+      ZRetryOptions.default.withMaximumAttempts(2)
+    )
+    .build
+
   def start(reset: Boolean = false): Task[Unit] = {
     for {
       _ <- ZIO.logInfo("Starting processor launcher...")
-      _ <- startRecommendationsWorkflow.catchSome { case _: WorkflowExecutionAlreadyStarted =>
-             ZIO.when(reset)(resetWorkflow)
+      _ <- scheduleRecommendationsWorkflow.catchSome { case _: ScheduleAlreadyRunningException =>
+             ZIO.when(reset)(resetSchedule)
            }
       _ <- ZIO.logInfo("Processor launcher started")
     } yield ()
   }
 
-  private def resetWorkflow: Task[Unit] = {
+  private def resetSchedule: TemporalIO[Unit] = {
     for {
-      _ <- ZIO.logInfo("Hard-reset launcher")
-      currentWorkflow <- client.newWorkflowStub[ProcessorLauncherWorkflow](
-                           ProcessorLauncherStarter.SchedulerId
-                         )
-      _ <- currentWorkflow.terminate(reason = Some("Hard-reset"))
-      _ <- startRecommendationsWorkflow
+      _               <- ZIO.logInfo("Hard-reset launcher")
+      currentSchedule <- scheduleClient.getHandle(ProcessorLauncherStarter.ScheduleId)
+      _               <- currentSchedule.delete()
+      _               <- scheduleRecommendationsWorkflow
     } yield ()
   }
 
-  private def startRecommendationsWorkflow: Task[Unit] = {
-    for {
-      launcherWorkflow <- client
-                            .newWorkflowStub[ProcessorLauncherWorkflow]
-                            .withTaskQueue(ProcessorLauncherStarter.TaskQueue)
-                            .withWorkflowId(ProcessorLauncherStarter.SchedulerId)
-                            .withWorkflowExecutionTimeout(config.processInterval * 1.25)
-                            .withRetryOptions(
-                              ZRetryOptions.default.withMaximumAttempts(2)
-                            )
-                            .build
-      _ <- ZWorkflowStub.start(
-             launcherWorkflow.launch()
-           )
-    } yield ()
+  private def scheduleRecommendationsWorkflow: TemporalIO[Unit] = {
+    val schedule = ZSchedule
+      .withAction(
+        ZScheduleStartWorkflowStub.start(
+          stub.launch()
+        )
+      )
+      .withSpec(
+        ZScheduleSpec.intervals(
+          every(config.processInterval)
+        )
+      )
+      .withPolicy(ZSchedulePolicy.default.withOverlap(ScheduleOverlapPolicy.SCHEDULE_OVERLAP_POLICY_SKIP))
+
+    scheduleClient
+      .createSchedule(
+        ProcessorLauncherStarter.ScheduleId,
+        schedule = schedule,
+        options = ZScheduleOptions.default.withTriggerImmediately(true)
+      )
+      .unit
   }
 }

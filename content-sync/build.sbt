@@ -1,5 +1,5 @@
-ThisBuild / version      := "0.4.0"
-ThisBuild / scalaVersion := "2.13.10"
+ThisBuild / version      := "0.5.0"
+ThisBuild / scalaVersion := "2.13.11"
 ThisBuild / organization := "dev.vhonta"
 
 val baseSettings = Seq(

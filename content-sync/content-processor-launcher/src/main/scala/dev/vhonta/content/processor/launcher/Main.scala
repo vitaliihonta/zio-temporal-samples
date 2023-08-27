@@ -8,6 +8,7 @@ import zio.temporal.protobuf.ProtobufDataConverter
 import zio.temporal.worker._
 import zio.temporal.workflow._
 import zio.temporal.activity.ZActivityOptions
+import zio.temporal.schedules.{ZScheduleClient, ZScheduleClientOptions}
 
 object Main extends ZIOAppDefault {
   override val bootstrap: ZLayer[ZIOAppArgs, Any, Any] =
@@ -36,6 +37,7 @@ object Main extends ZIOAppDefault {
         ProcessorConfigurationActivitiesImpl.make,
         // temporal
         ZWorkflowClient.make,
+        ZScheduleClient.make,
         ZActivityOptions.default,
         ZWorkflowServiceStubs.make,
         ZWorkerFactory.make,
@@ -43,7 +45,8 @@ object Main extends ZIOAppDefault {
         ZWorkflowServiceStubsOptions.make,
         ZWorkflowClientOptions.make @@
           ZWorkflowClientOptions.withDataConverter(ProtobufDataConverter.makeAutoLoad()),
-        ZWorkerFactoryOptions.make
+        ZWorkerFactoryOptions.make,
+        ZScheduleClientOptions.make
       )
       .withConfigProvider(
         ConfigProvider.defaultProvider orElse

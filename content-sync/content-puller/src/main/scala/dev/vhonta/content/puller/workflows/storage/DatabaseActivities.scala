@@ -1,9 +1,20 @@
 package dev.vhonta.content.puller.workflows.storage
 
 import dev.vhonta.content.ProtoConverters._
+import dev.vhonta.content.PullerState
 import dev.vhonta.content.proto.ContentFeedTopic
-import dev.vhonta.content.puller.proto.{ContentFeedIntegrations, ListIntegrations, ListTopics, NewsSyncTopics}
-import dev.vhonta.content.repository.{ContentFeedIntegrationRepository, ContentFeedRepository}
+import dev.vhonta.content.puller.proto.{
+  ContentFeedIntegrations,
+  ListIntegrations,
+  ListTopics,
+  LoadPullerStatesParams,
+  LoadPullerStatesResult,
+  NewsSyncTopics,
+  UpsertPullerStateParams,
+  UpsertPullerStateResult
+}
+import dev.vhonta.content.puller.proto
+import dev.vhonta.content.repository.{ContentFeedIntegrationRepository, ContentFeedRepository, PullerStateRepository}
 import zio._
 import zio.temporal._
 import zio.temporal.activity._
@@ -14,15 +25,19 @@ trait DatabaseActivities {
   def loadIntegrations(list: ListIntegrations): ContentFeedIntegrations
 
   def loadNewsTopics(list: ListTopics): NewsSyncTopics
+
+  def loadAllPullerStates(params: LoadPullerStatesParams): LoadPullerStatesResult
+
+  def upsertPullerState(params: UpsertPullerStateParams): UpsertPullerStateResult
 }
 
 object DatabaseActivitiesImpl {
   val make: URLayer[
-    ContentFeedRepository with ContentFeedIntegrationRepository with ZActivityOptions[Any],
+    ContentFeedRepository with ContentFeedIntegrationRepository with PullerStateRepository with ZActivityOptions[Any],
     DatabaseActivities
   ] =
     ZLayer.fromFunction(
-      DatabaseActivitiesImpl(_: ContentFeedRepository, _: ContentFeedIntegrationRepository)(
+      DatabaseActivitiesImpl(_: ContentFeedRepository, _: ContentFeedIntegrationRepository, _: PullerStateRepository)(
         _: ZActivityOptions[Any]
       )
     )
@@ -30,7 +45,8 @@ object DatabaseActivitiesImpl {
 
 case class DatabaseActivitiesImpl(
   contentFeedRepository:  ContentFeedRepository,
-  integrationsRepository: ContentFeedIntegrationRepository
+  integrationsRepository: ContentFeedIntegrationRepository,
+  pullerStateRepository:  PullerStateRepository
 )(implicit options:       ZActivityOptions[Any])
     extends DatabaseActivities {
 
@@ -62,4 +78,31 @@ case class DatabaseActivitiesImpl(
         }
       )
     }
+
+  override def loadAllPullerStates(params: LoadPullerStatesParams): LoadPullerStatesResult = {
+    ZActivity.run {
+      for {
+        _     <- ZIO.logInfo(s"Looking for puller states integrationType=${params.integrationType}")
+        found <- pullerStateRepository.load(params.integrationType.fromProto)
+      } yield {
+        LoadPullerStatesResult(
+          states = found.map(_.toProto)
+        )
+      }
+    }
+  }
+
+  override def upsertPullerState(params: UpsertPullerStateParams): UpsertPullerStateResult = {
+    ZActivity.run {
+      for {
+        _ <- ZIO.logInfo("Upserting puller states")
+        _ <- pullerStateRepository.upsertStates(
+               params.states.view.flatMap(PullerState.safeFromProto).toList
+             )
+      } yield {
+        UpsertPullerStateResult()
+      }
+    }
+  }
+
 }

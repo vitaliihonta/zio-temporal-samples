@@ -33,7 +33,7 @@ case class YoutubeCallbackHandlingApi(config: YoutubeCallbackHandlingApi.ApiConf
 
   val httpApp: HttpApp[Any, Nothing] = {
     Http.collectHttp[Request] {
-      case Method.GET -> !! / "oauth2" =>
+      case Method.GET -> Root / "oauth2" =>
         callbackDataHandler
           .catchAllZIO { error =>
             val statusCode = error match {
@@ -45,7 +45,7 @@ case class YoutubeCallbackHandlingApi(config: YoutubeCallbackHandlingApi.ApiConf
               .logError(s"OAuth2 callback handler failed $error")
               .as(Response.status(statusCode))
           }
-      case Method.GET -> !! / "health" =>
+      case Method.GET -> Root / "health" =>
         Http.fromHandler(Handler.ok)
     }
   }

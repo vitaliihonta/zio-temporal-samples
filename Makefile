@@ -11,8 +11,4 @@ clean:
 
 .PHONY: start-temporal
 start-temporal:
-	docker-compose up -d
-
-.PHONY: stop-temporal
-stop-temporal:
-	docker-compose down
+	temporal server start-dev --dynamic-config-value 'frontend.workerVersioningDataAPIs=true' --dynamic-config-value 'frontend.workerVersioningWorkflowAPIs=true'

@@ -3,10 +3,10 @@ import $ivy.`com.lihaoyi::mill-contrib-scalapblib:$MILL_VERSION`, contrib.scalap
 
 object versions {
   val scala3      = "3.3.0"
-  val zio         = "2.0.12"
-  val ziologging  = "2.1.12"
-  val ziotemporal = "0.2.0"
-  val logback     = "1.2.11"
+  val zio         = "2.0.16"
+  val ziologging  = "2.1.14"
+  val ziotemporal = "0.4.0"
+  val logback     = "1.4.8"
 }
 
 object cryptostock extends SbtModule with ScalafmtModule with ScalaPBModule {
@@ -15,7 +15,7 @@ object cryptostock extends SbtModule with ScalafmtModule with ScalaPBModule {
   def ivyDeps = Agg(
     ivy"dev.zio::zio:${versions.zio}",
     ivy"dev.zio::zio-logging:${versions.ziologging}",
-    ivy"dev.zio::zio-logging-slf4j:${versions.ziologging}",
+    ivy"dev.zio::zio-logging-slf4j2:${versions.ziologging}",
     ivy"dev.vhonta::zio-temporal-core:${versions.ziotemporal}",
     ivy"dev.vhonta::zio-temporal-protobuf:${versions.ziotemporal}",
     ivy"ch.qos.logback:logback-classic:${versions.logback}"

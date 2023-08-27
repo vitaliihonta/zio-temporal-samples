@@ -35,8 +35,6 @@ class ScheduledPushRecommendationsWorkflowImpl extends ScheduledPushRecommendati
     )
     .build
 
-  private val nextRun = ZWorkflow.newContinueAsNewStub[ScheduledPushRecommendationsWorkflow].build
-
   override def start(): Unit = {
     val startedAt = ZWorkflow.currentTimeMillis.toLocalDateTime()
 
@@ -75,17 +73,6 @@ class ScheduledPushRecommendationsWorkflowImpl extends ScheduledPushRecommendati
 
     pushes.run.getOrThrow
 
-    val finishedAt = ZWorkflow.currentTimeMillis.toLocalDateTime()
-    val sleepTime = pushConfig.pushInterval.fromProto[Duration] minus
-      java.time.Duration.between(startedAt, finishedAt)
-
-    logger.info(s"Next push starts after $sleepTime")
-
-    // Wait for the next run
-    ZWorkflow.sleep(sleepTime)
-
-    ZWorkflowContinueAsNewStub.execute(
-      nextRun.start()
-    )
+    logger.info("Finished push!")
   }
 }

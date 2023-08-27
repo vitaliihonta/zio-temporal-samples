@@ -3,11 +3,11 @@ package dev.vhonta.content.repository
 import zio._
 import dev.vhonta.content.{
   ContentFeedIntegration,
-  ContentFeedRecommendationItem,
   ContentFeedIntegrationDetails,
   ContentFeedIntegrationType,
   ContentFeedRecommendation,
-  ContentFeedItem
+  ContentFeedRecommendationItem,
+  PullerState
 }
 import io.getquill.{Query, SnakeCase}
 import java.sql.SQLException
@@ -69,8 +69,8 @@ case class ContentFeedIntegrationRepository(quill: PostgresQuill[SnakeCase]) {
         .filter(_.integration == lift(integrationId))
         .delete
     }
-    val deleteItems = quote {
-      query[ContentFeedItem]
+    val deleteStates = quote {
+      query[PullerState]
         .filter(_.integration == lift(integrationId))
         .delete
     }
@@ -83,7 +83,7 @@ case class ContentFeedIntegrationRepository(quill: PostgresQuill[SnakeCase]) {
     transaction {
       run(deleteRecommendationItems) *>
         run(deleteRecommendations) *>
-        run(deleteItems) *>
+        run(deleteStates) *>
         run(deleteSelf)
     }.map(_ > 0)
   }

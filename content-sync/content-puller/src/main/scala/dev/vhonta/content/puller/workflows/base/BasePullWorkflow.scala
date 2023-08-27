@@ -1,6 +1,6 @@
 package dev.vhonta.content.puller.workflows.base
 
-import dev.vhonta.content.puller.proto.{PullingResult, PullerResetState, ScheduledPullerParams, PullerParams}
+import dev.vhonta.content.puller.proto.{PullingResult, PullerParams}
 import zio.temporal._
 
 trait BasePullWorkflow[Params <: PullerParams] {
@@ -8,13 +8,7 @@ trait BasePullWorkflow[Params <: PullerParams] {
   def pull(params: Params): PullingResult
 }
 
-trait BaseScheduledPullerWorkflow[Params <: ScheduledPullerParams] {
+trait BaseScheduledPullerWorkflow {
   @workflowMethod
-  def startPulling(params: Params): Unit
-
-  @signalMethod
-  def resetState(command: PullerResetState): Unit
-
-  @signalMethod
-  def resetStateAll(): Unit
+  def pullAll(): Unit
 }

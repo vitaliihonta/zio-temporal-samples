@@ -41,6 +41,8 @@ trait ProtoConverters {
           id = integration.id,
           subscriber = integration.subscriber.fromProto,
           integration = integration.integration match {
+            case proto.ContentFeedIntegrationDetails.Empty =>
+              throw new IllegalArgumentException("Cannot convert empty content integration details")
             case proto.ContentFeedIntegrationNewsApiDetails(token, _) =>
               ContentFeedIntegrationDetails.NewsApi(token)
             case proto.ContentFeedIntegrationYoutubeDetails(
