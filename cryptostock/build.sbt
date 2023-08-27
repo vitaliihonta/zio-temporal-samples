@@ -13,9 +13,9 @@ lazy val cryptostock = project
   .settings(
     name := "cryptostock",
     libraryDependencies ++= {
-      val zioTemporalVersion = "0.2.0"
-      val zioVersion         = "2.0.12"
-      val zioLoggingVersion  = "2.1.12"
+      val zioTemporalVersion = "0.4.0"
+      val zioVersion         = "2.0.16"
+      val zioLoggingVersion  = "2.1.14"
 
       val zioTemporal = Seq(
         "dev.vhonta" %% "zio-temporal-core"     % zioTemporalVersion,
@@ -29,13 +29,13 @@ lazy val cryptostock = project
       )
 
       val zioDeps = Seq(
-        "dev.zio" %% "zio"               % zioVersion,
-        "dev.zio" %% "zio-logging"       % zioLoggingVersion,
-        "dev.zio" %% "zio-logging-slf4j" % zioLoggingVersion
+        "dev.zio" %% "zio"                % zioVersion,
+        "dev.zio" %% "zio-logging"        % zioLoggingVersion,
+        "dev.zio" %% "zio-logging-slf4j2" % zioLoggingVersion
       )
 
       val miscDeps = Seq(
-        "ch.qos.logback" % "logback-classic" % "1.2.11"
+        "ch.qos.logback" % "logback-classic" % "1.4.8"
       )
 
       zioDeps ++ zioTemporal ++ miscDeps
