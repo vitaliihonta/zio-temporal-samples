@@ -32,8 +32,7 @@ case class ScheduledPullerStarterImpl[ScheduledWorkflow <: BaseScheduledPullerWo
   override def start(reset: Boolean): Task[Unit] = {
     for {
       _ <- ZIO.logInfo(s"Starting $integrationType schedule...")
-      // todo: should be catchSome
-      _ <- schedulePuller.catchSomeDefect { case _: ScheduleAlreadyRunningException =>
+      _ <- schedulePuller.catchSome { case _: ScheduleAlreadyRunningException =>
              ZIO.when(reset)(resetSchedule)
            }
       _ <- ZIO.logInfo(s"Schedule for integration=$integrationType started")

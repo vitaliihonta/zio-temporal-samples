@@ -32,15 +32,14 @@ case class ProcessorLauncherStarter(scheduleClient: ZScheduleClient, config: Pro
   def start(reset: Boolean = false): Task[Unit] = {
     for {
       _ <- ZIO.logInfo("Starting processor launcher...")
-      // todo: should be catchSome
-      _ <- scheduleRecommendationsWorkflow.catchSomeDefect { case _: ScheduleAlreadyRunningException =>
+      _ <- scheduleRecommendationsWorkflow.catchSome { case _: ScheduleAlreadyRunningException =>
              ZIO.when(reset)(resetSchedule)
            }
       _ <- ZIO.logInfo("Processor launcher started")
     } yield ()
   }
 
-  private def resetSchedule: Task[Unit] = {
+  private def resetSchedule: TemporalIO[Unit] = {
     for {
       _               <- ZIO.logInfo("Hard-reset launcher")
       currentSchedule <- scheduleClient.getHandle(ProcessorLauncherStarter.ScheduleId)
@@ -49,7 +48,7 @@ case class ProcessorLauncherStarter(scheduleClient: ZScheduleClient, config: Pro
     } yield ()
   }
 
-  private def scheduleRecommendationsWorkflow: Task[Unit] = {
+  private def scheduleRecommendationsWorkflow: TemporalIO[Unit] = {
     val schedule = ZSchedule
       .withAction(
         ZScheduleStartWorkflowStub.start(

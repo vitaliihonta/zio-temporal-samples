@@ -2,7 +2,7 @@ package dev.vhonta.content.tgbot
 
 import dev.vhonta.content.tgbot.workflow.push.{PushConfiguration, ScheduledPushRecommendationsWorkflow}
 import io.temporal.api.enums.v1.ScheduleOverlapPolicy
-import io.temporal.client.WorkflowExecutionAlreadyStarted
+import io.temporal.client.schedules.ScheduleAlreadyRunningException
 import zio._
 import zio.temporal._
 import zio.temporal.schedules._
@@ -30,7 +30,7 @@ case class ScheduledPushStarter(scheduleClient: ZScheduleClient) {
   def start(reset: Boolean = false): Task[Unit] = {
     for {
       _ <- ZIO.logInfo("Starting scheduler...")
-      _ <- schedulePush.catchSome { case _: WorkflowExecutionAlreadyStarted =>
+      _ <- schedulePush.catchSome { case _: ScheduleAlreadyRunningException =>
              ZIO.when(reset)(resetSchedule)
            }
       _ <- ZIO.logInfo("Scheduler started")
