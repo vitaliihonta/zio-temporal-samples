@@ -2,7 +2,8 @@ import sbt._
 
 object Dependencies {
   private object versions {
-    val zioTemporal = "0.4.0"
+    // todo: bump to 0.5.0
+    val zioTemporal = "0.4.0+6-cb3da0a5-SNAPSHOT"
     val zio         = "2.0.16"
     val zioLogging  = "2.1.14"
     val zioConfig   = "4.0.0-RC16"

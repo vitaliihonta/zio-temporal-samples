@@ -18,7 +18,7 @@ object TestModule {
       ZTestWorkflowEnvironment.make[Any],
       ZTestEnvironmentOptions.make,
       ZWorkerFactoryOptions.make,
-      ZWorkflowClientOptions.make @@ ZWorkflowClientOptions.withDataConverter(ProtobufDataConverter.makeAutoLoad())
+      ZWorkflowClientOptions.make @@ ZWorkflowClientOptions.withDataConverter(ProtobufDataConverter.make())
     )
 
   val activityTestEnv: ZLayer[
@@ -32,6 +32,6 @@ object TestModule {
       ZTestActivityEnvironment.make[Any],
       ZTestEnvironmentOptions.make,
       ZWorkerFactoryOptions.make,
-      ZWorkflowClientOptions.make @@ ZWorkflowClientOptions.withDataConverter(ProtobufDataConverter.makeAutoLoad())
+      ZWorkflowClientOptions.make @@ ZWorkflowClientOptions.withDataConverter(ProtobufDataConverter.make())
     )
 }
