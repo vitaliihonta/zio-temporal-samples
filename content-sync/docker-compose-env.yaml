@@ -12,7 +12,7 @@ services:
     ports:
       - "6432:5432"
   content-puller:
-    image: vhonta/content-puller:0.5.0
+    image: vhonta/content-puller:0.5.1
     restart: always
     env_file:
       - common.env
@@ -24,7 +24,7 @@ services:
     depends_on:
       - db
   content-processor-launcher:
-    image: vhonta/content-processor-launcher:0.5.0
+    image: vhonta/content-processor-launcher:0.5.1
     restart: always
     env_file:
       - common.env
@@ -44,7 +44,7 @@ services:
       - ./checkpoint:/opt/checkpoint
       - ./processor-results:/opt/processor-results
   telegram-bot:
-    image: vhonta/telegram-bot:0.5.0
+    image: vhonta/telegram-bot:0.5.1
     restart: always
     env_file:
       - common.env

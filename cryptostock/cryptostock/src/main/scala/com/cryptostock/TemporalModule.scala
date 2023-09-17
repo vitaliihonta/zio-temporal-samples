@@ -11,7 +11,7 @@ object TemporalModule {
 
   val clientOptions: Layer[Config.Error, ZWorkflowClientOptions] =
     ZWorkflowClientOptions.make @@
-      ZWorkflowClientOptions.withDataConverter(ProtobufDataConverter.makeAutoLoad())
+      ZWorkflowClientOptions.withDataConverter(ProtobufDataConverter.make())
 
   val worker: URLayer[ZWorkerFactory with ExchangeOrderActivity, Unit] =
     ZLayer.fromZIO {

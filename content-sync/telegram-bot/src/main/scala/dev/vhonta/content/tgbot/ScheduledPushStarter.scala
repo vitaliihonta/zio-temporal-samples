@@ -8,7 +8,6 @@ import zio.temporal._
 import zio.temporal.schedules._
 
 object ScheduledPushStarter {
-  val TaskQueue  = "telegram-push"
   val ScheduleId = "telegram-scheduled-push"
 
   val make: URLayer[ZScheduleClient, ScheduledPushStarter] =
@@ -19,7 +18,7 @@ case class ScheduledPushStarter(scheduleClient: ZScheduleClient) {
 
   private val stub = scheduleClient
     .newScheduleStartWorkflowStub[ScheduledPushRecommendationsWorkflow]()
-    .withTaskQueue(ScheduledPushStarter.TaskQueue)
+    .withTaskQueue(TelegramModule.TaskQueue)
     .withWorkflowId(ScheduledPushStarter.ScheduleId)
     .withWorkflowExecutionTimeout(1.hour)
     .withRetryOptions(
@@ -50,7 +49,7 @@ case class ScheduledPushStarter(scheduleClient: ZScheduleClient) {
     for {
       config <- ZIO.config(PushConfiguration.definition)
 
-      val schedule =
+      schedule =
         ZSchedule
           .withAction(
             ZScheduleStartWorkflowStub.start(

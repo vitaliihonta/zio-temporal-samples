@@ -120,7 +120,7 @@ object Main extends ZIOAppDefault {
         // options
         ZWorkflowServiceStubsOptions.make,
         ZWorkflowClientOptions.make @@
-          ZWorkflowClientOptions.withDataConverter(ProtobufDataConverter.makeAutoLoad()),
+          ZWorkflowClientOptions.withDataConverter(ProtobufDataConverter.make()),
         ZWorkerFactoryOptions.make,
         ZScheduleClientOptions.make
       )
