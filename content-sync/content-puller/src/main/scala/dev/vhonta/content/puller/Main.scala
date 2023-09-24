@@ -58,12 +58,6 @@ object Main extends ZIOAppDefault {
         PullerStateRepository.make,
         PostgresQuill.make,
         Quill.DataSource.fromPrefix("db"),
-        // activities
-        DatabaseActivitiesImpl.make,
-        DatalakeActivitiesImpl.make,
-        NewsActivitiesImpl.make,
-        YoutubeActivitiesImpl.make,
-        PullConfigurationActivitiesImpl.make,
         // temporal
         ZWorkflowClient.make,
         ZActivityRunOptions.default,

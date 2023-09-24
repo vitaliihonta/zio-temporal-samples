@@ -2,11 +2,15 @@ package dev.vhonta.content.puller.workflows.youtube
 
 import dev.vhonta.content.ContentFeedIntegrationType
 import zio._
-import dev.vhonta.content.puller.workflows.PullConfigurationActivities
+import dev.vhonta.content.puller.workflows.PullConfigurationActivitiesImpl
 import dev.vhonta.content.puller.workflows.base.{ScheduledPullerStarter, ScheduledPullerStarterImpl}
-import dev.vhonta.content.puller.workflows.storage.{DatabaseActivities, DatalakeActivities}
+import dev.vhonta.content.puller.workflows.storage.{DatabaseActivitiesImpl, DatalakeActivitiesImpl}
+import dev.vhonta.content.repository.{ContentFeedIntegrationRepository, ContentFeedRepository, PullerStateRepository}
+import dev.vhonta.content.youtube.{OAuth2Client, YoutubeClient}
+import zio.temporal.activity.{ZActivityImplementationObject, ZActivityRunOptions}
 import zio.temporal.schedules.ZScheduleClient
 import zio.temporal.worker.{ZWorker, ZWorkerFactory}
+import zio.temporal.workflow.ZWorkflowImplementationClass
 
 object YoutubeModule {
   val taskQueue: String = "content-youtube-pullers"
@@ -21,23 +25,34 @@ object YoutubeModule {
       )
     )
 
-  // TODO: use layers
-  val worker: ZIO[
-    PullConfigurationActivities
-      with YoutubeActivities
-      with DatabaseActivities
-      with DatalakeActivities
-      with ZWorkerFactory,
-    Nothing,
+  private val workflows = List(
+    ZWorkflowImplementationClass[YoutubeScheduledPullerWorkflowImpl],
+    ZWorkflowImplementationClass[YoutubePullWorkflowImpl]
+  )
+
+  private val activities = ZLayer.collectAll(
+    List(
+      ZActivityImplementationObject.layer(DatabaseActivitiesImpl.make),
+      ZActivityImplementationObject.layer(DatalakeActivitiesImpl.make),
+      ZActivityImplementationObject.layer(YoutubeActivitiesImpl.make),
+      ZActivityImplementationObject.layer(PullConfigurationActivitiesImpl.make)
+    )
+  )
+
+  val worker: RIO[
+    ContentFeedRepository
+      with ContentFeedIntegrationRepository
+      with PullerStateRepository
+      with ZActivityRunOptions[Any]
+      with YoutubeClient
+      with OAuth2Client
+      with ZWorkerFactory
+      with Scope,
     ZWorker
   ] =
     ZWorkerFactory.newWorker(taskQueue) @@
-      ZWorker.addWorkflow[YoutubeScheduledPullerWorkflowImpl].fromClass @@
-      ZWorker.addWorkflow[YoutubePullWorkflowImpl].fromClass @@
-      ZWorker.addActivityImplementationService[DatabaseActivities] @@
-      ZWorker.addActivityImplementationService[DatalakeActivities] @@
-      ZWorker.addActivityImplementationService[YoutubeActivities] @@
-      ZWorker.addActivityImplementationService[PullConfigurationActivities]
+      ZWorker.addWorkflowImplementations(workflows) @@
+      ZWorker.addActivityImplementationsLayer(activities)
 
   def start(reset: Boolean): ZIO[ZScheduleClient, Throwable, Unit] =
     ZIO

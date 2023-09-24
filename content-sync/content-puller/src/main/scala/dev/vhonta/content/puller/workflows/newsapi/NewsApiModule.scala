@@ -1,12 +1,16 @@
 package dev.vhonta.content.puller.workflows.newsapi
 
 import dev.vhonta.content.ContentFeedIntegrationType
-import dev.vhonta.content.puller.workflows.PullConfigurationActivities
+import dev.vhonta.content.newsapi.NewsApiClient
+import dev.vhonta.content.puller.workflows.PullConfigurationActivitiesImpl
 import dev.vhonta.content.puller.workflows.base.{ScheduledPullerStarter, ScheduledPullerStarterImpl}
-import dev.vhonta.content.puller.workflows.storage.{DatabaseActivities, DatalakeActivities}
+import dev.vhonta.content.puller.workflows.storage.{DatabaseActivitiesImpl, DatalakeActivitiesImpl}
+import dev.vhonta.content.repository.{ContentFeedIntegrationRepository, ContentFeedRepository, PullerStateRepository}
 import zio._
+import zio.temporal.activity.{ZActivityImplementationObject, ZActivityRunOptions}
 import zio.temporal.schedules.ZScheduleClient
 import zio.temporal.worker.{ZWorker, ZWorkerFactory}
+import zio.temporal.workflow.ZWorkflowImplementationClass
 
 object NewsApiModule {
   val taskQueue: String = "content-news-api-pullers"
@@ -21,19 +25,33 @@ object NewsApiModule {
       )
     )
 
-  // todo: use layers
-  val worker: ZIO[
-    PullConfigurationActivities with NewsActivities with DatabaseActivities with DatalakeActivities with ZWorkerFactory,
-    Nothing,
+  private val workflows = List(
+    ZWorkflowImplementationClass[NewsApiScheduledPullerWorkflowImpl],
+    ZWorkflowImplementationClass[NewsApiPullWorkflowImpl]
+  )
+
+  private val activities = ZLayer.collectAll(
+    List(
+      ZActivityImplementationObject.layer(DatabaseActivitiesImpl.make),
+      ZActivityImplementationObject.layer(DatalakeActivitiesImpl.make),
+      ZActivityImplementationObject.layer(NewsActivitiesImpl.make),
+      ZActivityImplementationObject.layer(PullConfigurationActivitiesImpl.make)
+    )
+  )
+
+  val worker: RIO[
+    ContentFeedRepository
+      with ContentFeedIntegrationRepository
+      with PullerStateRepository
+      with ZActivityRunOptions[Any]
+      with NewsApiClient
+      with ZWorkerFactory
+      with Scope,
     ZWorker
   ] =
     ZWorkerFactory.newWorker(taskQueue) @@
-      ZWorker.addWorkflow[NewsApiScheduledPullerWorkflowImpl].fromClass @@
-      ZWorker.addWorkflow[NewsApiPullWorkflowImpl].fromClass @@
-      ZWorker.addActivityImplementationService[DatabaseActivities] @@
-      ZWorker.addActivityImplementationService[DatalakeActivities] @@
-      ZWorker.addActivityImplementationService[NewsActivities] @@
-      ZWorker.addActivityImplementationService[PullConfigurationActivities]
+      ZWorker.addWorkflowImplementations(workflows) @@
+      ZWorker.addActivityImplementationsLayer(activities)
 
   def start(reset: Boolean): ZIO[ZScheduleClient, Throwable, Unit] =
     ZIO
