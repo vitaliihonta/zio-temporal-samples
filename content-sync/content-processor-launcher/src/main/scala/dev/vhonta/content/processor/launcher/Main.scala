@@ -7,7 +7,7 @@ import zio.logging.backend.SLF4J
 import zio.temporal.protobuf.ProtobufDataConverter
 import zio.temporal.worker._
 import zio.temporal.workflow._
-import zio.temporal.activity.ZActivityOptions
+import zio.temporal.activity.ZActivityRunOptions
 import zio.temporal.schedules.{ZScheduleClient, ZScheduleClientOptions}
 
 object Main extends ZIOAppDefault {
@@ -15,6 +15,7 @@ object Main extends ZIOAppDefault {
     Runtime.removeDefaultLoggers ++ SLF4J.slf4j
 
   def run: ZIO[ZIOAppArgs with Scope, Any, Any] = {
+    // todo: use layers
     val registerWorkflow =
       ZWorkerFactory.newWorker(ProcessorLauncherStarter.TaskQueue) @@
         ZWorker.addWorkflow[ProcessorLauncherWorkflowImpl].fromClass @@
@@ -38,7 +39,7 @@ object Main extends ZIOAppDefault {
         // temporal
         ZWorkflowClient.make,
         ZScheduleClient.make,
-        ZActivityOptions.default,
+        ZActivityRunOptions.default,
         ZWorkflowServiceStubs.make,
         ZWorkerFactory.make,
         // options

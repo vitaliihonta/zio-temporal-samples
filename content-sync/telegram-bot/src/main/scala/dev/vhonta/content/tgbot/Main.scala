@@ -44,7 +44,7 @@ import sttp.client3.httpclient.zio.HttpClientZioBackend
 import zio._
 import zio.config.typesafe.TypesafeConfigProvider
 import zio.logging.backend.SLF4J
-import zio.temporal.activity.ZActivityOptions
+import zio.temporal.activity.ZActivityRunOptions
 import zio.temporal.protobuf.ProtobufDataConverter
 import zio.temporal.schedules.{ZScheduleClient, ZScheduleClientOptions}
 import zio.temporal.worker._
@@ -114,7 +114,7 @@ object Main extends ZIOAppDefault {
         ScheduledPushStarter.make,
         ZWorkflowClient.make,
         ZScheduleClient.make,
-        ZActivityOptions.default,
+        ZActivityRunOptions.default,
         ZWorkflowServiceStubs.make,
         ZWorkerFactory.make,
         // options

@@ -20,25 +20,25 @@ trait YoutubePullWorkflow extends BasePullWorkflow[YoutubePullerParameters]
 class YoutubePullWorkflowImpl extends YoutubePullWorkflow {
   private val logger = ZWorkflow.makeLogger
 
-  private val youtubeActivities = ZWorkflow
-    .newActivityStub[YoutubeActivities]
-    // it may take long time to process...
-    .withStartToCloseTimeout(30.minutes)
-    .withRetryOptions(
-      ZRetryOptions.default
-        .withMaximumAttempts(5)
-        // bigger coefficient due for rate limiting
-        .withBackoffCoefficient(3)
-    )
-    .build
+  private val youtubeActivities = ZWorkflow.newActivityStub[YoutubeActivities](
+    ZActivityOptions
+      // it may take long time to process...
+      .withStartToCloseTimeout(30.minutes)
+      .withRetryOptions(
+        ZRetryOptions.default
+          .withMaximumAttempts(5)
+          // bigger coefficient due for rate limiting
+          .withBackoffCoefficient(3)
+      )
+  )
 
-  private val datalakeActivities = ZWorkflow
-    .newActivityStub[DatalakeActivities]
-    .withStartToCloseTimeout(1.minute)
-    .withRetryOptions(
-      ZRetryOptions.default.withMaximumAttempts(5)
-    )
-    .build
+  private val datalakeActivities = ZWorkflow.newActivityStub[DatalakeActivities](
+    ZActivityOptions
+      .withStartToCloseTimeout(1.minute)
+      .withRetryOptions(
+        ZRetryOptions.default.withMaximumAttempts(5)
+      )
+  )
 
   override def pull(params: YoutubePullerParameters): PullingResult = {
     logger.info(

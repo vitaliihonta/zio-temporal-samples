@@ -31,11 +31,11 @@ trait ProcessorConfigurationActivities {
 }
 
 object ProcessorConfigurationActivitiesImpl {
-  val make: URLayer[ZActivityOptions[Any], ProcessorConfigurationActivities] =
-    ZLayer.fromFunction(new ProcessorConfigurationActivitiesImpl()(_: ZActivityOptions[Any]))
+  val make: URLayer[ZActivityRunOptions[Any], ProcessorConfigurationActivities] =
+    ZLayer.fromFunction(new ProcessorConfigurationActivitiesImpl()(_: ZActivityRunOptions[Any]))
 }
 
-class ProcessorConfigurationActivitiesImpl()(implicit options: ZActivityOptions[Any])
+class ProcessorConfigurationActivitiesImpl()(implicit options: ZActivityRunOptions[Any])
     extends ProcessorConfigurationActivities {
   override def getProcessorConfiguration: proto.ProcessorConfiguration =
     ZActivity.run {

@@ -30,7 +30,7 @@ trait YoutubeActivities {
 
 object YoutubeActivitiesImpl {
   val make: URLayer[
-    OAuth2Client with YoutubeClient with ContentFeedIntegrationRepository with ZActivityOptions[Any],
+    OAuth2Client with YoutubeClient with ContentFeedIntegrationRepository with ZActivityRunOptions[Any],
     YoutubeActivities
   ] =
     ZLayer.fromFunction(
@@ -38,7 +38,7 @@ object YoutubeActivitiesImpl {
         _: OAuth2Client,
         _: YoutubeClient,
         _: ContentFeedIntegrationRepository
-      )(_: ZActivityOptions[Any])
+      )(_: ZActivityRunOptions[Any])
     )
 }
 
@@ -46,7 +46,7 @@ case class YoutubeActivitiesImpl(
   oauth2Client:          OAuth2Client,
   youtubeClient:         YoutubeClient,
   integrationRepository: ContentFeedIntegrationRepository
-)(implicit options:      ZActivityOptions[Any])
+)(implicit options:      ZActivityRunOptions[Any])
     extends YoutubeActivities {
 
   private val encoder = Base64.getEncoder

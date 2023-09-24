@@ -8,9 +8,9 @@ import dev.vhonta.content.puller.proto.{
 }
 import dev.vhonta.content.puller.workflows.storage.DatalakeActivities
 import zio._
-import zio.temporal.activity.{ZActivity, ZActivityOptions}
+import zio.temporal.activity.{ZActivity, ZActivityRunOptions}
 
-case class MockDatalakeActivities()(implicit options: ZActivityOptions[Any]) extends DatalakeActivities {
+case class MockDatalakeActivities()(implicit options: ZActivityRunOptions[Any]) extends DatalakeActivities {
   override def storeArticles(articles: NewsApiArticles, storeParams: StoreArticlesParameters): Unit = {
     ZActivity.run {
       ZIO.logInfo(s"Stored ${articles.articles.size} articles")

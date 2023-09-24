@@ -1,6 +1,7 @@
-ThisBuild / version      := "0.5.1"
+ThisBuild / version      := "0.6.0"
 ThisBuild / scalaVersion := "2.13.11"
 ThisBuild / organization := "dev.vhonta"
+ThisBuild / resolvers ++= Resolver.sonatypeOssRepos("snapshots")
 
 val baseSettings = Seq(
   Compile / PB.targets := Seq(
@@ -9,6 +10,8 @@ val baseSettings = Seq(
       grpc = false
     ) -> (Compile / sourceManaged).value / "scalapb"
   ),
+  scalacOptions ++= Seq("-deprecation"),
+
   // mac m1 workaround
   PB.protocDependency := {
     if (System.getProperty("os.arch") == "aarch64" && System.getProperty("os.name") == "Mac OS X") {

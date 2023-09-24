@@ -18,6 +18,8 @@ import zio.test._
 import zio.temporal.testkit._
 import org.mockito.{ArgumentMatchersSugar, IdiomaticMockito}
 import zio.stream.ZStream
+import zio.temporal.activity.ZActivityOptions
+
 import java.util.UUID
 
 object YoutubeActivitiesSpec extends ZIOSpecDefault with IdiomaticMockito with ArgumentMatchersSugar {
@@ -31,16 +33,15 @@ object YoutubeActivitiesSpec extends ZIOSpecDefault with IdiomaticMockito with A
       val integrationRepository = mock[ContentFeedIntegrationRepository]
       val config = YoutubeActivitiesImpl.YoutubeConfig(pollInterval = 1.second, refreshTokenThreshold = 2.hours)
 
-      ZTestActivityEnvironment.activityOptions[Any].flatMap { implicit options =>
+      ZTestActivityEnvironment.activityRunOptionsWithZIO[Any] { implicit options =>
         for {
           _ <- ZTestActivityEnvironment.addActivityImplementation(
                  YoutubeActivitiesImpl(youtubeClient, oauth2Client, integrationRepository, config)
                )
 
-          stub <- ZTestActivityEnvironment
-                    .newActivityStub[YoutubeActivities]
-                    .withStartToCloseTimeout(10.seconds)
-                    .build
+          stub <- ZTestActivityEnvironment.newActivityStub[YoutubeActivities](
+                    ZActivityOptions.withStartToCloseTimeout(10.seconds)
+                  )
 
           integrationId = 1
           subscriber  <- ZIO.randomWith(_.nextUUID)
@@ -73,16 +74,15 @@ object YoutubeActivitiesSpec extends ZIOSpecDefault with IdiomaticMockito with A
       val integrationRepository = mock[ContentFeedIntegrationRepository]
       val config = YoutubeActivitiesImpl.YoutubeConfig(pollInterval = 1.second, refreshTokenThreshold = 2.hours)
 
-      ZTestActivityEnvironment.activityOptions[Any].flatMap { implicit options =>
+      ZTestActivityEnvironment.activityRunOptionsWithZIO[Any] { implicit options =>
         for {
           _ <- ZTestActivityEnvironment.addActivityImplementation(
                  YoutubeActivitiesImpl(youtubeClient, oauth2Client, integrationRepository, config)
                )
 
-          stub <- ZTestActivityEnvironment
-                    .newActivityStub[YoutubeActivities]
-                    .withStartToCloseTimeout(10.seconds)
-                    .build
+          stub <- ZTestActivityEnvironment.newActivityStub[YoutubeActivities](
+                    ZActivityOptions.withStartToCloseTimeout(10.seconds)
+                  )
 
           integrationId = 1
           subscriber  <- ZIO.randomWith(_.nextUUID)

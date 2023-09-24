@@ -44,22 +44,22 @@ abstract class AsyncScheduledPullerWorkflow[
   protected val thisWorkflowId: String = ZWorkflow.info.workflowId
 
   protected val databaseActivities: ZActivityStub.Of[DatabaseActivities] =
-    ZWorkflow
-      .newActivityStub[DatabaseActivities]
-      .withStartToCloseTimeout(3.minutes)
-      .withRetryOptions(
-        ZRetryOptions.default.withMaximumAttempts(3)
-      )
-      .build
+    ZWorkflow.newActivityStub[DatabaseActivities](
+      ZActivityOptions
+        .withStartToCloseTimeout(3.minutes)
+        .withRetryOptions(
+          ZRetryOptions.default.withMaximumAttempts(3)
+        )
+    )
 
   protected val configurationActivities: ZActivityStub.Of[PullConfigurationActivities] =
-    ZWorkflow
-      .newActivityStub[PullConfigurationActivities]
-      .withStartToCloseTimeout(30.seconds)
-      .withRetryOptions(
-        ZRetryOptions.default.withDoNotRetry(nameOf[Config.Error])
-      )
-      .build
+    ZWorkflow.newActivityStub[PullConfigurationActivities](
+      ZActivityOptions
+        .withStartToCloseTimeout(30.seconds)
+        .withRetryOptions(
+          ZRetryOptions.default.withDoNotRetry(nameOf[Config.Error])
+        )
+    )
 
   override def pullAll(): Unit = {
     val pullerConfig = ZActivityStub.execute(
@@ -105,12 +105,12 @@ abstract class AsyncScheduledPullerWorkflow[
         s"Starting puller integrationId=$integrationId parameters=$parameters"
       )
 
-      val pullerWorkflow = ZWorkflow
-        .newChildWorkflowStub[PullerWorkflow]
-        .withWorkflowId(s"$thisWorkflowId/$integrationType/$integrationId")
-        // Limit the pull time
-        .withWorkflowExecutionTimeout(pullerConfig.singlePullTimeout.fromProto[Duration])
-        .build
+      val pullerWorkflow = ZWorkflow.newChildWorkflowStub[PullerWorkflow](
+        ZChildWorkflowOptions
+          .withWorkflowId(s"$thisWorkflowId/$integrationType/$integrationId")
+          // Limit the pull time
+          .withWorkflowExecutionTimeout(pullerConfig.singlePullTimeout.fromProto[Duration])
+      )
 
       ZChildWorkflowStub
         .executeAsync(

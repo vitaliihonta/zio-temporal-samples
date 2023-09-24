@@ -33,12 +33,15 @@ trait DatabaseActivities {
 
 object DatabaseActivitiesImpl {
   val make: URLayer[
-    ContentFeedRepository with ContentFeedIntegrationRepository with PullerStateRepository with ZActivityOptions[Any],
+    ContentFeedRepository
+      with ContentFeedIntegrationRepository
+      with PullerStateRepository
+      with ZActivityRunOptions[Any],
     DatabaseActivities
   ] =
     ZLayer.fromFunction(
       DatabaseActivitiesImpl(_: ContentFeedRepository, _: ContentFeedIntegrationRepository, _: PullerStateRepository)(
-        _: ZActivityOptions[Any]
+        _: ZActivityRunOptions[Any]
       )
     )
 }
@@ -47,7 +50,7 @@ case class DatabaseActivitiesImpl(
   contentFeedRepository:  ContentFeedRepository,
   integrationsRepository: ContentFeedIntegrationRepository,
   pullerStateRepository:  PullerStateRepository
-)(implicit options:       ZActivityOptions[Any])
+)(implicit options:       ZActivityRunOptions[Any])
     extends DatabaseActivities {
 
   override def loadIntegrations(list: ListIntegrations): ContentFeedIntegrations =

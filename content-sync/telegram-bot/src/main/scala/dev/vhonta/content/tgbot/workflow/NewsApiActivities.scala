@@ -24,21 +24,21 @@ trait NewsApiActivities {
 
 object NewsApiActivitiesImpl {
   val make: URLayer[
-    NewsApiClient with ContentFeedIntegrationRepository with ZActivityOptions[Any],
+    NewsApiClient with ContentFeedIntegrationRepository with ZActivityRunOptions[Any],
     NewsApiActivities
   ] =
     ZLayer.fromFunction(
       NewsApiActivitiesImpl(
         _: NewsApiClient,
         _: ContentFeedIntegrationRepository
-      )(_: ZActivityOptions[Any])
+      )(_: ZActivityRunOptions[Any])
     )
 }
 
 case class NewsApiActivitiesImpl(
   client:                NewsApiClient,
   integrationRepository: ContentFeedIntegrationRepository
-)(implicit options:      ZActivityOptions[Any])
+)(implicit options:      ZActivityRunOptions[Any])
     extends NewsApiActivities {
 
   override def testApiKey(params: TestApiKeyParams): TestApiKeyResult =

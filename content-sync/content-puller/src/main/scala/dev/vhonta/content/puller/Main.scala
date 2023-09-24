@@ -12,7 +12,7 @@ import io.getquill.jdbczio.Quill
 import sttp.client3.httpclient.zio.HttpClientZioBackend
 import zio._
 import zio.logging.backend.SLF4J
-import zio.temporal.activity.ZActivityOptions
+import zio.temporal.activity.ZActivityRunOptions
 import zio.temporal.protobuf.ProtobufDataConverter
 import zio.temporal.worker._
 import zio.temporal.workflow._
@@ -66,7 +66,7 @@ object Main extends ZIOAppDefault {
         PullConfigurationActivitiesImpl.make,
         // temporal
         ZWorkflowClient.make,
-        ZActivityOptions.default,
+        ZActivityRunOptions.default,
         ZWorkflowServiceStubs.make,
         ZWorkerFactory.make,
         ZScheduleClient.make,

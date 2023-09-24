@@ -21,13 +21,13 @@ case class ScheduledPullerStarterImpl[ScheduledWorkflow <: BaseScheduledPullerWo
   integrationType: ContentFeedIntegrationType)
     extends ScheduledPullerStarter {
 
-  private val stub = scheduleClient
-    .newScheduleStartWorkflowStub[ScheduledWorkflow]()
-    .withTaskQueue(taskQueue)
-    .withWorkflowId(s"scheduled-$integrationType")
-    .withWorkflowExecutionTimeout(1.hour)
-    .withRetryOptions(ZRetryOptions.default.withMaximumAttempts(2))
-    .build
+  private val stub = scheduleClient.newScheduleStartWorkflowStub[ScheduledWorkflow](
+    ZWorkflowOptions
+      .withWorkflowId(s"scheduled-$integrationType")
+      .withTaskQueue(taskQueue)
+      .withWorkflowExecutionTimeout(1.hour)
+      .withRetryOptions(ZRetryOptions.default.withMaximumAttempts(2))
+  )
 
   override def start(reset: Boolean): Task[Unit] = {
     for {

@@ -3,3 +3,5 @@ secret.env
 datalake/
 checkpoint/
 processor-results/
+*.tgz
+*.zip

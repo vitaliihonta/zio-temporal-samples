@@ -34,26 +34,27 @@ class SetupNewsApiWorkflowImpl extends SetupNewsApiWorkflow {
   import SetupNewsApiWorkflowImpl._
 
   private val logger = ZWorkflow.makeLogger
-  private val newsApiActivities = ZWorkflow
-    .newActivityStub[NewsApiActivities]
-    .withStartToCloseTimeout(10.seconds)
-    .withRetryOptions(
-      ZRetryOptions.default
-        .withMaximumAttempts(3)
-    )
-    .build
 
-  private val telegramActivities = ZWorkflow
-    .newActivityStub[TelegramActivities]
-    .withStartToCloseTimeout(1.minute)
-    .withRetryOptions(
-      ZRetryOptions.default
-        .withMaximumAttempts(5)
-        .withDoNotRetry(
-          nameOf[SubscriberNotFoundException]
-        )
-    )
-    .build
+  private val newsApiActivities = ZWorkflow.newActivityStub[NewsApiActivities](
+    ZActivityOptions
+      .withStartToCloseTimeout(10.seconds)
+      .withRetryOptions(
+        ZRetryOptions.default
+          .withMaximumAttempts(3)
+      )
+  )
+
+  private val telegramActivities = ZWorkflow.newActivityStub[TelegramActivities](
+    ZActivityOptions
+      .withStartToCloseTimeout(1.minute)
+      .withRetryOptions(
+        ZRetryOptions.default
+          .withMaximumAttempts(5)
+          .withDoNotRetry(
+            nameOf[SubscriberNotFoundException]
+          )
+      )
+  )
 
   private val state = ZWorkflowState.make[SetupState](SetupState.WaitingForApiKey)
 

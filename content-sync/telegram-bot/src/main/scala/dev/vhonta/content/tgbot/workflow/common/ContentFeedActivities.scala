@@ -33,7 +33,7 @@ object ContentFeedActivitiesImpl {
       with SubscriberRepository
       with ContentFeedIntegrationRepository
       with ContentFeedRecommendationRepository
-      with ZActivityOptions[Any],
+      with ZActivityRunOptions[Any],
     ContentFeedActivities
   ] =
     ZLayer.fromFunction(
@@ -42,7 +42,7 @@ object ContentFeedActivitiesImpl {
         _: SubscriberRepository,
         _: ContentFeedIntegrationRepository,
         _: ContentFeedRecommendationRepository
-      )(_: ZActivityOptions[Any])
+      )(_: ZActivityRunOptions[Any])
     )
 }
 
@@ -51,7 +51,7 @@ case class ContentFeedActivitiesImpl(
   subscriberRepository:                SubscriberRepository,
   contentFeedIntegrationRepository:    ContentFeedIntegrationRepository,
   contentFeedRecommendationRepository: ContentFeedRecommendationRepository
-)(implicit options:                    ZActivityOptions[Any])
+)(implicit options:                    ZActivityRunOptions[Any])
     extends ContentFeedActivities {
 
   override def listTopics(params: ListTopicsParams): ListTopicsResult = {

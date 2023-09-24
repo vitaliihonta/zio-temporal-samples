@@ -3,10 +3,11 @@ package dev.vhonta.content.processor.launcher.workflow
 import dev.vhonta.content.processor.proto.{SparkLaunchLocalPayload, SparkLauncherParams, SparkReadResultsParams}
 import zio._
 import zio.temporal._
-import zio.temporal.activity.ZActivityStub
+import zio.temporal.activity.{ZActivityOptions, ZActivityStub}
 import zio.temporal.failure.ApplicationFailure
 import zio.temporal.protobuf.syntax._
 import zio.temporal.workflow._
+
 import java.time.LocalDate
 
 @workflowInterface
@@ -18,21 +19,21 @@ trait ProcessorLauncherWorkflow {
 class ProcessorLauncherWorkflowImpl extends ProcessorLauncherWorkflow {
   private val logger = ZWorkflow.makeLogger
 
-  private val configurationActivities = ZWorkflow
-    .newActivityStub[ProcessorConfigurationActivities]
-    .withStartToCloseTimeout(10.seconds)
-    .withRetryOptions(
-      ZRetryOptions.default.withDoNotRetry(
-        nameOf[Config.Error]
+  private val configurationActivities = ZWorkflow.newActivityStub[ProcessorConfigurationActivities](
+    ZActivityOptions
+      .withStartToCloseTimeout(10.seconds)
+      .withRetryOptions(
+        ZRetryOptions.default.withDoNotRetry(
+          nameOf[Config.Error]
+        )
       )
-    )
-    .build
+  )
 
-  private val launcherActivity = ZWorkflow
-    .newActivityStub[ProcessorLauncherActivity]
-    .withStartToCloseTimeout(1.hour)
-    .withHeartbeatTimeout(1.minute)
-    .build
+  private val launcherActivity = ZWorkflow.newActivityStub[ProcessorLauncherActivity](
+    ZActivityOptions
+      .withStartToCloseTimeout(1.hour)
+      .withHeartbeatTimeout(1.minute)
+  )
 
   override def launch(): Unit = {
     val processorConfig = ZActivityStub.execute(

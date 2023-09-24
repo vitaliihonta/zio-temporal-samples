@@ -30,23 +30,24 @@ trait AddTopicWorkflow {
 class AddTopicWorkflowImpl extends AddTopicWorkflow {
 
   private val logger = ZWorkflow.makeLogger
-  private val contentFeedActivities = ZWorkflow
-    .newActivityStub[ContentFeedActivities]
-    .withStartToCloseTimeout(10.seconds)
-    .withRetryOptions(
-      ZRetryOptions.default.withMaximumAttempts(3)
-    )
-    .build
 
-  private val telegramActivities = ZWorkflow
-    .newActivityStub[TelegramActivities]
-    .withStartToCloseTimeout(1.minute)
-    .withRetryOptions(
-      ZRetryOptions.default
-        .withMaximumAttempts(5)
-        .withDoNotRetry(nameOf[SubscriberNotFoundException])
-    )
-    .build
+  private val contentFeedActivities = ZWorkflow.newActivityStub[ContentFeedActivities](
+    ZActivityOptions
+      .withStartToCloseTimeout(10.seconds)
+      .withRetryOptions(
+        ZRetryOptions.default.withMaximumAttempts(3)
+      )
+  )
+
+  private val telegramActivities = ZWorkflow.newActivityStub[TelegramActivities](
+    ZActivityOptions
+      .withStartToCloseTimeout(1.minute)
+      .withRetryOptions(
+        ZRetryOptions.default
+          .withMaximumAttempts(5)
+          .withDoNotRetry(nameOf[SubscriberNotFoundException])
+      )
+  )
 
   private val stepState     = ZWorkflowState.make[AddTopicStep](AddTopicStep.WaitingForTopic)
   private val topicState    = ZWorkflowState.empty[String]

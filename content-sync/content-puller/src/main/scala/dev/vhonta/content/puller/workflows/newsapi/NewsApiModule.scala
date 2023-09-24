@@ -21,6 +21,7 @@ object NewsApiModule {
       )
     )
 
+  // todo: use layers
   val worker: ZIO[
     PullConfigurationActivities with NewsActivities with DatabaseActivities with DatalakeActivities with ZWorkerFactory,
     Nothing,

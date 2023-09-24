@@ -17,29 +17,30 @@ trait OnDemandPushRecommendationsWorkflow {
 class OnDemandPushRecommendationsWorkflowImpl extends OnDemandPushRecommendationsWorkflow {
   private val logger = ZWorkflow.makeLogger
 
-  private val telegramActivities = ZWorkflow
-    .newActivityStub[TelegramActivities]
-    .withStartToCloseTimeout(1.minute)
-    .withRetryOptions(
-      ZRetryOptions.default
-        .withMaximumAttempts(5)
-        .withDoNotRetry(
-          nameOf[SubscriberNotFoundException]
-        )
-    )
-    .build
+  private val telegramActivities = ZWorkflow.newActivityStub[TelegramActivities](
+    ZActivityOptions
+      .withStartToCloseTimeout(1.minute)
+      .withRetryOptions(
+        ZRetryOptions.default
+          .withMaximumAttempts(5)
+          .withDoNotRetry(
+            nameOf[SubscriberNotFoundException]
+          )
+      )
+  )
 
   override def push(params: PushRecommendationsParams): Unit = {
     logger.info(s"On-demand push")
 
-    val pushRecommendationsWorkflow = ZWorkflow
-      .newChildWorkflowStub[PushRecommendationsWorkflow]
-      .withRetryOptions(
-        ZRetryOptions.default
-          .withMaximumAttempts(3)
-          .withDoNotRetry(nameOf[SubscriberNotFoundException])
-      )
-      .build
+    val pushRecommendationsWorkflow = ZWorkflow.newChildWorkflowStub[PushRecommendationsWorkflow](
+      ZChildWorkflowOptions
+        .withWorkflowId(s"${ZWorkflow.info.workflowId}/push")
+        .withRetryOptions(
+          ZRetryOptions.default
+            .withMaximumAttempts(3)
+            .withDoNotRetry(nameOf[SubscriberNotFoundException])
+        )
+    )
 
     try {
       ZChildWorkflowStub.execute(
