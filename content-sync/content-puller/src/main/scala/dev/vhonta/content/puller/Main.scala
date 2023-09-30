@@ -2,10 +2,8 @@ package dev.vhonta.content.puller
 
 import dev.vhonta.content.newsapi.NewsApiClient
 import dev.vhonta.content.repository.PullerStateRepository
-import dev.vhonta.content.puller.workflows._
-import dev.vhonta.content.puller.workflows.newsapi.{NewsActivitiesImpl, NewsApiModule}
-import dev.vhonta.content.puller.workflows.storage.{DatabaseActivitiesImpl, DatalakeActivitiesImpl}
-import dev.vhonta.content.puller.workflows.youtube.{YoutubeActivitiesImpl, YoutubeModule}
+import dev.vhonta.content.puller.workflows.newsapi.NewsApiModule
+import dev.vhonta.content.puller.workflows.youtube.YoutubeModule
 import dev.vhonta.content.repository._
 import dev.vhonta.content.youtube.{GoogleModule, OAuth2Client, YoutubeClient}
 import io.getquill.jdbczio.Quill

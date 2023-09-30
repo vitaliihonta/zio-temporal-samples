@@ -17,27 +17,6 @@ import dev.vhonta.content.tgbot.bot.{
   SubscribersService,
   TopicsCommandHandler
 }
-import dev.vhonta.content.tgbot.workflow.common.{
-  ContentFeedActivities,
-  ContentFeedActivitiesImpl,
-  TelegramActivities,
-  TelegramActivitiesImpl
-}
-import dev.vhonta.content.tgbot.workflow.push.{
-  OnDemandPushRecommendationsWorkflowImpl,
-  PushConfigurationActivities,
-  PushConfigurationActivitiesImpl,
-  PushRecommendationsWorkflowImpl,
-  ScheduledPushRecommendationsWorkflowImpl
-}
-import dev.vhonta.content.tgbot.workflow.setup.{SetupNewsApiWorkflowImpl, SetupYoutubeWorkflowImpl}
-import dev.vhonta.content.tgbot.workflow.{
-  AddTopicWorkflowImpl,
-  NewsApiActivities,
-  NewsApiActivitiesImpl,
-  YoutubeActivities,
-  YoutubeActivitiesImpl
-}
 import dev.vhonta.content.youtube.{GoogleModule, OAuth2Client, YoutubeClient}
 import io.getquill.jdbczio.Quill
 import sttp.client3.httpclient.zio.HttpClientZioBackend
@@ -57,17 +36,8 @@ object Main extends ZIOAppDefault {
   override def run: ZIO[ZIOAppArgs with Scope, Any, Any] = {
     val registerWorkflows =
       ZWorkerFactory.newWorker(TelegramModule.TaskQueue) @@
-        ZWorker.addWorkflow[SetupNewsApiWorkflowImpl].fromClass @@
-        ZWorker.addWorkflow[SetupYoutubeWorkflowImpl].fromClass @@
-        ZWorker.addWorkflow[AddTopicWorkflowImpl].fromClass @@
-        ZWorker.addWorkflow[ScheduledPushRecommendationsWorkflowImpl].fromClass @@
-        ZWorker.addWorkflow[OnDemandPushRecommendationsWorkflowImpl].fromClass @@
-        ZWorker.addWorkflow[PushRecommendationsWorkflowImpl].fromClass @@
-        ZWorker.addActivityImplementationService[NewsApiActivities] @@
-        ZWorker.addActivityImplementationService[TelegramActivities] @@
-        ZWorker.addActivityImplementationService[YoutubeActivities] @@
-        ZWorker.addActivityImplementationService[ContentFeedActivities] @@
-        ZWorker.addActivityImplementationService[PushConfigurationActivities]
+        ZWorker.addWorkflowImplementations(TelegramModule.workflows) @@
+        ZWorker.addActivityImplementationsLayer(TelegramModule.activitiesLayer)
 
     val program = for {
       _    <- ZIO.logInfo("Started Telegram push!")
@@ -104,12 +74,6 @@ object Main extends ZIOAppDefault {
         SettingsCommandsHandler.make,
         TopicsCommandHandler.make,
         SubscribersService.make,
-        // activities
-        NewsApiActivitiesImpl.make,
-        YoutubeActivitiesImpl.make,
-        TelegramActivitiesImpl.make,
-        ContentFeedActivitiesImpl.make,
-        PushConfigurationActivitiesImpl.make,
         // temporal
         ScheduledPushStarter.make,
         ZWorkflowClient.make,

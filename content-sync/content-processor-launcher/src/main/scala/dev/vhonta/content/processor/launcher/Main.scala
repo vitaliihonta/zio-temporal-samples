@@ -19,8 +19,8 @@ object Main extends ZIOAppDefault {
     val registerWorkflow =
       ZWorkerFactory.newWorker(ProcessorLauncherStarter.TaskQueue) @@
         ZWorker.addWorkflow[ProcessorLauncherWorkflowImpl].fromClass @@
-        ZWorker.addActivityImplementationService[ProcessorLauncherActivity] @@
-        ZWorker.addActivityImplementationService[ProcessorConfigurationActivities]
+        ZWorker.addActivityImplementationLayer(ProcessorLauncherActivityImpl.make) @@
+        ZWorker.addActivityImplementationLayer(ProcessorConfigurationActivitiesImpl.make)
 
     val program = for {
       _    <- registerWorkflow
@@ -33,9 +33,6 @@ object Main extends ZIOAppDefault {
     program
       .provideSome[ZIOAppArgs with Scope](
         ProcessorLauncherStarter.make,
-        // activities
-        ProcessorLauncherActivityImpl.make,
-        ProcessorConfigurationActivitiesImpl.make,
         // temporal
         ZWorkflowClient.make,
         ZScheduleClient.make,
