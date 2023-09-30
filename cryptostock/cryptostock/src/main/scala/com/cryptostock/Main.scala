@@ -4,13 +4,13 @@ import com.cryptostock.clients.ExchangeClientService
 import com.cryptostock.workflows.ExchangeOrderActivityImpl
 import zio.*
 import zio.logging.backend.SLF4J
-import zio.temporal.activity.ZActivityOptions
+import zio.temporal.activity.{ZActivityOptions, ZActivityRunOptions}
 import zio.temporal.worker.ZWorkerFactory
 import zio.temporal.workflow.{
   ZWorkflowClient,
+  ZWorkflowClientOptions,
   ZWorkflowServiceStubs,
-  ZWorkflowServiceStubsOptions,
-  ZWorkflowClientOptions
+  ZWorkflowServiceStubsOptions
 }
 import zio.temporal.worker.ZWorkerFactoryOptions
 
@@ -69,7 +69,7 @@ object Main extends ZIOAppDefault {
       ZWorkflowServiceStubsOptions.make,
       TemporalModule.clientOptions,
       TemporalModule.worker,
-      ZActivityOptions.default,
+      ZActivityRunOptions.default,
       ZWorkflowServiceStubs.make,
       ZWorkerFactory.make
     )

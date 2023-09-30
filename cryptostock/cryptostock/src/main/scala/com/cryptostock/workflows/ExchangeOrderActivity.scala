@@ -35,12 +35,12 @@ trait ExchangeOrderActivity {
 }
 
 object ExchangeOrderActivityImpl {
-  val make: URLayer[ZActivityOptions[Any], ExchangeOrderActivity] =
+  val make: URLayer[ZActivityRunOptions[Any], ExchangeOrderActivity] =
     ZLayer.fromFunction(new ExchangeOrderActivityImpl()(using _))
 }
 
 // TODO: think about adding something like DAO layer imitation
-class ExchangeOrderActivityImpl()(using ZActivityOptions[Any]) extends ExchangeOrderActivity {
+class ExchangeOrderActivityImpl()(using ZActivityRunOptions[Any]) extends ExchangeOrderActivity {
 
   override def putExchangeOrder(id: protobuf.UUID, request: ExchangeOrderRequest): Unit =
     ZActivity.run {

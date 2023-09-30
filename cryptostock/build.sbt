@@ -13,8 +13,8 @@ lazy val cryptostock = project
   .settings(
     name := "cryptostock",
     libraryDependencies ++= {
-      val zioTemporalVersion = "0.5.0"
-      val zioVersion         = "2.0.16"
+      val zioTemporalVersion = "0.6.0"
+      val zioVersion         = "2.0.18"
       val zioLoggingVersion  = "2.1.14"
 
       val zioTemporal = Seq(

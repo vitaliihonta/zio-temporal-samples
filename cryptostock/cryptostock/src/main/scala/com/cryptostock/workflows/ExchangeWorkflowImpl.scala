@@ -53,11 +53,12 @@ class ExchangeWorkflowImpl() extends ExchangeWorkflow {
   private val logger  = ZWorkflow.makeLogger
   private val orderId = UUID.fromString(ZWorkflow.info.workflowId)
 
-  private val exchangeActivity: ZActivityStub.Of[ExchangeOrderActivity] = ZWorkflow
-    .newActivityStub[ExchangeOrderActivity]
-    .withStartToCloseTimeout(5.seconds)
-    .withRetryOptions(ZRetryOptions.default.withMaximumAttempts(3))
-    .build
+  private val exchangeActivity: ZActivityStub.Of[ExchangeOrderActivity] =
+    ZWorkflow.newActivityStub[ExchangeOrderActivity](
+      ZActivityOptions
+        .withStartToCloseTimeout(5.seconds)
+        .withRetryOptions(ZRetryOptions.default.withMaximumAttempts(3))
+    )
 
   private val orderState = ZWorkflowState.empty[ExchangeStateInternal]
 
