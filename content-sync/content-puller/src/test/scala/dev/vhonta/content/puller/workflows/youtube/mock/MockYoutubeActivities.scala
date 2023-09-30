@@ -6,7 +6,11 @@ import zio._
 import zio.temporal.activity._
 import zio.temporal.protobuf.syntax._
 
-case class MockYoutubeActivities(videosCount: Int)(implicit options: ZActivityOptions[Any]) extends YoutubeActivities {
+case class MockYoutubeActivities(
+  videosCount:      Int
+)(implicit options: ZActivityRunOptions[Any])
+    extends YoutubeActivities {
+
   override def fetchVideos(params: FetchVideosParams): FetchVideosResult = {
     ZActivity.run {
       for {

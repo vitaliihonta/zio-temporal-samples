@@ -40,15 +40,15 @@ object ProcessorLauncherActivityImpl {
     .nested("processor", "launcher")
     .map((LauncherConfig.apply _).tupled)
 
-  val make: ZLayer[ZActivityOptions[Any], Config.Error, ProcessorLauncherActivity] =
+  val make: ZLayer[ZActivityRunOptions[Any], Config.Error, ProcessorLauncherActivity] =
     ZLayer.fromZIO(ZIO.config(config)) >>> ZLayer.fromFunction(
-      ProcessorLauncherActivityImpl(_: LauncherConfig)(_: ZActivityOptions[Any])
+      ProcessorLauncherActivityImpl(_: LauncherConfig)(_: ZActivityRunOptions[Any])
     )
 }
 
 case class ProcessorLauncherActivityImpl(
   config:           ProcessorLauncherActivityImpl.LauncherConfig
-)(implicit options: ZActivityOptions[Any])
+)(implicit options: ZActivityRunOptions[Any])
     extends ProcessorLauncherActivity {
 
   override def launchProcessorJob(params: SparkLauncherParams): Unit =

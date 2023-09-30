@@ -29,12 +29,14 @@ object DatalakeActivitiesImpl {
     .withDefault(new URI("https://www.youtube.com/watch?v="))
     .nested("database_activity")
 
-  val make: ZLayer[ZActivityOptions[Any], Config.Error, DatalakeActivities] =
+  val make: ZLayer[ZActivityRunOptions[Any], Config.Error, DatalakeActivities] =
     ZLayer.fromZIO(ZIO.config(config)) >>>
-      ZLayer.fromFunction(DatalakeActivitiesImpl(_: URI)(_: ZActivityOptions[Any]))
+      ZLayer.fromFunction(DatalakeActivitiesImpl(_: URI)(_: ZActivityRunOptions[Any]))
 }
 
-case class DatalakeActivitiesImpl(youtubeBaseUri: URI)(implicit options: ZActivityOptions[Any])
+case class DatalakeActivitiesImpl(
+  youtubeBaseUri:   URI
+)(implicit options: ZActivityRunOptions[Any])
     extends DatalakeActivities {
 
   override def storeArticles(articles: NewsApiArticles, params: StoreArticlesParameters): Unit = {

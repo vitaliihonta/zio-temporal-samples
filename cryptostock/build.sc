@@ -3,9 +3,9 @@ import $ivy.`com.lihaoyi::mill-contrib-scalapblib:$MILL_VERSION`, contrib.scalap
 
 object versions {
   val scala3      = "3.3.0"
-  val zio         = "2.0.16"
+  val zio         = "2.0.18"
   val ziologging  = "2.1.14"
-  val ziotemporal = "0.5.0"
+  val ziotemporal = "0.6.0"
   val logback     = "1.4.8"
 }
 

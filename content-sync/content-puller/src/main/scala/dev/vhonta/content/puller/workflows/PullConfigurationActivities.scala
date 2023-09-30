@@ -16,11 +16,12 @@ trait PullConfigurationActivities {
 }
 
 object PullConfigurationActivitiesImpl {
-  val make: URLayer[ZActivityOptions[Any], PullConfigurationActivities] =
-    ZLayer.fromFunction(new PullConfigurationActivitiesImpl()(_: ZActivityOptions[Any]))
+  val make: URLayer[ZActivityRunOptions[Any], PullConfigurationActivities] =
+    ZLayer.fromFunction(new PullConfigurationActivitiesImpl()(_: ZActivityRunOptions[Any]))
 }
 
-class PullConfigurationActivitiesImpl()(implicit options: ZActivityOptions[Any]) extends PullConfigurationActivities {
+class PullConfigurationActivitiesImpl()(implicit options: ZActivityRunOptions[Any])
+    extends PullConfigurationActivities {
   override def getBasePullerConfig(params: GetConfigurationParams): proto.PullerConfig =
     ZActivity.run {
       ZIO

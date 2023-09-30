@@ -13,7 +13,7 @@ import telegramium.bots._
 import telegramium.bots.high.Api
 import zio._
 import zio.temporal.protobuf.syntax._
-import zio.temporal.workflow.{ZWorkflowClient, ZWorkflowStub}
+import zio.temporal.workflow.{ZWorkflowClient, ZWorkflowOptions, ZWorkflowStub}
 
 object TopicsCommandHandler {
   val make: URLayer[SubscribersService with ContentFeedRepository with ZWorkflowClient, TopicsCommandHandler] =
@@ -141,11 +141,11 @@ case class TopicsCommandHandler(
       ZIO.foreach(msg.from) { tgUser =>
         for {
           subscriber <- subscribersService.getOrCreateByTelegramId(tgUser, msg.chat, msg.date)
-          addTopicWorkflow <- workflowClient
-                                .newWorkflowStub[AddTopicWorkflow]
-                                .withTaskQueue(TelegramModule.TaskQueue)
-                                .withWorkflowId(addTopicWorkflowId(subscriber.subscriber))
-                                .build
+          addTopicWorkflow <- workflowClient.newWorkflowStub[AddTopicWorkflow](
+                                ZWorkflowOptions
+                                  .withWorkflowId(addTopicWorkflowId(subscriber.subscriber))
+                                  .withTaskQueue(TelegramModule.TaskQueue)
+                              )
           _ <- ZWorkflowStub.start(
                  addTopicWorkflow.add(
                    AddTopicParams(
@@ -232,12 +232,12 @@ case class TopicsCommandHandler(
       ZIO.foreach(msg.from) { tgUser =>
         for {
           subscriber <- subscribersService.getOrCreateByTelegramId(tgUser, msg.chat, msg.date)
-          pushWorkflow <- workflowClient
-                            .newWorkflowStub[OnDemandPushRecommendationsWorkflow]
-                            .withTaskQueue(TelegramModule.TaskQueue)
-                            .withWorkflowId(s"on-demand/push/${subscriber.subscriber.id}")
-                            .withWorkflowExecutionTimeout(5.minutes)
-                            .build
+          pushWorkflow <- workflowClient.newWorkflowStub[OnDemandPushRecommendationsWorkflow](
+                            ZWorkflowOptions
+                              .withWorkflowId(s"on-demand/push/${subscriber.subscriber.id}")
+                              .withTaskQueue(TelegramModule.TaskQueue)
+                              .withWorkflowExecutionTimeout(5.minutes)
+                          )
           now <- ZIO.clockWith(_.localDateTime)
           _ <- ZWorkflowStub.start(
                  pushWorkflow.push(

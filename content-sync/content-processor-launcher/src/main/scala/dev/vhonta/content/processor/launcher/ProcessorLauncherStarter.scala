@@ -7,6 +7,7 @@ import io.temporal.client.schedules.ScheduleAlreadyRunningException
 import zio._
 import zio.temporal._
 import zio.temporal.schedules.ZScheduleClient
+import zio.temporal.workflow.ZWorkflowOptions
 
 object ProcessorLauncherStarter {
   val TaskQueue  = "processor-launcher"
@@ -19,15 +20,15 @@ object ProcessorLauncherStarter {
 }
 
 case class ProcessorLauncherStarter(scheduleClient: ZScheduleClient, config: ProcessorConfiguration) {
-  private val stub = scheduleClient
-    .newScheduleStartWorkflowStub[ProcessorLauncherWorkflow]()
-    .withTaskQueue(ProcessorLauncherStarter.TaskQueue)
-    .withWorkflowId(ProcessorLauncherStarter.ScheduleId + "-schedule")
-    .withWorkflowExecutionTimeout(config.processInterval * 1.25)
-    .withRetryOptions(
-      ZRetryOptions.default.withMaximumAttempts(2)
-    )
-    .build
+  private val stub = scheduleClient.newScheduleStartWorkflowStub[ProcessorLauncherWorkflow](
+    ZWorkflowOptions
+      .withWorkflowId(ProcessorLauncherStarter.ScheduleId + "-schedule")
+      .withTaskQueue(ProcessorLauncherStarter.TaskQueue)
+      .withWorkflowExecutionTimeout(config.processInterval * 1.25)
+      .withRetryOptions(
+        ZRetryOptions.default.withMaximumAttempts(2)
+      )
+  )
 
   def start(reset: Boolean = false): Task[Unit] = {
     for {

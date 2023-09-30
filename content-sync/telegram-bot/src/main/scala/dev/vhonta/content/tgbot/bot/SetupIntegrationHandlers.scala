@@ -15,7 +15,7 @@ import io.temporal.client.WorkflowNotFoundException
 import telegramium.bots._
 import telegramium.bots.high.Api
 import zio._
-import zio.temporal.workflow.{IsWorkflow, ZWorkflowClient, ZWorkflowStub}
+import zio.temporal.workflow.{IsWorkflow, ZWorkflowClient, ZWorkflowOptions, ZWorkflowStub}
 import zio.temporal.protobuf.syntax._
 import dev.vhonta.content.tgbot.proto
 import dev.vhonta.content.tgbot.workflow.setup.{BaseSetupWorkflow, SetupNewsApiWorkflow, SetupYoutubeWorkflow}
@@ -186,11 +186,11 @@ case class SetupIntegrationHandlers(
   ) = {
     for {
       subscriber <- subscribersService.getOrCreateByTelegramId(query.from, msg.chat, msg.date)
-      setupWorkflow <- workflowClient
-                         .newWorkflowStub[SetupWorkflow]
-                         .withTaskQueue(TelegramModule.TaskQueue)
-                         .withWorkflowId(makeWorkflowId(subscriber.subscriber))
-                         .build
+      setupWorkflow <- workflowClient.newWorkflowStub[SetupWorkflow](
+                         ZWorkflowOptions
+                           .withWorkflowId(makeWorkflowId(subscriber.subscriber))
+                           .withTaskQueue(TelegramModule.TaskQueue)
+                       )
       _ <- ZWorkflowStub.start(
              setupWorkflow.setup(
                makeParams(subscriber)

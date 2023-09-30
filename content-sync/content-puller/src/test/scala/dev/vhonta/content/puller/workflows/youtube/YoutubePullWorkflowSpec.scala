@@ -19,40 +19,39 @@ object YoutubePullWorkflowSpec extends ZIOSpecDefault {
 
   override val spec = suite("YoutubePullWorkflow")(
     test("pulls everything") {
+      ZTestWorkflowEnvironment.activityRunOptionsWithZIO[Any] { implicit options =>
+        for {
+          uuid <- ZIO.randomWith(_.nextUUID)
+          taskQueue   = s"youtube-$uuid"
+          videosCount = 5
 
-      for {
-        uuid <- ZIO.randomWith(_.nextUUID)
-        taskQueue   = s"youtube-$uuid"
-        videosCount = 5
+          _ <- ZTestWorkflowEnvironment.newWorker(taskQueue) @@
+                 ZWorker.addWorkflow[YoutubePullWorkflowImpl].fromClass @@
+                 ZWorker.addActivityImplementation(MockYoutubeActivities(videosCount)) @@
+                 ZWorker.addActivityImplementation(MockDatabaseActivities()) @@
+                 ZWorker.addActivityImplementation(MockDatalakeActivities())
 
-        activityOptions <- ZTestWorkflowEnvironment.activityOptions[Any]
+          _ <- ZTestWorkflowEnvironment.setup()
 
-        _ <- ZTestWorkflowEnvironment.newWorker(taskQueue) @@
-               ZWorker.addWorkflow[YoutubePullWorkflowImpl].fromClass @@
-               ZWorker.addActivityImplementation(MockYoutubeActivities(videosCount)(activityOptions)) @@
-               ZWorker.addActivityImplementation(MockDatabaseActivities()(activityOptions)) @@
-               ZWorker.addActivityImplementation(MockDatalakeActivities()(activityOptions))
+          youtubeWorkflow <- ZTestWorkflowEnvironment.newWorkflowStub[YoutubePullWorkflow](
+                               ZWorkflowOptions
+                                 .withWorkflowId(s"youtube/$uuid")
+                                 .withTaskQueue(taskQueue)
+                             )
 
-        _ <- ZTestWorkflowEnvironment.setup()
-
-        youtubeWorkflow <- ZTestWorkflowEnvironment
-                             .newWorkflowStub[YoutubePullWorkflow]
-                             .withTaskQueue(taskQueue)
-                             .withWorkflowId(s"youtube/$uuid")
-                             .build
-
-        result <- ZWorkflowStub.execute(
-                    youtubeWorkflow.pull(
-                      YoutubePullerParameters(
-                        integrationId = 1,
-                        minDate = 0,
-                        maxResults = 10,
-                        datalakeOutputDir = "./test/datalake"
+          result <- ZWorkflowStub.execute(
+                      youtubeWorkflow.pull(
+                        YoutubePullerParameters(
+                          integrationId = 1,
+                          minDate = 0,
+                          maxResults = 10,
+                          datalakeOutputDir = "./test/datalake"
+                        )
                       )
                     )
-                  )
-      } yield {
-        assertTrue(result.processed == videosCount)
+        } yield {
+          assertTrue(result.processed == videosCount)
+        }
       }
     }
   ).provideSome[Scope](TestModule.workflowTestEnv) @@ TestAspect.withLiveClock

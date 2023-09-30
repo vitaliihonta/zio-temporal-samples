@@ -26,7 +26,7 @@ object YoutubeActivitiesImpl {
       .map((YoutubeConfig.apply _).tupled)
 
   val make: ZLayer[
-    YoutubeClient with OAuth2Client with ContentFeedIntegrationRepository with ZActivityOptions[Any],
+    YoutubeClient with OAuth2Client with ContentFeedIntegrationRepository with ZActivityRunOptions[Any],
     Config.Error,
     YoutubeActivities
   ] = {
@@ -37,7 +37,7 @@ object YoutubeActivitiesImpl {
           _: OAuth2Client,
           _: ContentFeedIntegrationRepository,
           _: YoutubeConfig
-        )(_: ZActivityOptions[Any])
+        )(_: ZActivityRunOptions[Any])
       )
   }
 }
@@ -47,7 +47,7 @@ case class YoutubeActivitiesImpl(
   oauth2Client:          OAuth2Client,
   integrationRepository: ContentFeedIntegrationRepository,
   config:                YoutubeActivitiesImpl.YoutubeConfig
-)(implicit options:      ZActivityOptions[Any])
+)(implicit options:      ZActivityRunOptions[Any])
     extends YoutubeActivities {
 
   override def fetchVideos(params: FetchVideosParams): FetchVideosResult = {

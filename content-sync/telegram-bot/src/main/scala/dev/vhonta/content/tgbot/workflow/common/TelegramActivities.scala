@@ -25,14 +25,14 @@ case class SubscriberNotFoundException(subscriberId: UUID)
     extends Exception(s"Subscriber with id=$subscriberId not found")
 
 object TelegramActivitiesImpl {
-  val make: URLayer[SubscriberRepository with ContentSyncBot with ZActivityOptions[Any], TelegramActivities] =
-    ZLayer.fromFunction(TelegramActivitiesImpl(_: SubscriberRepository, _: ContentSyncBot)(_: ZActivityOptions[Any]))
+  val make: URLayer[SubscriberRepository with ContentSyncBot with ZActivityRunOptions[Any], TelegramActivities] =
+    ZLayer.fromFunction(TelegramActivitiesImpl(_: SubscriberRepository, _: ContentSyncBot)(_: ZActivityRunOptions[Any]))
 }
 
 case class TelegramActivitiesImpl(
   subscriberRepository: SubscriberRepository,
   bot:                  ContentSyncBot
-)(implicit options:     ZActivityOptions[Any])
+)(implicit options:     ZActivityRunOptions[Any])
     extends TelegramActivities {
 
   override def notifySubscriber(params: NotifySubscriberParams): Unit =

@@ -15,11 +15,14 @@ trait NewsActivities {
 }
 
 object NewsActivitiesImpl {
-  val make: URLayer[NewsApiClient with ZActivityOptions[Any], NewsActivities] =
-    ZLayer.fromFunction(NewsActivitiesImpl(_: NewsApiClient)(_: ZActivityOptions[Any]))
+  val make: URLayer[NewsApiClient with ZActivityRunOptions[Any], NewsActivities] =
+    ZLayer.fromFunction(NewsActivitiesImpl(_: NewsApiClient)(_: ZActivityRunOptions[Any]))
 }
 
-case class NewsActivitiesImpl(newsApi: NewsApiClient)(implicit options: ZActivityOptions[Any]) extends NewsActivities {
+case class NewsActivitiesImpl(
+  newsApi:          NewsApiClient
+)(implicit options: ZActivityRunOptions[Any])
+    extends NewsActivities {
   override def fetchArticles(parameters: NewsPullerActivityParameters): NewsApiArticles = {
     ZActivity.run {
       for {

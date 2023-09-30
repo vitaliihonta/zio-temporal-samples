@@ -25,11 +25,12 @@ trait PushConfigurationActivities {
 }
 
 object PushConfigurationActivitiesImpl {
-  val make: URLayer[ZActivityOptions[Any], PushConfigurationActivities] =
-    ZLayer.fromFunction(new PushConfigurationActivitiesImpl()(_: ZActivityOptions[Any]))
+  val make: URLayer[ZActivityRunOptions[Any], PushConfigurationActivities] =
+    ZLayer.fromFunction(new PushConfigurationActivitiesImpl()(_: ZActivityRunOptions[Any]))
 }
 
-class PushConfigurationActivitiesImpl()(implicit options: ZActivityOptions[Any]) extends PushConfigurationActivities {
+class PushConfigurationActivitiesImpl()(implicit options: ZActivityRunOptions[Any])
+    extends PushConfigurationActivities {
   override def getPushConfiguration: proto.PushConfiguration =
     ZActivity.run {
       ZIO

@@ -17,23 +17,23 @@ trait ScheduledPushRecommendationsWorkflow {
 class ScheduledPushRecommendationsWorkflowImpl extends ScheduledPushRecommendationsWorkflow {
   private val logger = ZWorkflow.makeLogger
 
-  private val contentFeedActivities = ZWorkflow
-    .newActivityStub[ContentFeedActivities]
-    .withStartToCloseTimeout(10.seconds)
-    .withRetryOptions(
-      ZRetryOptions.default
-        .withMaximumAttempts(3)
-    )
-    .build
+  private val contentFeedActivities = ZWorkflow.newActivityStub[ContentFeedActivities](
+    ZActivityOptions
+      .withStartToCloseTimeout(10.seconds)
+      .withRetryOptions(
+        ZRetryOptions.default
+          .withMaximumAttempts(3)
+      )
+  )
 
-  private val configurationActivities = ZWorkflow
-    .newActivityStub[PushConfigurationActivities]
-    .withStartToCloseTimeout(10.seconds)
-    .withRetryOptions(
-      ZRetryOptions.default
-        .withDoNotRetry(nameOf[Config.Error])
-    )
-    .build
+  private val configurationActivities = ZWorkflow.newActivityStub[PushConfigurationActivities](
+    ZActivityOptions
+      .withStartToCloseTimeout(10.seconds)
+      .withRetryOptions(
+        ZRetryOptions.default
+          .withDoNotRetry(nameOf[Config.Error])
+      )
+  )
 
   override def start(): Unit = {
     val startedAt = ZWorkflow.currentTimeMillis.toLocalDateTime()
@@ -56,11 +56,11 @@ class ScheduledPushRecommendationsWorkflowImpl extends ScheduledPushRecommendati
     logger.info(s"Going to push ${subscribers.values.size} news feeds")
 
     val pushes = ZAsync.foreachParDiscard(subscribers.values) { subscriberWithSettings =>
-      val pushRecommendationsWorkflow = ZWorkflow
-        .newChildWorkflowStub[PushRecommendationsWorkflow]
-        .withWorkflowId(s"${ZWorkflow.info.workflowId}/push/${subscriberWithSettings.subscriber.id.fromProto}")
-        .withWorkflowExecutionTimeout(pushConfig.singlePushTimeout.fromProto[Duration])
-        .build
+      val pushRecommendationsWorkflow = ZWorkflow.newChildWorkflowStub[PushRecommendationsWorkflow](
+        ZChildWorkflowOptions
+          .withWorkflowId(s"${ZWorkflow.info.workflowId}/push/${subscriberWithSettings.subscriber.id.fromProto}")
+          .withWorkflowExecutionTimeout(pushConfig.singlePushTimeout.fromProto[Duration])
+      )
 
       ZChildWorkflowStub
         .executeAsync(

@@ -6,6 +6,7 @@ import io.temporal.client.schedules.ScheduleAlreadyRunningException
 import zio._
 import zio.temporal._
 import zio.temporal.schedules._
+import zio.temporal.workflow.ZWorkflowOptions
 
 object ScheduledPushStarter {
   val ScheduleId = "telegram-scheduled-push"
@@ -16,15 +17,15 @@ object ScheduledPushStarter {
 
 case class ScheduledPushStarter(scheduleClient: ZScheduleClient) {
 
-  private val stub = scheduleClient
-    .newScheduleStartWorkflowStub[ScheduledPushRecommendationsWorkflow]()
-    .withTaskQueue(TelegramModule.TaskQueue)
-    .withWorkflowId(ScheduledPushStarter.ScheduleId)
-    .withWorkflowExecutionTimeout(1.hour)
-    .withRetryOptions(
-      ZRetryOptions.default.withMaximumAttempts(2)
-    )
-    .build
+  private val stub = scheduleClient.newScheduleStartWorkflowStub[ScheduledPushRecommendationsWorkflow](
+    ZWorkflowOptions
+      .withWorkflowId(ScheduledPushStarter.ScheduleId)
+      .withTaskQueue(TelegramModule.TaskQueue)
+      .withWorkflowExecutionTimeout(1.hour)
+      .withRetryOptions(
+        ZRetryOptions.default.withMaximumAttempts(2)
+      )
+  )
 
   def start(reset: Boolean = false): Task[Unit] = {
     for {

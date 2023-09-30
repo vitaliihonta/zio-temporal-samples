@@ -22,24 +22,24 @@ trait NewsApiPullWorkflow extends BasePullWorkflow[NewsPullerParameters]
 class NewsApiPullWorkflowImpl extends NewsApiPullWorkflow {
   private val logger = ZWorkflow.makeLogger
 
-  private val newsActivities = ZWorkflow
-    .newActivityStub[NewsActivities]
-    .withStartToCloseTimeout(1.minute)
-    .withRetryOptions(
-      ZRetryOptions.default
-        .withMaximumAttempts(5)
-        // bigger coefficient due for rate limiting
-        .withBackoffCoefficient(3)
-    )
-    .build
+  private val newsActivities = ZWorkflow.newActivityStub[NewsActivities](
+    ZActivityOptions
+      .withStartToCloseTimeout(1.minute)
+      .withRetryOptions(
+        ZRetryOptions.default
+          .withMaximumAttempts(5)
+          // bigger coefficient due for rate limiting
+          .withBackoffCoefficient(3)
+      )
+  )
 
-  private val datalakeActivities = ZWorkflow
-    .newActivityStub[DatalakeActivities]
-    .withStartToCloseTimeout(1.minute)
-    .withRetryOptions(
-      ZRetryOptions.default.withMaximumAttempts(5)
-    )
-    .build
+  private val datalakeActivities = ZWorkflow.newActivityStub[DatalakeActivities](
+    ZActivityOptions
+      .withStartToCloseTimeout(1.minute)
+      .withRetryOptions(
+        ZRetryOptions.default.withMaximumAttempts(5)
+      )
+  )
 
   override def pull(params: NewsPullerParameters): PullingResult = {
     PullingResult(processAllTopics(params))

@@ -16,7 +16,7 @@ import zio.temporal.protobuf.syntax._
 import java.time.Instant
 import java.util.UUID
 
-case class MockDatabaseActivities()(implicit options: ZActivityOptions[Any]) extends DatabaseActivities {
+case class MockDatabaseActivities()(implicit options: ZActivityRunOptions[Any]) extends DatabaseActivities {
   private val integrations: Map[ContentFeedIntegrationType, ContentFeedIntegration] =
     ContentFeedIntegrationType.values.view.map { integrationType =>
       integrationType -> ContentFeedIntegration(

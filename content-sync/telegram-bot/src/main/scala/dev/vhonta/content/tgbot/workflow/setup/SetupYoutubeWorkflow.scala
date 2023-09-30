@@ -47,25 +47,25 @@ class SetupYoutubeWorkflowImpl extends SetupYoutubeWorkflow {
 
   private val logger = ZWorkflow.makeLogger
 
-  private val youtubeActivities = ZWorkflow
-    .newActivityStub[YoutubeActivities]
-    .withStartToCloseTimeout(1.minute)
-    .withRetryOptions(
-      ZRetryOptions.default.withMaximumAttempts(5)
-    )
-    .build
+  private val youtubeActivities = ZWorkflow.newActivityStub[YoutubeActivities](
+    ZActivityOptions
+      .withStartToCloseTimeout(1.minute)
+      .withRetryOptions(
+        ZRetryOptions.default.withMaximumAttempts(5)
+      )
+  )
 
-  private val telegramActivities = ZWorkflow
-    .newActivityStub[TelegramActivities]
-    .withStartToCloseTimeout(1.minute)
-    .withRetryOptions(
-      ZRetryOptions.default
-        .withMaximumAttempts(5)
-        .withDoNotRetry(
-          nameOf[SubscriberNotFoundException]
-        )
-    )
-    .build
+  private val telegramActivities = ZWorkflow.newActivityStub[TelegramActivities](
+    ZActivityOptions
+      .withStartToCloseTimeout(1.minute)
+      .withRetryOptions(
+        ZRetryOptions.default
+          .withMaximumAttempts(5)
+          .withDoNotRetry(
+            nameOf[SubscriberNotFoundException]
+          )
+      )
+  )
 
   private val state = ZWorkflowState.make[SetupState](SetupState.Initial)
 
@@ -187,9 +187,8 @@ class SetupYoutubeWorkflowImpl extends SetupYoutubeWorkflow {
   }
 
   private def notifyUser(params: NotifySubscriberParams): Unit = {
-    ZActivityStub
-      .execute(
-        telegramActivities.notifySubscriber(params)
-      )
+    ZActivityStub.execute(
+      telegramActivities.notifySubscriber(params)
+    )
   }
 }

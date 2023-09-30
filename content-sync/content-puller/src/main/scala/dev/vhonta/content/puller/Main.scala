@@ -2,17 +2,15 @@ package dev.vhonta.content.puller
 
 import dev.vhonta.content.newsapi.NewsApiClient
 import dev.vhonta.content.repository.PullerStateRepository
-import dev.vhonta.content.puller.workflows._
-import dev.vhonta.content.puller.workflows.newsapi.{NewsActivitiesImpl, NewsApiModule}
-import dev.vhonta.content.puller.workflows.storage.{DatabaseActivitiesImpl, DatalakeActivitiesImpl}
-import dev.vhonta.content.puller.workflows.youtube.{YoutubeActivitiesImpl, YoutubeModule}
+import dev.vhonta.content.puller.workflows.newsapi.NewsApiModule
+import dev.vhonta.content.puller.workflows.youtube.YoutubeModule
 import dev.vhonta.content.repository._
 import dev.vhonta.content.youtube.{GoogleModule, OAuth2Client, YoutubeClient}
 import io.getquill.jdbczio.Quill
 import sttp.client3.httpclient.zio.HttpClientZioBackend
 import zio._
 import zio.logging.backend.SLF4J
-import zio.temporal.activity.ZActivityOptions
+import zio.temporal.activity.ZActivityRunOptions
 import zio.temporal.protobuf.ProtobufDataConverter
 import zio.temporal.worker._
 import zio.temporal.workflow._
@@ -58,15 +56,9 @@ object Main extends ZIOAppDefault {
         PullerStateRepository.make,
         PostgresQuill.make,
         Quill.DataSource.fromPrefix("db"),
-        // activities
-        DatabaseActivitiesImpl.make,
-        DatalakeActivitiesImpl.make,
-        NewsActivitiesImpl.make,
-        YoutubeActivitiesImpl.make,
-        PullConfigurationActivitiesImpl.make,
         // temporal
         ZWorkflowClient.make,
-        ZActivityOptions.default,
+        ZActivityRunOptions.default,
         ZWorkflowServiceStubs.make,
         ZWorkerFactory.make,
         ZScheduleClient.make,

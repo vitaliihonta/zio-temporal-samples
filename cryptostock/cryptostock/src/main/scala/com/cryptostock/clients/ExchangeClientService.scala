@@ -3,7 +3,7 @@ package com.cryptostock.clients
 import com.cryptostock.TaskQueues
 import com.cryptostock.workflows.{ExchangeWorkflow, ProtoConverters}
 import zio.*
-import zio.temporal.workflow.{ZWorkflowClient, ZWorkflowStub}
+import zio.temporal.workflow.*
 import zio.temporal.ZRetryOptions
 import zio.temporal.protobuf.syntax.*
 import com.cryptostock.workflows.ProtoConverters.given
@@ -25,17 +25,17 @@ class ExchangeClientService(client: ZWorkflowClient) {
   def exchangeOrder(seller: UUID, amount: BigDecimal, currency: CryptoCurrency): Task[UUID] =
     for {
       orderId <- Random.nextUUID
-      exchangeWorkflow <- client
-                            .newWorkflowStub[ExchangeWorkflow]
-                            .withTaskQueue(TaskQueues.exchanger)
-                            .withWorkflowId(orderId.toString)
-                            // NOTE: timeouts should consider "sleep" and "awaitUntil" inside the workflow
-                            .withWorkflowExecutionTimeout(5.minutes)
-                            .withWorkflowRunTimeout(5.minutes)
-                            .withRetryOptions(
-                              ZRetryOptions.default.withMaximumAttempts(3)
-                            )
-                            .build
+      exchangeWorkflow <- client.newWorkflowStub[ExchangeWorkflow](
+                            ZWorkflowOptions
+                              .withWorkflowId(orderId.toString)
+                              .withTaskQueue(TaskQueues.exchanger)
+                              // NOTE: timeouts should consider "sleep" and "awaitUntil" inside the workflow
+                              .withWorkflowExecutionTimeout(5.minutes)
+                              .withWorkflowRunTimeout(5.minutes)
+                              .withRetryOptions(
+                                ZRetryOptions.default.withMaximumAttempts(3)
+                              )
+                          )
       _ <- ZIO.logInfo("Going to trigger workflow")
       _ <- ZWorkflowStub.start(
              exchangeWorkflow.exchangeOrder(

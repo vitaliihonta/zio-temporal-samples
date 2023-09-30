@@ -2,15 +2,15 @@ import sbt._
 
 object Dependencies {
   private object versions {
-    val zioTemporal = "0.5.0"
-    val zio         = "2.0.16"
+    val zioTemporal = "0.6.0"
+    val zio         = "2.0.18"
     val zioLogging  = "2.1.14"
     val zioConfig   = "4.0.0-RC16"
-    val zioJson     = "0.6.1"
-    val enumeratum  = "1.7.2"
-    val sttp        = "3.8.15"
-    val telegramium = "8.68.0"
-    val spark       = "3.4.1"
+    val zioJson     = "0.6.2"
+    val enumeratum  = "1.7.3"
+    val sttp        = "3.9.0"
+    val telegramium = "8.69.0"
+    val spark       = "3.5.0"
     val quill       = "4.6.1"
   }
 
@@ -44,7 +44,7 @@ object Dependencies {
   )
 
   val zioNio = Seq(
-    "dev.zio" %% "zio-nio" % "2.0.1"
+    "dev.zio" %% "zio-nio" % "2.0.2"
   )
 
   val json = Seq(
@@ -54,7 +54,7 @@ object Dependencies {
   val parquet = Seq(
     // No way to write parquet without hadoop dependency
     "org.apache.hadoop"         % "hadoop-client"  % "3.3.6" exclude ("org.slf4j", "slf4j-reload4j"),
-    "com.github.mjakubowski84" %% "parquet4s-core" % "2.11.0"
+    "com.github.mjakubowski84" %% "parquet4s-core" % "2.13.0"
   )
 
   private val sparkExclusions = Vector(
