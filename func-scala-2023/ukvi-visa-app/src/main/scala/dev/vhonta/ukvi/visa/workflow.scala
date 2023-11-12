@@ -5,8 +5,8 @@ import zio.temporal._
 import zio.temporal.activity.{ZActivityOptions, ZActivityStub}
 import zio.temporal.workflow._
 import zio.temporal.state._
-
 import scala.Ordering.Implicits._
+import scala.util.control.Breaks._
 
 @workflowInterface
 trait VisitorVisaApplicationWorkflow {
@@ -85,72 +85,57 @@ class VisitorVisaApplicationWorkflowImpl extends VisitorVisaApplicationWorkflow 
     // executes the timer
     globalTimeoutWatchDog.run()
 
-    logger.info("Waiting for the primary info...")
-    ZWorkflow.awaitUntil(
-      state.exists(s => s.cancelled || s.nextStep == ApplicationStep.ProvideTravelHistory)
-    )
-
-    // global timeout or cancel received
-    if (state.exists(_.cancelled)) {
-      return state.snapshot
+    breakable {
+      for (
+        nextStep <- List(
+                      ApplicationStep.ProvideTravelHistory,
+                      ApplicationStep.UploadDocuments,
+                      ApplicationStep.PayServiceFee,
+                      ApplicationStep.FinishSubmission,
+                      ApplicationStep.Scoring
+                    )
+      ) {
+        logger.info(s"Waiting for step=${state.snapshot.nextStep.entryName}...")
+        ZWorkflow.awaitUntil(
+          state.exists(s => s.cancelled || s.nextStep == nextStep)
+        )
+        // global timeout or cancel received
+        if (state.exists(_.cancelled)) {
+          break()
+        }
+      }
     }
 
-    logger.info("Waiting for the travel history...")
-    ZWorkflow.awaitUntil(
-      state.exists(s => s.cancelled || s.nextStep == ApplicationStep.UploadDocuments)
-    )
-
-    // global timeout or cancel received
-    if (state.exists(_.cancelled)) {
-      return state.snapshot
-    }
-
-    logger.info("Waiting for the documents upload...")
-    ZWorkflow.awaitUntil(
-      state.exists(s => s.cancelled || s.nextStep == ApplicationStep.PayServiceFee)
-    )
-
-    // global timeout or cancel received
-    if (state.exists(_.cancelled)) {
-      return state.snapshot
-    }
-
-    logger.info("Waiting for the service fee payment...")
-    ZWorkflow.awaitUntil(
-      state.exists(s => s.cancelled || s.nextStep == ApplicationStep.FinishSubmission)
-    )
-
-    // global timeout or cancel received
-    if (state.exists(_.cancelled)) {
-      return state.snapshot
-    }
-
-    logger.info("Waiting for the final submission...")
-    ZWorkflow.awaitUntil(
-      state.exists(s => s.cancelled || s.nextStep == ApplicationStep.Scoring)
-    )
-    // global timeout or cancel received
     if (state.exists(_.cancelled)) {
       return state.snapshot
     }
     // No timeout after the final submission
     globalTimeoutWatchDog.cancel()
 
-    logger.info("Waiting for the scoring results...")
-    ZWorkflow.awaitUntil(
-      state.exists(s => s.cancelled || s.nextStep == ApplicationStep.FinalDecision)
-    )
-
-    // Automatically reject if the score is too low
-    if (state.exists(_.score.exists(_ < 75))) {
-      return state.update(_.withFinalDecision(false, ZWorkflow.currentTimeMillis.toLocalDateTime())).snapshot
+    breakable {
+      for (
+        nextStep <- List(
+                      ApplicationStep.FinalDecision,
+                      // no sense to wait for delivery step as there is nothing to do there
+                      ApplicationStep.Finished
+                    )
+      ) {
+        logger.info(s"Waiting for step=${state.snapshotOf(_.nextStep.entryName)}...")
+        ZWorkflow.awaitUntil(
+          state.exists(s => s.cancelled || s.nextStep == nextStep)
+        )
+        state.snapshotOf(_.nextStep) match {
+          case ApplicationStep.FinalDecision =>
+            // Automatically reject if the score is too low
+            if (state.exists(_.score.exists(_ < 75))) {
+              state.update(_.withFinalDecision(false, ZWorkflow.currentTimeMillis.toLocalDateTime())).snapshot
+              break()
+            }
+          case _ =>
+        }
+      }
     }
 
-    logger.info("Waiting for the final decision and pass delivery...")
-    // No sense to check final decision result as nothing happens there
-    ZWorkflow.awaitUntil(
-      state.exists(_.nextStep == ApplicationStep.Finished)
-    )
     // The end...
     state.snapshot
   }

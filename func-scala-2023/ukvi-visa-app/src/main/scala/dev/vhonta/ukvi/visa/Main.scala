@@ -12,7 +12,6 @@ import zio.temporal.worker._
 import zio.temporal.activity._
 import zio.temporal.json.{BoxedUnitModule, JacksonDataConverter}
 import zio.temporal.workflow._
-
 import java.time.LocalDate
 import java.util.UUID
 
@@ -132,41 +131,41 @@ object Main extends ZIOAppDefault {
                visaApplicationWorkflow.serviceFeePayed()
              )
              .delay(5.seconds)
-//      _ <- ZWorkflowStub
-//             .signal(
-//               visaApplicationWorkflow.addSubmissionData(
-//                 AddSubmissionData(
-//                   SubmissionData(
-//                     deliveryAddress = "Kyiv, Academika Yanhela Street, 20",
-//                     phoneNumber = "+380671234567",
-//                     biometrics = Biometrics(
-//                       photoId = s"photos/${UUID.randomUUID()}",
-//                       fingerprintsId = s"fingerprints/${UUID.randomUUID()}"
-//                     )
-//                   )
-//                 )
-//               )
-//             )
-//             .delay(5.seconds)
-//      _ <- ZWorkflowStub
-//             .signal(
-//               visaApplicationWorkflow.addScore(
-//                 AddScore(90)
-//               )
-//             )
-//             .delay(5.seconds)
-//      _ <- ZWorkflowStub
-//             .signal(
-//               visaApplicationWorkflow.makeFinalDecision(
-//                 MakeFinalDecision(true)
-//               )
-//             )
-//             .delay(5.seconds)
-//      _ <- ZWorkflowStub
-//             .signal(
-//               visaApplicationWorkflow.markAsDelivered()
-//             )
-//             .delay(5.seconds)
+      _ <- ZWorkflowStub
+             .signal(
+               visaApplicationWorkflow.addSubmissionData(
+                 AddSubmissionData(
+                   SubmissionData(
+                     deliveryAddress = "Kyiv, Academika Yanhela Street, 20",
+                     phoneNumber = "+380671234567",
+                     biometrics = Biometrics(
+                       photoId = s"photos/${UUID.randomUUID()}",
+                       fingerprintsId = s"fingerprints/${UUID.randomUUID()}"
+                     )
+                   )
+                 )
+               )
+             )
+             .delay(5.seconds)
+      _ <- ZWorkflowStub
+             .signal(
+               visaApplicationWorkflow.addScore(
+                 AddScore(90)
+               )
+             )
+             .delay(5.seconds)
+      _ <- ZWorkflowStub
+             .signal(
+               visaApplicationWorkflow.makeFinalDecision(
+                 MakeFinalDecision(true)
+               )
+             )
+             .delay(5.seconds)
+      _ <- ZWorkflowStub
+             .signal(
+               visaApplicationWorkflow.markAsDelivered()
+             )
+             .delay(5.seconds)
       _           <- statusPolling.interrupt
       finalResult <- visaApplicationWorkflow.result[ApplicationResult]
       _           <- ZIO.logInfo(s"Final result=${finalResult}")
