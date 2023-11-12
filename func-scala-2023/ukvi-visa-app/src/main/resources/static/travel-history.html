@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Visa Application - UKVI</title>
+    <script src="https://unpkg.com/htmx.org@1.9.8"
+            integrity="sha384-rgjA7mptc2ETQqXoYC3/zJvkU7K/aP44Y+z7xQuJiVnB/422P/Ak+F/AqFR7E4Wr"
+            crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/htmx.org/dist/ext/client-side-templates.js"></script>
+    <script src="https://unpkg.com/mustache@latest"></script>
+    <script src="https://unpkg.com/htmx.org/dist/ext/json-enc.js"></script>
+</head>
+<body>
+<div>
+    <div>
+        <img src="/assets/images/uk_crown.png" alt=""> GOV.UK
+    </div>
+</div>
+<div hx-ext="client-side-templates">
+    <button hx-put="./">Complete travel history</button>
+    <button hx-target="#add_travel_record">... or record one more</button>
+    <form id="add_travel_record" hx-patch="./" hx-ext='json-enc'>
+        <label for="country">Country:</label>
+        <br/>
+        <label>
+            <input type="text" name="country">
+        </label>
+        <br/>
+        <label for="from_date">From date:</label>
+        <br/>
+        <label>
+            <input type="date" name="from_date">
+        </label>
+        <br/>
+        <label for="to_date">To date:</label>
+        <br/>
+        <label>
+            <input type="date" name="to_date">
+        </label>
+        <br/>
+        <button type="submit">Add</button>
+    </form>
+</div>
+</body>
+</html>

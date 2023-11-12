@@ -1,8 +1,8 @@
 package dev.vhonta.ukvi.visa
 
 import com.fasterxml.jackson.annotation.{JsonSubTypes, JsonTypeInfo}
-
 import java.time.LocalDateTime
+import io.scalaland.chimney.dsl._
 
 case class ApplicationInput(email: String)
 
@@ -105,6 +105,9 @@ case class ApplicationResult private (
       nextStep = ApplicationStep.Finished,
       modifiedAt = now
     )
+
+  def toView: ApplicationFormView =
+    this.transformInto[ApplicationFormView]
 }
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")

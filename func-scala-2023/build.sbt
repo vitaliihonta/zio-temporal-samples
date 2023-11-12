@@ -31,8 +31,8 @@ lazy val sharedDeps = {
     "dev.zio"       %% "zio-logging-slf4j2" % zioLoggingVersion,
     "ch.qos.logback" % "logback-classic"    % "1.4.8",
     // utils
-    "com.beachape"         %% "enumeratum"                % "1.7.3",
-    "io.scalaland"         %% "chimney"                   % "0.8.2",
+    "com.beachape" %% "enumeratum" % "1.7.3",
+    "io.scalaland" %% "chimney"    % "0.8.2",
     // todo: embed into zio-temporal
     "com.github.pjfanning" %% "jackson-module-enumeratum" % "2.14.1"
   )

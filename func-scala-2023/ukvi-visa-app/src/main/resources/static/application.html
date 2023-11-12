@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Visa Application - UKVI</title>
+    <script src="https://unpkg.com/htmx.org@1.9.8"
+            integrity="sha384-rgjA7mptc2ETQqXoYC3/zJvkU7K/aP44Y+z7xQuJiVnB/422P/Ak+F/AqFR7E4Wr"
+            crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/htmx.org/dist/ext/client-side-templates.js"></script>
+    <script src="https://unpkg.com/mustache@latest"></script>
+</head>
+<body>
+<div>
+    <div>
+        <img src="/assets/images/uk_crown.png" alt=""> GOV.UK
+    </div>
+</div>
+<div hx-ext="client-side-templates">
+    <div hx-get="./view"
+         hx-trigger="load, every 5s"
+         hx-boost="true"
+         hx-swap="innerHTML"
+         hx-target="#content"
+         mustache-template="application">
+        <p id="content">Your application</p>
+        <template id="application">
+            <div>
+                <div>
+                    <h3>Application:</h3>
+                    <label>Email: </label>
+                    <br/>
+                    <label>{{email}}</label>
+                    {{#cancellation_reason}}
+                    <br/>
+                    <label>Cancellation reason: </label>
+                    <br/>
+                    <label>{{.}}</label>
+                    {{/cancellation_reason}}
+                </div>
+                {{#info}}
+                <div>
+                    <h3>Primary information:</h3>
+                    <label>First name: </label>
+                    <label>{{first_name}}</label>
+                    <br/>
+                    <label>Last name: </label>
+                    <label>{{last_name}}</label>
+                    <br/>
+                    <label>Birthdate: </label>
+                    <label>
+                        <input type="date" value="{{birth_date}}" disabled/>
+                    </label>
+                    <br/>
+                    <label>Citizenship: </label>
+                    <label>{{citizenship}}</label>
+                </div>
+                {{/info}}
+                <div>
+                    <h3>Travel history:</h3>
+                    {{#travel_history}}
+                    <p>{{country}}: {{from_date}} - {{to_date}}</p>
+                    {{/travel_history}}
+                </div>
+            </div>
+            {{^cancellation_reason}}
+            <div>
+                <button hx-get="./next">Next</button>
+            </div>
+            {{/cancellation_reason}}
+        </template>
+    </div>
+</div>
+</body>
+</html>
