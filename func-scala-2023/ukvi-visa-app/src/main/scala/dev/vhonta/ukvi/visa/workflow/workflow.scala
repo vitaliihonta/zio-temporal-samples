@@ -1,10 +1,12 @@
-package dev.vhonta.ukvi.visa
+package dev.vhonta.ukvi.visa.workflow
 
+import dev.vhonta.ukvi.visa._
 import zio._
 import zio.temporal._
 import zio.temporal.activity.{ZActivityOptions, ZActivityStub}
-import zio.temporal.workflow._
 import zio.temporal.state._
+import zio.temporal.workflow._
+
 import scala.Ordering.Implicits._
 import scala.util.control.Breaks._
 

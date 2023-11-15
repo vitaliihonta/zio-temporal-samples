@@ -5,9 +5,12 @@ import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.github.pjfanning.enumeratum.EnumeratumModule
+import dev.vhonta.ukvi.visa.api.{AbstractApi, HomepageApi, VisitorVisaApplicantApi}
+import dev.vhonta.ukvi.visa.service.VisitorVisaApplicationService
+import dev.vhonta.ukvi.visa.workflow.{ConfigurationActivities, TaskQueues, VisitorVisaApplicationWorkflowImpl}
 import zio._
 import zio.config.typesafe.TypesafeConfigProvider
-import zio.http.Server
+import zio.http.{Routes, Server}
 import zio.logging.backend.SLF4J
 import zio.temporal.worker._
 import zio.temporal.activity._
@@ -35,16 +38,24 @@ object Main extends ZIOAppDefault {
       _ <- ZWorkflowServiceStubs.setup()
       _ <- ZWorkerFactory.setup
       _ <- ZIO.logInfo("Workers started!")
-      _ <- ZIO.serviceWithZIO[VisitorVisaApi] { api =>
-             Server.serve(api.routes.toHttpApp)
+      _ <- ZIO.serviceWithZIO[List[AbstractApi]] { apis =>
+             val routes = apis.map(_.routes).reduce(_ ++ _)
+             Server.serve(routes.toHttpApp)
            }
     } yield ()
 
     program
       .provideSome[Scope](
         // API
-        VisitorVisaApi.make,
+        ZLayer.collectAll(
+          List(
+            VisitorVisaApplicantApi.make,
+            HomepageApi.make
+          )
+        ),
         Server.configured(NonEmptyChunk("server")),
+        // Service layer
+        VisitorVisaApplicationService.make,
         // temporal
         ZWorkflowClient.make,
         ZActivityRunOptions.default,

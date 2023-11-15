@@ -1,4 +1,4 @@
-package dev.vhonta.ukvi.visa
+package dev.vhonta.ukvi.visa.workflow
 
 import zio._
 import zio.temporal._
