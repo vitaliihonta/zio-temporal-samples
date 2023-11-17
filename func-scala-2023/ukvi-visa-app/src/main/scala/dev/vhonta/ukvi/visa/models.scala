@@ -93,7 +93,7 @@ case class ApplicationFormView(
   info:               Option[PrimaryInfo],
   travelHistory:      Option[List[TravelRecord]],
   documents:          Option[List[UploadedDocument]],
-  payed:              Option[Boolean],
+  paid:               Option[Boolean],
   submissionData:     Option[SubmissionData],
   score:              Option[Int],
   approved:           Option[Boolean])

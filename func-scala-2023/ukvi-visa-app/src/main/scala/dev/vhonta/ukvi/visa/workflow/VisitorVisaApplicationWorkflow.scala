@@ -31,7 +31,7 @@ trait VisitorVisaApplicationWorkflow {
   def uploadDocuments(documents: UploadDocuments): Unit
 
   @signalMethod
-  def serviceFeePayed(): Unit
+  def serviceFeePaid(): Unit
 
   @signalMethod
   def addSubmissionData(data: AddSubmissionData): Unit
@@ -183,11 +183,11 @@ class VisitorVisaApplicationWorkflowImpl extends VisitorVisaApplicationWorkflow 
   }
 
   @signalMethod
-  override def serviceFeePayed(): Unit = {
+  override def serviceFeePaid(): Unit = {
     state.updateWhen {
       case state if state.nextStep == ApplicationStep.PayServiceFee =>
-        logger.info("Service fee payed")
-        state.withServiceFeePayed(ZWorkflow.currentTimeMillis.toLocalDateTime())
+        logger.info("Service fee paid")
+        state.withServiceFeePaid(ZWorkflow.currentTimeMillis.toLocalDateTime())
     }
   }
 

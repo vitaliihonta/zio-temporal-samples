@@ -26,7 +26,7 @@ case class ApplicationResult private (
   info:               Option[PrimaryInfo] = None,
   travelHistory:      Option[List[TravelRecord]] = None,
   documents:          Option[List[UploadedDocument]] = None,
-  payed:              Option[Boolean] = None,
+  paid:               Option[Boolean] = None,
   submissionData:     Option[SubmissionData] = None,
   score:              Option[Int] = None,
   approved:           Option[Boolean] = None) {
@@ -72,9 +72,9 @@ case class ApplicationResult private (
     )
   }
 
-  def withServiceFeePayed(now: LocalDateTime): ApplicationResult =
+  def withServiceFeePaid(now: LocalDateTime): ApplicationResult =
     copy(
-      payed = Some(true),
+      paid = Some(true),
       nextStep = ApplicationStep.FinishSubmission,
       modifiedAt = now
     )

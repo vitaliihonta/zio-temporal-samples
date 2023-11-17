@@ -6,7 +6,7 @@
             integrity="sha384-rgjA7mptc2ETQqXoYC3/zJvkU7K/aP44Y+z7xQuJiVnB/422P/Ak+F/AqFR7E4Wr"
             crossorigin="anonymous"></script>
     <script src="https://unpkg.com/htmx.org/dist/ext/client-side-templates.js"></script>
-    <script src="https://unpkg.com/mustache@latest"></script>
+    <script src="https://unpkg.com/nunjucks@latest/browser/nunjucks.js"></script>
 </head>
 <body>
 <div>
@@ -17,55 +17,67 @@
 <div hx-ext="client-side-templates">
     <div hx-get="./view"
          hx-trigger="load, every 5s"
-         hx-boost="true"
          hx-swap="innerHTML"
-         hx-target="#content"
-         mustache-template="application">
-        <p id="content">Your application</p>
-        <template id="application">
+         hx-target="#result"
+         nunjucks-template="applicationView">
+        <div id="result"></div>
+        <template id="applicationView">
             <div>
                 <div>
                     <h3>Application:</h3>
                     <label>Email: </label>
                     <br/>
                     <label>{{email}}</label>
-                    {{#cancellation_reason}}
+                    {% if cancellation_reason %}
                     <br/>
                     <label>Cancellation reason: </label>
                     <br/>
-                    <label>{{.}}</label>
-                    {{/cancellation_reason}}
+                    <label>{{cancellation_reason}}</label>
+                    {% elif paid and submission_data and approved %}
+                    <br/>
+                    <label>Your application is approved!</label>
+                    {% elif paid and submission_data %}
+                    <br/>
+                    <label>Waiting for the decision to be made</label>
+                    {% else %}
+                    <div>
+                        <button hx-get="./next">Next</button>
+                    </div>
+                    {% endif %}
                 </div>
-                {{#info}}
+                {% if info %}
                 <div>
                     <h3>Primary information:</h3>
                     <label>First name: </label>
-                    <label>{{first_name}}</label>
+                    <label>{{info.first_name}}</label>
                     <br/>
                     <label>Last name: </label>
-                    <label>{{last_name}}</label>
+                    <label>{{info.last_name}}</label>
                     <br/>
                     <label>Birthdate: </label>
                     <label>
-                        <input type="date" value="{{birth_date}}" disabled/>
+                        <input type="date" value="{{info.birth_date}}" disabled/>
                     </label>
                     <br/>
                     <label>Citizenship: </label>
-                    <label>{{citizenship}}</label>
+                    <label>{{info.citizenship}}</label>
                 </div>
-                {{/info}}
+                {% endif %}
+                {% if travel_history %}
                 <div>
                     <h3>Travel history:</h3>
-                    {{#travel_history}}
-                    <p>{{country}}: {{from_date}} - {{to_date}}</p>
-                    {{/travel_history}}
+                    {% for record in travel_history %}
+                    <label>{{record.country}}: {{record.from_date}} - {{record.to_date}}</label>
+                    {% endfor %}
                 </div>
+                {% endif %}
+                {% if submission_data %}
+                <h3>Further steps</h3>
+                <br/>
+                <label>Pass delivery address: </label>
+                <label>{{submission_data.delivery_address}}</label>
+                {% endif %}
             </div>
-            {{^cancellation_reason}}
-            <div>
-                <button hx-get="./next">Next</button>
-            </div>
-            {{/cancellation_reason}}
         </template>
     </div>
 </div>

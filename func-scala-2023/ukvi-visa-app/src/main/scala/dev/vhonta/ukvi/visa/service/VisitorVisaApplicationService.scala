@@ -1,6 +1,16 @@
 package dev.vhonta.ukvi.visa.service
 
-import dev.vhonta.ukvi.visa.{ApplicantQuestionnaireData, ApplicationFormView, ApplicationInput}
+import dev.vhonta.ukvi.visa.{
+  AddScore,
+  AddSubmissionData,
+  ApplicantQuestionnaireData,
+  ApplicationFormView,
+  ApplicationInput,
+  MakeFinalDecision,
+  SubmissionData,
+  UploadDocuments,
+  UploadedDocument
+}
 import dev.vhonta.ukvi.visa.workflow._
 import zio._
 import zio.temporal.workflow._
@@ -22,9 +32,10 @@ class VisitorVisaApplicationService(workflowClient: ZWorkflowClient) {
       applicationId <- Random.nextUUID
       visaApplicationWorkflow <- workflowClient.newWorkflowStub[VisitorVisaApplicationWorkflow](
                                    ZWorkflowOptions
-                                     .withWorkflowId(s"visitor/${applicationId}")
+                                     .withWorkflowId(s"visitor/$applicationId")
                                      .withTaskQueue(TaskQueues.Main)
                                  )
+      _ <- ZIO.logInfo(s"Creating visitor visa application id=$applicationId")
       _ <- ZWorkflowStub.start(
              visaApplicationWorkflow.processApplication(
                ApplicationInput(email)
@@ -43,11 +54,79 @@ class VisitorVisaApplicationService(workflowClient: ZWorkflowClient) {
     getExistingStub(id).flatMap(getApplicationState)
 
   def proceedApplicationQuestionnaire(id: UUID, step: ApplicantQuestionnaireData): Task[Unit] = {
-    getExistingStub(id).flatMap { visaApplicationWorkflow =>
-      ZWorkflowStub.signal(
-        visaApplicationWorkflow.proceedQuestionnaire(step)
-      )
-    }
+    for {
+      visaApplicationWorkflow <- getExistingStub(id)
+      _                       <- ZIO.logInfo(s"Proceeding questionnaire step application=$id step=${step.getClass}")
+      _ <- ZWorkflowStub.signal(
+             visaApplicationWorkflow.proceedQuestionnaire(step)
+           )
+    } yield ()
+  }
+
+  def uploadDocuments(id: UUID, documents: List[UploadedDocument]): Task[Unit] = {
+    for {
+      visaApplicationWorkflow <- getExistingStub(id)
+      _                       <- ZIO.logInfo(s"Uploading documents application=$id")
+      _ <- ZWorkflowStub.signal(
+             visaApplicationWorkflow.uploadDocuments(UploadDocuments(documents))
+           )
+    } yield ()
+  }
+
+  def markServiceFeePaid(id: UUID): Task[Unit] = {
+    for {
+      visaApplicationWorkflow <- getExistingStub(id)
+      _                       <- ZIO.logInfo(s"Marking service fee as paid application=$id")
+      _ <- ZWorkflowStub.signal(
+             visaApplicationWorkflow.serviceFeePaid()
+           )
+    } yield ()
+  }
+
+  def addSubmissionData(id: UUID, data: SubmissionData): Task[Unit] = {
+    for {
+      visaApplicationWorkflow <- getExistingStub(id)
+      _                       <- ZIO.logInfo(s"Adding submission data application=$id")
+      _ <- ZWorkflowStub.signal(
+             visaApplicationWorkflow.addSubmissionData(
+               AddSubmissionData(data)
+             )
+           )
+    } yield ()
+  }
+
+  def addScore(id: UUID, score: Int): Task[Unit] = {
+    for {
+      visaApplicationWorkflow <- getExistingStub(id)
+      _                       <- ZIO.logInfo(s"Adding score application=$id")
+      _ <- ZWorkflowStub.signal(
+             visaApplicationWorkflow.addScore(
+               AddScore(score)
+             )
+           )
+    } yield ()
+  }
+
+  def makeFinalDecision(id: UUID, approved: Boolean): Task[Unit] = {
+    for {
+      visaApplicationWorkflow <- getExistingStub(id)
+      _                       <- ZIO.logInfo(s"Making final decision on application=$id")
+      _ <- ZWorkflowStub.signal(
+             visaApplicationWorkflow.makeFinalDecision(
+               MakeFinalDecision(approved)
+             )
+           )
+    } yield ()
+  }
+
+  def markAsDelivered(id: UUID): Task[Unit] = {
+    for {
+      visaApplicationWorkflow <- getExistingStub(id)
+      _                       <- ZIO.logInfo(s"Delivered application=$id")
+      _ <- ZWorkflowStub.signal(
+             visaApplicationWorkflow.markAsDelivered()
+           )
+    } yield ()
   }
 
   private def getExistingStub(applicationId: UUID): UIO[ZWorkflowStub.Of[VisitorVisaApplicationWorkflow]] =

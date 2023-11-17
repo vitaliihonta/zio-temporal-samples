@@ -110,6 +110,28 @@ class VisitorVisaApplicantApi(
                    applicationId,
                    ApplicantTravelRecordingFinished()
                  )
+            // Uploading documents for the sake of simplicity
+            _ <- visitorVisaApplicationService.uploadDocuments(
+                   applicationId,
+                   List(
+                     UploadedDocument(DocumentType.Passport, s"Pass-$applicationId"),
+                     UploadedDocument(DocumentType.EvidenceOfFunds, s"Pass-$applicationId")
+                   )
+                 )
+            // Marking fees as paid for the sake of simplicity
+            _ <- visitorVisaApplicationService.markServiceFeePaid(applicationId)
+            // Adding submission data for the sake of simplicity
+            _ <- visitorVisaApplicationService.addSubmissionData(
+                   applicationId,
+                   SubmissionData(
+                     deliveryAddress = "Academika Yanhela 20, Kyiv, 03056",
+                     phoneNumber = "+380971234567",
+                     biometrics = Biometrics(
+                       photoId = s"Photo-$applicationId",
+                       fingerprintsId = s"Fingerprint-$applicationId"
+                     )
+                   )
+                 )
           } yield {
             hxRedirect((URL.root / "api" / "v1" / "visitor" / "application" / applicationId.toString).addTrailingSlash)
           }
