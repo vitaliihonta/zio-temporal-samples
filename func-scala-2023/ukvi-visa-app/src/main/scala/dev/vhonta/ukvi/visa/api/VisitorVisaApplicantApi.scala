@@ -13,7 +13,6 @@ object VisitorVisaApplicantApi {
     ZLayer.derive[VisitorVisaApplicantApi]
 }
 
-// TODO: refactor
 class VisitorVisaApplicantApi(
   visitorVisaApplicationService: VisitorVisaApplicationService)
     extends AbstractApi {

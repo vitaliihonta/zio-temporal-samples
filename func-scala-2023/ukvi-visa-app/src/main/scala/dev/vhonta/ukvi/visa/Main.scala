@@ -50,7 +50,8 @@ object Main extends ZIOAppDefault {
         ZLayer.collectAll(
           List(
             VisitorVisaApplicantApi.make,
-            HomepageApi.make
+            HomepageApi.make,
+            VisitorVisaApplicantAdminApi.make
           )
         ),
         Server.configured(NonEmptyChunk("server")),
