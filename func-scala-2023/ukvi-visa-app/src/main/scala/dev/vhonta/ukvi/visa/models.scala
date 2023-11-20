@@ -101,3 +101,11 @@ case class ApplicationFormView(
 object ApplicationFormView {
   implicit val jsonCodec: JsonCodec[ApplicationFormView] = DeriveJsonCodec.gen[ApplicationFormView]
 }
+
+@jsonMemberNames(SnakeCase)
+case class FinalDecisionRequest(approved: String) {
+  def isApproved: Boolean = approved == "on"
+}
+object FinalDecisionRequest {
+  implicit val jsonCodec: JsonCodec[FinalDecisionRequest] = DeriveJsonCodec.gen[FinalDecisionRequest]
+}

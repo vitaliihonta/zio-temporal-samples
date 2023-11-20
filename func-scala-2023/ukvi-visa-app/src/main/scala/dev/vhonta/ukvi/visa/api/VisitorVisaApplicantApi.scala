@@ -131,6 +131,8 @@ class VisitorVisaApplicantApi(
                      )
                    )
                  )
+            // Automatically adding score for the sake of simplicity
+            _ <- visitorVisaApplicationService.addScore(applicationId, score = 90)
           } yield {
             hxRedirect((URL.root / "api" / "v1" / "visitor" / "application" / applicationId.toString).addTrailingSlash)
           }

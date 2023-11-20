@@ -7,6 +7,7 @@
             crossorigin="anonymous"></script>
     <script src="https://unpkg.com/htmx.org/dist/ext/client-side-templates.js"></script>
     <script src="https://unpkg.com/nunjucks@latest/browser/nunjucks.js"></script>
+    <script src="https://unpkg.com/htmx.org/dist/ext/json-enc.js"></script>
 </head>
 <body>
 <div>
@@ -33,10 +34,6 @@
                     <label>Cancellation reason: </label>
                     <br/>
                     <label>{{cancellation_reason}}</label>
-                    {% else %}
-                    <div>
-                        <button hx-get="./nextVerificationStep">Next verification step</button>
-                    </div>
                     {% endif %}
                 </div>
                 {% if info %}
@@ -64,6 +61,31 @@
                     <label>{{record.country}}: {{record.from_date}} - {{record.to_date}}</label>
                     {% endfor %}
                 </div>
+                {% endif %}
+                {% if score %}
+                <div>
+                    <br/>
+                    <label>Score: </label>
+                    <label>{{Score}}</label>
+                </div>
+                {% endif %}
+                {% if next_step == "final_decision" %}
+                <div>
+                    <form hx-post="./final-decision" hx-ext='json-enc'>
+                        <label for="approved">Approve:</label>
+                        <br/>
+                        <label>
+                            <input type="checkbox" name="approved">
+                        </label>
+                        <button type="submit">Make decision</button>
+                    </form>
+                </div>
+                {% elif approved %}
+                <br/>
+                <label>Application is approved</label>
+                {% else %}
+                <br/>
+                <label>Application is rejected</label>
                 {% endif %}
             </div>
         </template>

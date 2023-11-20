@@ -1,10 +1,11 @@
-package dev.vhonta.ukvi.visa
+package dev.vhonta.ukvi.visa.api
 
-import zio._
-import zio.json.{uuid => _, _}
-import zio.http._
-import dev.vhonta.ukvi.visa.api.AbstractApi
 import dev.vhonta.ukvi.visa.service.VisitorVisaApplicationService
+import dev.vhonta.ukvi.visa.{ApplicationStep, FinalDecisionRequest}
+import zio._
+import zio.http._
+import zio.json.{uuid => _, _}
+
 import java.util.UUID
 
 object VisitorVisaApplicantAdminApi {
@@ -35,12 +36,7 @@ class VisitorVisaApplicantAdminApi(
         visitorVisaApplicationService
           .getApplication(applicationId)
           .map { application =>
-            // todo: implement
             application.nextStep match {
-              case ApplicationStep.Scoring =>
-                hxRedirect(
-                  (URL.root / "api" / "v1" / "admin" / "visitor" / "application" / applicationId.toString / "scoring").addTrailingSlash
-                )
               case ApplicationStep.FinalDecision =>
                 hxRedirect(
                   (URL.root / "api" / "v1" / "admin" / "visitor" / "application" / applicationId.toString / "final-decision").addTrailingSlash
@@ -48,6 +44,28 @@ class VisitorVisaApplicantAdminApi(
               case _ => Response.notImplemented
             }
           }
+      },
+      // Scoring
+      Method.GET / "api" / "v1" / "admin" / "visitor" / "application" / uuid(
+        "application-id"
+      ) / "final-decision" -> handler { (_: UUID, _: Request) =>
+        Handler.fromResource("static/admin/scoring.html")
+      }.flatten,
+      Method.POST / "api" / "v1" / "admin" / "visitor" / "application" / uuid(
+        "application-id"
+      ) / "final-decision" -> handler { (applicationId: UUID, request: Request) =>
+        for {
+          body          <- request.body.asString
+          finalDecision <- ZIO.fromEither(body.fromJson[FinalDecisionRequest]).mapError(new IllegalArgumentException(_))
+          _ <- visitorVisaApplicationService.makeFinalDecision(
+                 applicationId,
+                 finalDecision.isApproved
+               )
+        } yield {
+          hxRedirect(
+            (URL.root / "api" / "v1" / "admin" / "visitor" / "application" / applicationId.toString).addTrailingSlash
+          )
+        }
       }
     )
       .handleError(Response.fromThrowable)

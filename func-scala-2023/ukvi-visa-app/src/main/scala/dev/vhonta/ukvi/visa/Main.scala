@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.json.JsonMapper
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.github.pjfanning.enumeratum.EnumeratumModule
-import dev.vhonta.ukvi.visa.api.{AbstractApi, HomepageApi, VisitorVisaApplicantApi}
+import dev.vhonta.ukvi.visa.api.{AbstractApi, HomepageApi, VisitorVisaApplicantAdminApi, VisitorVisaApplicantApi}
 import dev.vhonta.ukvi.visa.service.VisitorVisaApplicationService
 import dev.vhonta.ukvi.visa.workflow.{ConfigurationActivities, TaskQueues, VisitorVisaApplicationWorkflowImpl}
 import zio._
