@@ -7,11 +7,11 @@ lazy val root = (project in file("."))
   )
   .aggregate(
     `ukvi-visa-app`,
-    `data-ingestion-app`
+    `deployments-app`
   )
 
 lazy val sharedDeps = {
-  val zioTemporalVersion = "0.6.0"
+  val zioTemporalVersion = "0.6.1"
   val zioVersion         = "2.0.19"
   val zioLoggingVersion  = "2.1.14"
   val zioConfigVersion   = "4.0.0-RC16"
@@ -47,11 +47,11 @@ lazy val `ukvi-visa-app` = project
     )
   )
 
-lazy val `data-ingestion-app` = project
-  .in(file("data-ingestion-app"))
+lazy val `deployments-app` = project
+  .in(file("deployments-app"))
   .settings(
-    name := "data-ingestion-app",
+    name := "deployments-app",
     libraryDependencies ++= sharedDeps ++ Seq(
-      "dev.zio" %% "zio-http" % "3.0.0-RC3"
+      "dev.zio" %% "zio-json" % "0.5.0"
     )
   )

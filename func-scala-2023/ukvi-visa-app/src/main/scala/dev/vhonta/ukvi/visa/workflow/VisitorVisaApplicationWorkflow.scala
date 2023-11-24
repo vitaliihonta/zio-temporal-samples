@@ -78,7 +78,7 @@ class VisitorVisaApplicationWorkflowImpl extends VisitorVisaApplicationWorkflow 
     val globalTimeoutWatchDog = ZWorkflow.newCancellationScope {
       ZWorkflow
         .newTimer(timeouts.globalFormTimeout)
-        .map { _ =>
+        .as {
           logger.info("Form timed out")
           state.update(_.cancel("Form timeout", ZWorkflow.currentTimeMillis.toLocalDateTime()))
         }
@@ -151,7 +151,6 @@ class VisitorVisaApplicationWorkflowImpl extends VisitorVisaApplicationWorkflow 
     state.update(_.cancel("User cancelled", ZWorkflow.currentTimeMillis.toLocalDateTime()))
   }
 
-  @signalMethod
   override def confirmEmail(): Unit = {
     logger.info("Email confirmed")
     state.update(_.withEmailConfirmed(ZWorkflow.currentTimeMillis.toLocalDateTime()))
