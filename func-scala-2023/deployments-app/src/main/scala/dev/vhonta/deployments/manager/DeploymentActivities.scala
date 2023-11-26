@@ -6,20 +6,22 @@ import zio.temporal._
 import zio.temporal.activity._
 
 import java.net.URL
+import java.time.Instant
 
-case class DeployServiceParams(name: String)
+case class DeployServiceParams(id: String)
 
 case class DeployServiceResult(
-  serviceDeploymentId: String)
-
-case class HttpTrafficStatsParams(
-  hostname: URL)
+  /*might contain some useful information*/
+)
 
 sealed trait TrafficStatsResult {
   def error: Option[String]
   def statsType: String
 
 }
+
+case class HttpTrafficStatsParams(
+  hostname: URL)
 
 case class HttpTrafficStatsResult(
   numRequests: Int,
@@ -60,61 +62,65 @@ case class KafkaTrafficStatsResult(
 trait DeploymentActivities {
   def deployService(params: DeployServiceParams): DeployServiceResult
 
-  def httpTrafficStats(serviceDeploymentId: String, params: HttpTrafficStatsParams): HttpTrafficStatsResult
+  def httpTrafficStats(serviceId: String, params: HttpTrafficStatsParams): HttpTrafficStatsResult
 
-  def kafkaTrafficStats(serviceDeploymentId: String, params: KafkaTrafficStatsParams): KafkaTrafficStatsResult
+  def kafkaTrafficStats(serviceId: String, params: KafkaTrafficStatsParams): KafkaTrafficStatsResult
 
-  def rollbackService(serviceDeploymentId: String): Unit
+  def rollbackService(serviceId: String): Unit
 }
 
 object DeploymentActivitiesImpl {
   val make: URLayer[ZActivityRunOptions[Any], DeploymentActivities] =
-    ZLayer.fromZIO(Ref.make(Map.empty[String, DeployServiceParams])) >>>
+    ZLayer.fromZIO(Ref.make(Map.empty[String, DeploymentMeta])) >>>
       ZLayer.derive[DeploymentActivitiesImpl]
+
+  private case class DeploymentMeta(deployedAt: Instant)
 }
 
 class DeploymentActivitiesImpl(
-  servicesRef:      Ref[Map[String, DeployServiceParams]]
+  servicesRef:      Ref[Map[String, DeploymentActivitiesImpl.DeploymentMeta]]
 )(implicit options: ZActivityRunOptions[Any])
     extends DeploymentActivities {
+
+  import DeploymentActivitiesImpl.DeploymentMeta
 
   override def deployService(params: DeployServiceParams): DeployServiceResult = {
     ZActivity.run {
       for {
-        _         <- ZIO.logInfo(s"Deploying service=${params.name}")
-        serviceId <- Random.nextUUID
-        serviceDeploymentId = s"deploy-$serviceId"
-        _ <- servicesRef.update(_.updated(serviceDeploymentId, params))
-        _ <- ZIO.sleep(5.seconds)
-      } yield DeployServiceResult(serviceDeploymentId)
+        _          <- ZIO.logInfo(s"Deploying service=${params.id}")
+        _          <- ZIO.sleep(5.seconds)
+        deployedAt <- Clock.instant
+        _          <- servicesRef.update(_.updated(params.id, DeploymentMeta(deployedAt)))
+      } yield DeployServiceResult()
     }
   }
 
-  override def httpTrafficStats(serviceDeploymentId: String, params: HttpTrafficStatsParams): HttpTrafficStatsResult = {
+  override def httpTrafficStats(serviceId: String, params: HttpTrafficStatsParams): HttpTrafficStatsResult = {
     ZActivity.run {
       def badTraffic  = HttpTrafficStatsResult(numRequests = 1000, numErrors = 100) // 10% errors
       def goodTraffic = HttpTrafficStatsResult(numRequests = 1000, numErrors = 1)   // 0.1% errors
 
       for {
         services <- servicesRef.get
-        service <- ZIO
-                     .succeed(services.get(serviceDeploymentId))
-                     .someOrFail(
-                       new IllegalAccessException(s"Service deployment not found id=$serviceDeploymentId")
-                     )
-        _ <- ZIO.logInfo(s"HTTP traffic check service=${service.name} hostname=${params.hostname}")
+        // checking service existence
+        _ <- ZIO
+               .succeed(services.get(serviceId))
+               .someOrFail(
+                 new IllegalAccessException(s"Service deployment not found id=$serviceId")
+               )
+        _ <- ZIO.logInfo(s"HTTP traffic check service=$serviceId hostname=${params.hostname}")
         traffic <- Random.nextBoolean.map {
                      case true => goodTraffic
                      // sometimes the traffic check fails
-                     case _ => if (service.name.contains("bad")) badTraffic else goodTraffic
+                     case _ => if (serviceId.contains("bad")) badTraffic else goodTraffic
                    }
       } yield traffic
     }
   }
 
   override def kafkaTrafficStats(
-    serviceDeploymentId: String,
-    params:              KafkaTrafficStatsParams
+    serviceId: String,
+    params:    KafkaTrafficStatsParams
   ): KafkaTrafficStatsResult = {
     ZActivity.run {
       def badTraffic  = KafkaTrafficStatsResult(lag = 10000, numConsumed = 100, numErrors = 1) // big lag
@@ -122,28 +128,38 @@ class DeploymentActivitiesImpl(
 
       for {
         services <- servicesRef.get
-        service <- ZIO
-                     .succeed(services.get(serviceDeploymentId))
-                     .someOrFail(
-                       new IllegalAccessException(s"Service deployment not found id=$serviceDeploymentId")
-                     )
+        // checking service existence
+        _ <- ZIO
+               .succeed(services.get(serviceId))
+               .someOrFail(
+                 new IllegalAccessException(s"Service deployment not found id=$serviceId")
+               )
         _ <- ZIO.logInfo(
-               s"Kafka traffic check service=${service.name} topic=${params.topic} group=${params.consumerGroup}"
+               s"Kafka traffic check service=${serviceId} topic=${params.topic} group=${params.consumerGroup}"
              )
         traffic <- Random.nextBoolean.map {
                      case true => goodTraffic
                      // sometimes the traffic check fails
-                     case _ => if (service.name.contains("bad")) badTraffic else goodTraffic
+                     case _ => if (serviceId.contains("bad")) badTraffic else goodTraffic
                    }
       } yield traffic
     }
   }
 
-  override def rollbackService(serviceDeploymentId: String): Unit = {
+  override def rollbackService(serviceId: String): Unit = {
     ZActivity.run {
       for {
-        _ <- ZIO.logInfo(s"Rolling back serviceDeploymentId=$serviceDeploymentId")
-        _ <- servicesRef.update(_.removed(serviceDeploymentId))
+        services <- servicesRef.get
+        // checking service existence
+        serviceMeta <- ZIO
+                         .succeed(services.get(serviceId))
+                         .someOrFail(
+                           new IllegalAccessException(s"Service deployment not found id=$serviceId")
+                         )
+        now <- Clock.instant
+        timeInProd = Duration.fromInterval(serviceMeta.deployedAt, now)
+        _ <- ZIO.logInfo(s"Rolling back service=$serviceId timeInProd=$timeInProd")
+        _ <- servicesRef.update(_.removed(serviceId))
         _ <- ZIO.sleep(5.seconds)
       } yield ()
     }

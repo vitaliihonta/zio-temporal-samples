@@ -45,11 +45,11 @@ object Main extends ZIOAppDefault {
                         // NOTE: remove "bad" word to the service name (lowercase) to make the deployment succeed
                         List(
                           ServiceDeploymentRequest(
-                            name = "companies-service",
+                            id = "companies-service",
                             aspects = List(ServiceAspect.HttpApi(address = new URL("https://companies-service")))
                           ),
                           ServiceDeploymentRequest(
-                            name = "streaming-service-bad",
+                            id = "streaming-service-bad",
                             aspects = List(
                               ServiceAspect.HttpApi(address = new URL("https://streaming-service")),
                               ServiceAspect.KafkaConsumer(

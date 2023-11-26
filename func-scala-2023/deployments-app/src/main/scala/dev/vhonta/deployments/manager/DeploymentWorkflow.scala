@@ -26,55 +26,67 @@ class DeploymentWorkflowImpl extends DeploymentWorkflow {
   private val deploymentState = ZWorkflowState.emptyMap[String, DeploymentProgressItem]
 
   override def deploy(input: DeploymentParams): DeploymentResult = {
-    val deploymentSaga = ZSaga.foreach(input.deployments) { req =>
-      for {
-        deployment <- ZSaga.attempt(
-                        ZActivityStub
-                          .execute(
-                            deploymentActivities.deployService(
-                              DeployServiceParams(req.name)
-                            )
-                          )
-                      )
-        _ <- ZSaga.compensation {
-               deploymentState.update(
-                 deployment.serviceDeploymentId,
-                 DeploymentProgressItem(
-                   name = req.name,
-                   status = ServiceDeploymentStatus.RollingBack,
-                   failure = deploymentState.get(deployment.serviceDeploymentId).flatMap(_.failure)
-                 )
-               )
-               ZActivityStub.execute(
-                 deploymentActivities.rollbackService(deployment.serviceDeploymentId)
-               )
-             }
-        // yield it back
-      } yield {
+    // Initialize the state
+    deploymentState := input.deployments.view.map { req =>
+      req.id -> DeploymentProgressItem(
+        id = req.id,
+        status = ServiceDeploymentStatus.Planned,
+        failure = None
+      )
+    }.toMap
+
+    val deploymentSaga: ZSaga[Unit] = ZSaga
+      .foreach(input.deployments) { req =>
+        // Update deployment status
         deploymentState.update(
-          deployment.serviceDeploymentId,
+          req.id,
           DeploymentProgressItem(
-            name = req.name,
+            id = req.id,
             status = ServiceDeploymentStatus.InProgress,
             failure = None
           )
         )
-        (req, deployment)
+
+        for {
+          // Step 1: deploy
+          deployment <- ZSaga.attempt(
+                          ZActivityStub
+                            .execute(
+                              deploymentActivities.deployService(
+                                DeployServiceParams(req.id)
+                              )
+                            )
+                        )
+          // Step 2: add rollback action
+          _ <- ZSaga.compensation {
+                 deploymentState.update(
+                   req.id,
+                   DeploymentProgressItem(
+                     id = req.id,
+                     status = ServiceDeploymentStatus.RollingBack,
+                     failure = deploymentState.get(req.id).flatMap(_.failure)
+                   )
+                 )
+                 ZActivityStub.execute(
+                   deploymentActivities.rollbackService(req.id)
+                 )
+               }
+          // Step 3: monitor traffic
+          _ <- monitorTraffic(req, deployment)
+        } yield ()
       }
-    }
+      .unit
 
-    val trafficChecksSaga = deploymentSaga.flatMap(checkTraffic)
-
-    val status: DeploymentResultStatus = trafficChecksSaga.run() match {
-      case Right(_) => DeploymentResultStatus.Failed
-      case Left(_)  => DeploymentResultStatus.Completed
+    val status: DeploymentResultStatus = deploymentSaga.run() match {
+      case Right(_) => DeploymentResultStatus.Completed
+      case Left(_)  => DeploymentResultStatus.Failed
     }
 
     DeploymentResult(
       status = status,
       deployments = deploymentState.snapshot.values.map { deployment =>
         DeploymentResultItem(
-          name = deployment.name,
+          name = deployment.id,
           failure = deployment.failure
         )
       }.toList
@@ -86,24 +98,33 @@ class DeploymentWorkflowImpl extends DeploymentWorkflow {
       deploymentState.snapshot.values.toList
     )
 
-  private def checkTraffic(deployments: List[(ServiceDeploymentRequest, DeployServiceResult)]): ZSaga[Unit] =
+  private def monitorTraffic(
+    req:        ServiceDeploymentRequest,
+    deployment: DeployServiceResult
+  ): ZSaga[Unit] =
     ZSaga.attempt {
       var elapsed = 0.seconds
       // Monitoring period should be bigger in real life
       while (elapsed <= 30.seconds) {
         val startedAt = ZWorkflow.currentTimeMillis.toInstant
-        val checkAsync = ZAsync.foreachParDiscard(deployments) { case (deploymentRequest, deployment) =>
-          logger.info(s"Monitoring traffic for ${deploymentRequest.name} id=${deployment.serviceDeploymentId}...")
-          performCheck(deploymentRequest, deployment)
-        }
         // wait for checks
-        checkAsync.run.getOrThrow
+        performCheck(req, deployment).run.getOrThrow
         // make pauses
         ZWorkflow.sleep(5.seconds)
         // track elapsed time
         val checkedAt = ZWorkflow.currentTimeMillis.toInstant
         elapsed += Duration.fromInterval(startedAt, checkedAt)
       }
+
+      // consider deployment successful
+      deploymentState.update(
+        req.id,
+        DeploymentProgressItem(
+          id = req.id,
+          status = ServiceDeploymentStatus.Completed,
+          failure = None
+        )
+      )
     }
 
   private def performCheck(
@@ -111,13 +132,13 @@ class DeploymentWorkflowImpl extends DeploymentWorkflow {
     deployment: DeployServiceResult
   ): ZAsync[Unit] = {
     ZAsync
-      .foreach(req.aspects) { aspect =>
+      .foreachParDiscard(req.aspects) { aspect =>
         val checkAsync = aspect match {
           case ServiceAspect.HttpApi(hostname) =>
             ZActivityStub
               .executeAsync(
                 deploymentActivities.httpTrafficStats(
-                  deployment.serviceDeploymentId,
+                  req.id,
                   HttpTrafficStatsParams(hostname)
                 )
               )
@@ -125,7 +146,7 @@ class DeploymentWorkflowImpl extends DeploymentWorkflow {
             ZActivityStub
               .executeAsync(
                 deploymentActivities.kafkaTrafficStats(
-                  deployment.serviceDeploymentId,
+                  req.id,
                   KafkaTrafficStatsParams(topic, consumerGroup)
                 )
               )
@@ -135,11 +156,11 @@ class DeploymentWorkflowImpl extends DeploymentWorkflow {
           stats.error match {
             case None => ZAsync.unit
             case Some(error) =>
-              val failure = s"${stats.statsType} failed for service=${req.name} reason=$error"
+              val failure = s"${stats.statsType} failed for service=${req.id} reason=$error"
               deploymentState.update(
-                deployment.serviceDeploymentId,
+                req.id,
                 DeploymentProgressItem(
-                  name = req.name,
+                  id = req.id,
                   status = ServiceDeploymentStatus.Failed,
                   failure = Some(failure)
                 )
@@ -153,6 +174,5 @@ class DeploymentWorkflowImpl extends DeploymentWorkflow {
           }
         }
       }
-      .unit
   }
 }
