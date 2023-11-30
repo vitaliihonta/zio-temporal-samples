@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Visa Application - UKVI</title>
+    <script src="https://unpkg.com/htmx.org@1.9.8"
+            integrity="sha384-rgjA7mptc2ETQqXoYC3/zJvkU7K/aP44Y+z7xQuJiVnB/422P/Ak+F/AqFR7E4Wr"
+            crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/htmx.org/dist/ext/client-side-templates.js"></script>
+    <script src="https://unpkg.com/nunjucks@latest/browser/nunjucks.js"></script>
+    <script src="https://unpkg.com/htmx.org/dist/ext/json-enc.js"></script>
+</head>
+<body>
+<div>
+    <div>
+        <img src="/assets/images/uk_crown.png" alt=""> GOV.UK
+    </div>
+</div>
+<div hx-ext="client-side-templates">
+    <form hx-post="./" hx-ext='json-enc'>
+        <label for="first_name">First name:</label>
+        <br/>
+        <label>
+            <input type="text" name="first_name">
+        </label>
+        <br/>
+        <label for="last_name">Last name:</label>
+        <br/>
+        <label>
+            <input type="text" name="last_name">
+        </label>
+        <br/>
+        <label for="birth_date">Birthdate:</label>
+        <br/>
+        <label>
+            <input type="date" name="birth_date">
+        </label>
+        <br/>
+        <label for="citizenship">Citizenship:</label>
+        <br/>
+        <label>
+            <input type="text" name="citizenship">
+        </label>
+        <br/>
+        <button type="submit">Submit</button>
+    </form>
+</div>
+</body>
+</html>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Visa Application - UKVI</title>
+    <script src="https://unpkg.com/htmx.org@1.9.8"
+            integrity="sha384-rgjA7mptc2ETQqXoYC3/zJvkU7K/aP44Y+z7xQuJiVnB/422P/Ak+F/AqFR7E4Wr"
+            crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/htmx.org/dist/ext/client-side-templates.js"></script>
+    <script src="https://unpkg.com/nunjucks@latest/browser/nunjucks.js"></script>
+</head>
+<body>
+<div>
+    <div>
+        <img src="/assets/images/uk_crown.png" alt=""> GOV.UK
+    </div>
+</div>
+<div hx-ext="client-side-templates">
+    <div hx-get="./view"
+         hx-trigger="load, every 5s"
+         hx-swap="innerHTML"
+         hx-target="#result"
+         nunjucks-template="applicationView">
+        <div id="result"></div>
+        <template id="applicationView">
+            <div>
+                <div>
+                    <h3>Application:</h3>
+                    <label>Email: </label>
+                    <br/>
+                    <label>{{email}}</label>
+                    {% if cancellation_reason %}
+                    <br/>
+                    <label>Cancellation reason: </label>
+                    <br/>
+                    <label>{{cancellation_reason}}</label>
+                    {% elif paid and submission_data and approved %}
+                    <br/>
+                    <label>Your application is approved!</label>
+                    {% elif paid and submission_data %}
+                    <br/>
+                    <label>Waiting for the decision to be made</label>
+                    {% else %}
+                    <div>
+                        <button hx-get="./next">Next</button>
+                    </div>
+                    {% endif %}
+                </div>
+                {% if info %}
+                <div>
+                    <h3>Primary information:</h3>
+                    <label>First name: </label>
+                    <label>{{info.first_name}}</label>
+                    <br/>
+                    <label>Last name: </label>
+                    <label>{{info.last_name}}</label>
+                    <br/>
+                    <label>Birthdate: </label>
+                    <label>
+                        <input type="date" value="{{info.birth_date}}" disabled/>
+                    </label>
+                    <br/>
+                    <label>Citizenship: </label>
+                    <label>{{info.citizenship}}</label>
+                </div>
+                {% endif %}
+                {% if travel_history %}
+                <div>
+                    <h3>Travel history:</h3>
+                    {% for record in travel_history %}
+                    <label>{{record.country}}: {{record.from_date}} - {{record.to_date}}</label>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% if submission_data %}
+                <h3>Further steps</h3>
+                <br/>
+                <label>Pass delivery address: </label>
+                <label>{{submission_data.delivery_address}}</label>
+                {% endif %}
+            </div>
+        </template>
+    </div>
+</div>
+</body>
+</html>

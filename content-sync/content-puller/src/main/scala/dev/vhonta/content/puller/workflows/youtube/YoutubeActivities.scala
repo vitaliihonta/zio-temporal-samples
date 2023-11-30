@@ -31,18 +31,11 @@ object YoutubeActivitiesImpl {
     YoutubeActivities
   ] = {
     ZLayer.fromZIO(ZIO.config(config)) >>>
-      ZLayer.fromFunction(
-        YoutubeActivitiesImpl(
-          _: YoutubeClient,
-          _: OAuth2Client,
-          _: ContentFeedIntegrationRepository,
-          _: YoutubeConfig
-        )(_: ZActivityRunOptions[Any])
-      )
+      ZLayer.derive[YoutubeActivitiesImpl]
   }
 }
 
-case class YoutubeActivitiesImpl(
+class YoutubeActivitiesImpl(
   youtubeClient:         YoutubeClient,
   oauth2Client:          OAuth2Client,
   integrationRepository: ContentFeedIntegrationRepository,

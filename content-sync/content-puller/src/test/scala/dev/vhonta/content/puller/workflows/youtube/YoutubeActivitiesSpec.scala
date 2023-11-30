@@ -36,7 +36,7 @@ object YoutubeActivitiesSpec extends ZIOSpecDefault with IdiomaticMockito with A
       ZTestActivityEnvironment.activityRunOptionsWithZIO[Any] { implicit options =>
         for {
           _ <- ZTestActivityEnvironment.addActivityImplementation(
-                 YoutubeActivitiesImpl(youtubeClient, oauth2Client, integrationRepository, config)
+                 new YoutubeActivitiesImpl(youtubeClient, oauth2Client, integrationRepository, config)
                )
 
           stub <- ZTestActivityEnvironment.newActivityStub[YoutubeActivities](
@@ -77,7 +77,7 @@ object YoutubeActivitiesSpec extends ZIOSpecDefault with IdiomaticMockito with A
       ZTestActivityEnvironment.activityRunOptionsWithZIO[Any] { implicit options =>
         for {
           _ <- ZTestActivityEnvironment.addActivityImplementation(
-                 YoutubeActivitiesImpl(youtubeClient, oauth2Client, integrationRepository, config)
+                 new YoutubeActivitiesImpl(youtubeClient, oauth2Client, integrationRepository, config)
                )
 
           stub <- ZTestActivityEnvironment.newActivityStub[YoutubeActivities](

@@ -9,8 +9,8 @@ import dev.vhonta.content.puller.proto.{
 }
 import dev.vhonta.content.puller.workflows.base.BasePullWorkflow
 import dev.vhonta.content.puller.workflows.storage.DatalakeActivities
-import zio.temporal._
 import zio._
+import zio.temporal._
 import zio.temporal.workflow._
 import zio.temporal.activity._
 

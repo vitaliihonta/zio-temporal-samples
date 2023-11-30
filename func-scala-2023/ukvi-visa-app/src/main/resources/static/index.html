@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Visa Application - UKVI</title>
+    <script src="https://unpkg.com/htmx.org@1.9.8"
+            integrity="sha384-rgjA7mptc2ETQqXoYC3/zJvkU7K/aP44Y+z7xQuJiVnB/422P/Ak+F/AqFR7E4Wr"
+            crossorigin="anonymous"></script>
+</head>
+<body>
+<div>
+    <div>
+        <img src="/assets/images/uk_crown.png" alt=""> GOV.UK
+    </div>
+</div>
+<p>Enter email to start submission...</p>
+<form hx-post="/api/v1/visitor/init">
+    <label for="email">Email:</label>
+    <br/>
+    <label>
+        <input type="text" name="email">
+    </label>
+    <button type="submit">Submit</button>
+</form>
+</body>
+</html>
