@@ -130,7 +130,7 @@ class VisitorVisaApplicationWorkflowImpl extends VisitorVisaApplicationWorkflow 
           case ApplicationStep.FinalDecision =>
             // Automatically reject if the score is too low
             if (state.exists(_.score.exists(_ < 75))) {
-              state.update(_.withFinalDecision(false, ZWorkflow.currentTimeMillis.toLocalDateTime())).snapshot
+              state.update(_.withFinalDecision(false, ZWorkflow.currentTimeMillis.toLocalDateTime()))
               break()
             }
           case _ =>
@@ -181,7 +181,6 @@ class VisitorVisaApplicationWorkflowImpl extends VisitorVisaApplicationWorkflow 
     }
   }
 
-  @signalMethod
   override def serviceFeePaid(): Unit = {
     state.updateWhen {
       case state if state.nextStep == ApplicationStep.PayServiceFee =>
@@ -214,7 +213,6 @@ class VisitorVisaApplicationWorkflowImpl extends VisitorVisaApplicationWorkflow 
     }
   }
 
-  @signalMethod
   override def markAsDelivered(): Unit = {
     state.updateWhen {
       case state if state.nextStep == ApplicationStep.PassDelivery =>

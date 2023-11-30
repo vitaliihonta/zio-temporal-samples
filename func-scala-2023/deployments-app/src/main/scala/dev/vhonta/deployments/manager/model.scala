@@ -19,14 +19,14 @@ object ServiceAspect {
 }
 
 case class ServiceDeploymentRequest(
-                                     id:    String,
-                                     aspects: List[ServiceAspect])
+  id:      String,
+  aspects: List[ServiceAspect])
 
 case class DeploymentParams(deployments: List[ServiceDeploymentRequest])
 
 sealed trait ServiceDeploymentStatus extends EnumEntry
 object ServiceDeploymentStatus extends Enum[ServiceDeploymentStatus] {
-  case object Planned  extends ServiceDeploymentStatus
+  case object Planned     extends ServiceDeploymentStatus
   case object InProgress  extends ServiceDeploymentStatus
   case object RollingBack extends ServiceDeploymentStatus
   case object Failed      extends ServiceDeploymentStatus
@@ -36,9 +36,9 @@ object ServiceDeploymentStatus extends Enum[ServiceDeploymentStatus] {
 }
 
 case class DeploymentProgressItem(
-                                   id:    String,
-                                   status:  ServiceDeploymentStatus,
-                                   failure: Option[String])
+  id:      String,
+  status:  ServiceDeploymentStatus,
+  failure: Option[String])
 
 case class DeploymentProgress(deployments: List[DeploymentProgressItem])
 

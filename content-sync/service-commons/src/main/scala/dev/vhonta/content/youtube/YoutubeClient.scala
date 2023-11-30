@@ -37,13 +37,10 @@ object YoutubeClient {
   }
 
   val make: ZLayer[HttpTransport with JsonFactory, Config.Error, YoutubeClient] =
-    ZLayer.makeSome[HttpTransport with JsonFactory, YoutubeClient](
-      ZLayer.fromFunction(YoutubeClient(_: YouTube)),
-      youtubeLayer
-    )
+    youtubeLayer >>> ZLayer.derive[YoutubeClient]
 }
 
-case class YoutubeClient(youtube: YouTube) {
+class YoutubeClient(youtube: YouTube) {
 
   def listSubscriptions(accessToken: OAuth2Client.AccessToken): Stream[Throwable, Subscription] = {
     YoutubeRequests.paginated(
