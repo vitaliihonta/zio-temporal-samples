@@ -1,5 +1,6 @@
 ThisBuild / version      := "0.1.0-SNAPSHOT"
-ThisBuild / scalaVersion := "2.13.11"
+ThisBuild / scalaVersion := "2.13.14"
+ThisBuild / resolvers ++= Resolver.sonatypeOssRepos("snapshots")
 
 lazy val root = (project in file("."))
   .settings(
@@ -11,10 +12,10 @@ lazy val root = (project in file("."))
   )
 
 lazy val sharedDeps = {
-  val zioTemporalVersion = "0.6.1"
-  val zioVersion         = "2.0.19"
-  val zioLoggingVersion  = "2.1.14"
-  val zioConfigVersion   = "4.0.0-RC16"
+  val zioTemporalVersion = "0.6.1+4-374feefe-SNAPSHOT"
+  val zioVersion         = "2.1.7"
+  val zioLoggingVersion  = "2.3.0"
+  val zioConfigVersion   = "4.0.2"
 
   Seq(
     // zio-temporal
@@ -31,10 +32,10 @@ lazy val sharedDeps = {
     "dev.zio"       %% "zio-logging-slf4j2" % zioLoggingVersion,
     "ch.qos.logback" % "logback-classic"    % "1.4.8",
     // utils
-    "com.beachape" %% "enumeratum" % "1.7.3",
-    "io.scalaland" %% "chimney"    % "0.8.2",
+    "com.beachape" %% "enumeratum" % "1.7.4",
+    "io.scalaland" %% "chimney"    % "1.4.0",
     // todo: embed into zio-temporal
-    "com.github.pjfanning" %% "jackson-module-enumeratum" % "2.14.1"
+    "com.github.pjfanning" %% "jackson-module-enumeratum" % "2.17.1"
   )
 }
 

@@ -29,7 +29,7 @@ case class ApplicationResult private (
   paid:               Option[Boolean] = None,
   submissionData:     Option[SubmissionData] = None,
   score:              Option[Int] = None,
-  approved:           Option[Boolean] = None) {
+  approved: Option[Boolean] = None) {
 
   def cancel(reason: String, now: LocalDateTime): ApplicationResult =
     copy(
