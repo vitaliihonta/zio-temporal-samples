@@ -2,16 +2,16 @@ import sbt._
 
 object Dependencies {
   private object versions {
-    val zioTemporal = "0.6.1"
-    val zio         = "2.0.19"
-    val zioLogging  = "2.1.14"
-    val zioConfig   = "4.0.0-RC16"
-    val zioJson     = "0.6.2"
-    val enumeratum  = "1.7.3"
-    val sttp        = "3.9.0"
-    val telegramium = "8.69.0"
-    val spark       = "3.5.0"
-    val quill       = "4.6.1"
+    val zioTemporal = "0.6.1+6-af709a73-SNAPSHOT"
+    val zio         = "2.1.7"
+    val zioLogging  = "2.3.0"
+    val zioConfig   = "4.0.2"
+    val zioJson     = "0.7.2"
+    val enumeratum  = "1.7.4"
+    val sttp        = "3.9.7"
+    val telegramium = "9.77.0"
+    val spark       = "3.5.2"
+    val quill       = "4.8.3"
   }
 
   val zioTemporal = Seq(
@@ -53,8 +53,8 @@ object Dependencies {
 
   val parquet = Seq(
     // No way to write parquet without hadoop dependency
-    "org.apache.hadoop"         % "hadoop-client"  % "3.3.6" exclude ("org.slf4j", "slf4j-reload4j"),
-    "com.github.mjakubowski84" %% "parquet4s-core" % "2.13.0"
+    "org.apache.hadoop"         % "hadoop-client"  % "3.4.0" exclude ("org.slf4j", "slf4j-reload4j"),
+    "com.github.mjakubowski84" %% "parquet4s-core" % "2.15.0"
   )
 
   private val sparkExclusions = Vector(
@@ -76,16 +76,16 @@ object Dependencies {
   )
 
   val zioHttp = Seq(
-    "dev.zio" %% "zio-http" % "3.0.0-RC2"
+    "dev.zio" %% "zio-http" % "3.0.1"
   )
 
   val mockito = Seq(
-    "org.mockito" %% "mockito-scala" % "1.17.14" % Test
+    "org.mockito" %% "mockito-scala" % "1.17.37" % Test
   )
 
   val zioTestFrameworks = Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
 
-  private val postgres = "org.postgresql" % "postgresql" % "42.5.4"
+  private val postgres = "org.postgresql" % "postgresql" % "42.7.3"
 
   val sparkDatabase = Seq(
     "io.getquill" %% "quill-jdbc" % versions.quill,
@@ -94,7 +94,7 @@ object Dependencies {
 
   val zioQuill = Seq(
     "io.getquill" %% "quill-jdbc-zio" % versions.quill,
-    "org.flywaydb" % "flyway-core"    % "9.16.0",
+    "org.flywaydb" % "flyway-core"    % "10.15.2",
     postgres
   )
 
@@ -105,7 +105,7 @@ object Dependencies {
   val telegramium = Seq(
     "io.github.apimorphism" %% "telegramium-core" % versions.telegramium,
     "io.github.apimorphism" %% "telegramium-high" % versions.telegramium exclude ("org.slf4j", "slf4j-simple"),
-    "dev.zio"               %% "zio-interop-cats" % "23.0.0.8"
+    "dev.zio"               %% "zio-interop-cats" % "23.1.0.2"
   )
 
   val googleApiClient = Seq(

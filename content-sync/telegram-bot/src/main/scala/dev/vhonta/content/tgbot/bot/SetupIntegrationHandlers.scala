@@ -81,43 +81,49 @@ case class SetupIntegrationHandlers(
 
   private val onNeverMind: TelegramHandler[Api[Task], CallbackQuery] =
     onCallbackQuery(ContentSyncCallbackQuery.NewerMind) { (query, _) =>
-      ZIO.foreach(query.message) { msg =>
-        for {
-          _ <- execute(answerCallbackQuery(callbackQueryId = query.id))
-          _ <- execute(
-                 editMessageReplyMarkup(
-                   chatId = Some(ChatIntId(msg.chat.id)),
-                   messageId = Some(msg.messageId),
-                   replyMarkup = None
+      query.message match {
+        case Some(msg: Message) =>
+          for {
+            _ <- execute(answerCallbackQuery(callbackQueryId = query.id))
+            _ <- execute(
+                   editMessageReplyMarkup(
+                     chatId = Some(ChatIntId(msg.chat.id)),
+                     messageId = Some(msg.messageId),
+                     replyMarkup = None
+                   )
                  )
-               )
-          _ <- execute(
-                 sendMessage(
-                   chatId = ChatIntId(msg.chat.id),
-                   text = "I got you homie"
+            _ <- execute(
+                   sendMessage(
+                     chatId = ChatIntId(msg.chat.id),
+                     text = "I got you homie"
+                   )
                  )
-               )
-        } yield ()
+          } yield ()
+
+        case _ => ZIO.unit
       }
     }
 
   private val onSetupNewsApi: TelegramHandler[Api[Task], CallbackQuery] =
     onCallbackQuery(ContentSyncCallbackQuery.SetupNewsApi) { (query, _) =>
-      ZIO.foreach(query.message) { msg =>
-        for {
-          _ <- startSetupWorkflow[SetupNewsApiParams, SetupNewsApiWorkflow](query, msg)(
-                 setupNewsApiWorkflowId,
-                 makeParams = subscriber => SetupNewsApiParams(subscriber.subscriber.id)
-               )
-          _ <-
-            execute(
-              sendMessage(
-                chatId = ChatIntId(msg.chat.id),
-                text =
-                  "Please specify your News API key \uD83D\uDD11\n(you need an account here https://newsapi.org/pricing):"
+      query.message match {
+        case Some(msg: Message) =>
+          for {
+            _ <- startSetupWorkflow[SetupNewsApiParams, SetupNewsApiWorkflow](query, msg)(
+                   setupNewsApiWorkflowId,
+                   makeParams = subscriber => SetupNewsApiParams(subscriber.subscriber.id)
+                 )
+            _ <-
+              execute(
+                sendMessage(
+                  chatId = ChatIntId(msg.chat.id),
+                  text =
+                    "Please specify your News API key \uD83D\uDD11\n(you need an account here https://newsapi.org/pricing):"
+                )
               )
-            )
-        } yield ()
+          } yield ()
+
+        case _ => ZIO.unit
       }
     }
 
@@ -158,15 +164,17 @@ case class SetupIntegrationHandlers(
 
   private val onSetupYoutube: TelegramHandler[Api[Task], CallbackQuery] =
     onCallbackQuery(ContentSyncCallbackQuery.SetupYoutube) { (query, _) =>
-      ZIO.foreach(query.message) { msg =>
-        startSetupWorkflow[SetupYoutubeParams, SetupYoutubeWorkflow](query, msg)(
-          makeWorkflowId = setupYoutubeWorkflowId,
-          makeParams = subscriber =>
-            SetupYoutubeParams(
-              subscriber.subscriber.id,
-              redirectUri = config.youtubeRedirectUri
-            )
-        )
+      query.message match {
+        case Some(msg: Message) =>
+          startSetupWorkflow[SetupYoutubeParams, SetupYoutubeWorkflow](query, msg)(
+            makeWorkflowId = setupYoutubeWorkflowId,
+            makeParams = subscriber =>
+              SetupYoutubeParams(
+                subscriber.subscriber.id,
+                redirectUri = config.youtubeRedirectUri
+              )
+          )
+        case _ => ZIO.unit
       }
     }
 

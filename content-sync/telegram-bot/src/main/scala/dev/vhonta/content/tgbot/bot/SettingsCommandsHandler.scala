@@ -54,72 +54,78 @@ case class SettingsCommandsHandler(
 
   private val onGetIntegrationDetails: TelegramHandler[Api[Task], CallbackQuery] =
     onCallbackQuery(ContentSyncCallbackQuery.IntegrationDetails) { (query, integrationId) =>
-      ZIO.foreach(query.message) { msg =>
-        for {
-          integration <- contentFeedIntegrationRepository.findById(integrationId)
-          _ <- ZIO
-                 .foreach(integration) { integration =>
-                   val text = integration.integration match {
-                     case ContentFeedIntegrationDetails.NewsApi(apiKey) =>
-                       s""" #<b>${integration.id}</b> - <b>${integration.integration.`type`.entryName}</b>: <tg-spoiler>$apiKey</tg-spoiler>"""
-                     case ContentFeedIntegrationDetails.Youtube(_, refreshToken, _, _) =>
-                       s""" #<b>${integration.id}</b> - <b>${integration.integration.`type`.entryName}</b>: <tg-spoiler>$refreshToken</tg-spoiler>"""
-                   }
-                   val markup = InlineKeyboardMarkup(
-                     List(
+      query.message match {
+        case Some(msg: Message) =>
+          for {
+            integration <- contentFeedIntegrationRepository.findById(integrationId)
+            _ <- ZIO
+                   .foreach(integration) { integration =>
+                     val text = integration.integration match {
+                       case ContentFeedIntegrationDetails.NewsApi(apiKey) =>
+                         s""" #<b>${integration.id}</b> - <b>${integration.integration.`type`.entryName}</b>: <tg-spoiler>$apiKey</tg-spoiler>"""
+                       case ContentFeedIntegrationDetails.Youtube(_, refreshToken, _, _) =>
+                         s""" #<b>${integration.id}</b> - <b>${integration.integration.`type`.entryName}</b>: <tg-spoiler>$refreshToken</tg-spoiler>"""
+                     }
+                     val markup = InlineKeyboardMarkup(
                        List(
-                         ContentSyncCallbackQuery.DeleteIntegration.toInlineKeyboardButton("Delete", integrationId)
+                         List(
+                           ContentSyncCallbackQuery.DeleteIntegration.toInlineKeyboardButton("Delete", integrationId)
+                         )
+                       )
+                     )
+                     execute(
+                       sendMessage(
+                         chatId = ChatIntId(msg.chat.id),
+                         text = text,
+                         parseMode = Some(Html),
+                         replyMarkup = Some(markup)
+                       )
+                     )
+                   }
+                   .someOrElseZIO(
+                     execute(
+                       sendMessage(
+                         chatId = ChatIntId(msg.chat.id),
+                         text = s"Integration #$integrationId <b>NOT FOUND</b>",
+                         parseMode = Some(Html)
                        )
                      )
                    )
-                   execute(
-                     sendMessage(
-                       chatId = ChatIntId(msg.chat.id),
-                       text = text,
-                       parseMode = Some(Html),
-                       replyMarkup = Some(markup)
-                     )
-                   )
-                 }
-                 .someOrElseZIO(
-                   execute(
-                     sendMessage(
-                       chatId = ChatIntId(msg.chat.id),
-                       text = s"Integration #$integrationId <b>NOT FOUND</b>",
-                       parseMode = Some(Html)
-                     )
-                   )
-                 )
-        } yield ()
+          } yield ()
+
+        case _ => ZIO.unit
       }
     }
 
   private val onDeleteIntegration: TelegramHandler[Api[Task], CallbackQuery] =
     onCallbackQuery(ContentSyncCallbackQuery.DeleteIntegration) { (query, integrationId) =>
-      ZIO.foreach(query.message) { msg =>
-        for {
-          integration <- contentFeedIntegrationRepository.findById(integrationId)
-          _ <- ZIO
-                 .foreach(integration) { integration =>
-                   contentFeedIntegrationRepository.deleteById(integrationId) *>
+      query.message match {
+        case Some(msg: Message) =>
+          for {
+            integration <- contentFeedIntegrationRepository.findById(integrationId)
+            _ <- ZIO
+                   .foreach(integration) { integration =>
+                     contentFeedIntegrationRepository.deleteById(integrationId) *>
+                       execute(
+                         sendMessage(
+                           chatId = ChatIntId(msg.chat.id),
+                           text = s"Integration #$integrationId (${integration.integration.`type`}) <b>DELETED</b>",
+                           parseMode = Some(Html)
+                         )
+                       )
+                   }
+                   .someOrElseZIO(
                      execute(
                        sendMessage(
                          chatId = ChatIntId(msg.chat.id),
-                         text = s"Integration #$integrationId (${integration.integration.`type`}) <b>DELETED</b>",
+                         text = s"Integration #$integrationId <b>NOT FOUND</b>",
                          parseMode = Some(Html)
                        )
                      )
-                 }
-                 .someOrElseZIO(
-                   execute(
-                     sendMessage(
-                       chatId = ChatIntId(msg.chat.id),
-                       text = s"Integration #$integrationId <b>NOT FOUND</b>",
-                       parseMode = Some(Html)
-                     )
                    )
-                 )
-        } yield ()
+          } yield ()
+
+        case _ => ZIO.unit
       }
     }
 

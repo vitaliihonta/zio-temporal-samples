@@ -1,5 +1,5 @@
-ThisBuild / version      := "0.6.1"
-ThisBuild / scalaVersion := "2.13.11"
+ThisBuild / version      := "0.7.0"
+ThisBuild / scalaVersion := "2.13.14"
 ThisBuild / organization := "dev.vhonta"
 ThisBuild / resolvers ++= Resolver.sonatypeOssRepos("snapshots")
 
