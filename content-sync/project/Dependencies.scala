@@ -2,16 +2,16 @@ import sbt._
 
 object Dependencies {
   private object versions {
-    val zioTemporal = "0.6.1+6-af709a73-SNAPSHOT"
-    val zio         = "2.1.7"
-    val zioLogging  = "2.3.0"
-    val zioConfig   = "4.0.2"
-    val zioJson     = "0.7.2"
-    val enumeratum  = "1.7.4"
-    val sttp        = "3.9.7"
-    val telegramium = "9.77.0"
+    val zioTemporal = "0.6.1+13-cebf5da3-SNAPSHOT"
+    val zio         = "2.1.14"
+    val zioLogging  = "2.4.0"
+    val zioConfig   = "4.0.3"
+    val zioJson     = "0.7.4"
+    val enumeratum  = "1.7.5"
+    val sttp        = "3.10.2"
+    val telegramium = "9.802.0"
     val spark       = "3.5.2"
-    val quill       = "4.8.3"
+    val quill       = "4.8.5"
   }
 
   val zioTemporal = Seq(
@@ -40,7 +40,7 @@ object Dependencies {
     "dev.zio"       %% "zio-config-typesafe" % versions.zioConfig,
     "dev.zio"       %% "zio-test"            % versions.zio % Test,
     "dev.zio"       %% "zio-test-sbt"        % versions.zio % Test,
-    "ch.qos.logback" % "logback-classic"     % "1.4.8"
+    "ch.qos.logback" % "logback-classic"     % "1.5.16"
   )
 
   val zioNio = Seq(
@@ -85,7 +85,7 @@ object Dependencies {
 
   val zioTestFrameworks = Seq(new TestFramework("zio.test.sbt.ZTestFramework"))
 
-  private val postgres = "org.postgresql" % "postgresql" % "42.7.3"
+  private val postgres = "org.postgresql" % "postgresql" % "42.7.4"
 
   val sparkDatabase = Seq(
     "io.getquill" %% "quill-jdbc" % versions.quill,
@@ -94,7 +94,8 @@ object Dependencies {
 
   val zioQuill = Seq(
     "io.getquill" %% "quill-jdbc-zio" % versions.quill,
-    "org.flywaydb" % "flyway-core"    % "10.15.2",
+    // higher versions don't work with JDK 11
+    "org.flywaydb" % "flyway-core"    % "9.16.0",
     postgres
   )
 
@@ -105,7 +106,7 @@ object Dependencies {
   val telegramium = Seq(
     "io.github.apimorphism" %% "telegramium-core" % versions.telegramium,
     "io.github.apimorphism" %% "telegramium-high" % versions.telegramium exclude ("org.slf4j", "slf4j-simple"),
-    "dev.zio"               %% "zio-interop-cats" % "23.1.0.2"
+    "dev.zio"               %% "zio-interop-cats" % "23.1.0.3"
   )
 
   val googleApiClient = Seq(
