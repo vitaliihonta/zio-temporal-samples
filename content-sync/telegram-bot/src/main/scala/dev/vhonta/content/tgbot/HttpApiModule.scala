@@ -10,7 +10,7 @@ object HttpApiModule {
     ZIO.serviceWithZIO[YoutubeCallbackHandlingApi] { callbackHandling =>
       ZIO.logInfo("Serving HTTP API...") *>
         Server
-          .serve(callbackHandling.httpApp)
+          .serve(callbackHandling.routes)
           .provide(Server.defaultWithPort(9092))
     }
   }

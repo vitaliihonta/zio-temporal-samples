@@ -70,69 +70,75 @@ case class TopicsCommandHandler(
 
   val onGetTopicDetails: TelegramHandler[Api[Task], CallbackQuery] =
     onCallbackQuery(ContentSyncCallbackQuery.TopicDetails) { (query, topicId) =>
-      ZIO.foreach(query.message) { msg =>
-        for {
-          topic <- contentFeedRepository.findTopicById(topicId)
-          _ <- ZIO
-                 .foreach(topic) { topic =>
-                   val text = s"<b>${topic.topic} 📝</b> (language: ${topic.lang})"
-                   val markup = InlineKeyboardMarkup(
-                     List(
+      query.message match {
+        case Some(msg: Message) =>
+          for {
+            topic <- contentFeedRepository.findTopicById(topicId)
+            _ <- ZIO
+                   .foreach(topic) { topic =>
+                     val text = s"<b>${topic.topic} 📝</b> (language: ${topic.lang})"
+                     val markup = InlineKeyboardMarkup(
                        List(
-                         ContentSyncCallbackQuery.DeleteTopic
-                           .toInlineKeyboardButton("Delete", topicId)
+                         List(
+                           ContentSyncCallbackQuery.DeleteTopic
+                             .toInlineKeyboardButton("Delete", topicId)
+                         )
+                       )
+                     )
+                     execute(
+                       sendMessage(
+                         chatId = ChatIntId(msg.chat.id),
+                         text = text,
+                         parseMode = Some(Html),
+                         replyMarkup = Some(markup)
+                       )
+                     )
+                   }
+                   .someOrElseZIO(
+                     execute(
+                       sendMessage(
+                         chatId = ChatIntId(msg.chat.id),
+                         text = s"Topic #$topicId <b>NOT FOUND</b>",
+                         parseMode = Some(Html)
                        )
                      )
                    )
-                   execute(
-                     sendMessage(
-                       chatId = ChatIntId(msg.chat.id),
-                       text = text,
-                       parseMode = Some(Html),
-                       replyMarkup = Some(markup)
-                     )
-                   )
-                 }
-                 .someOrElseZIO(
-                   execute(
-                     sendMessage(
-                       chatId = ChatIntId(msg.chat.id),
-                       text = s"Topic #$topicId <b>NOT FOUND</b>",
-                       parseMode = Some(Html)
-                     )
-                   )
-                 )
-        } yield ()
+          } yield ()
+
+        case _ => ZIO.unit
       }
     }
 
   private val onDeleteTopic: TelegramHandler[Api[Task], CallbackQuery] =
     onCallbackQuery(ContentSyncCallbackQuery.DeleteTopic) { (query, topicId) =>
-      ZIO.foreach(query.message) { msg =>
-        for {
-          topic <- contentFeedRepository.findTopicById(topicId)
+      query.message match {
+        case Some(msg: Message) =>
+          for {
+            topic <- contentFeedRepository.findTopicById(topicId)
 
-          _ <- ZIO
-                 .foreach(topic) { topic =>
-                   contentFeedRepository.deleteTopicById(topicId) *>
+            _ <- ZIO
+                   .foreach(topic) { topic =>
+                     contentFeedRepository.deleteTopicById(topicId) *>
+                       execute(
+                         sendMessage(
+                           chatId = ChatIntId(msg.chat.id),
+                           text = s"Topic ${topic.topic} (id #$topicId) <b>DELETED</b>",
+                           parseMode = Some(Html)
+                         )
+                       )
+                   }
+                   .someOrElseZIO(
                      execute(
                        sendMessage(
                          chatId = ChatIntId(msg.chat.id),
-                         text = s"Topic ${topic.topic} (id #$topicId) <b>DELETED</b>",
+                         text = s"Topic #$topicId <b>NOT FOUND</b>",
                          parseMode = Some(Html)
                        )
                      )
-                 }
-                 .someOrElseZIO(
-                   execute(
-                     sendMessage(
-                       chatId = ChatIntId(msg.chat.id),
-                       text = s"Topic #$topicId <b>NOT FOUND</b>",
-                       parseMode = Some(Html)
-                     )
                    )
-                 )
-        } yield ()
+          } yield ()
+
+        case _ => ZIO.unit
       }
     }
 
@@ -191,39 +197,41 @@ case class TopicsCommandHandler(
 
   private val handleSetTopicLanguageFlow: TelegramHandler[Api[Task], CallbackQuery] =
     onCallbackQuery(ContentSyncCallbackQuery.AddTopicSetLanguage) { (query, language) =>
-      ZIO.foreach(query.message) { msg =>
-        subscribersService.getOrCreateByTelegramId(query.from, msg.chat, msg.date).flatMap { subscriber =>
-          getCurrentAddTopicStepIfExists(subscriber.subscriber)
-            .flatMap {
-              case Some((addTopicWorkflow, CurrentAddTopicStep(AddTopicStep.WaitingForLanguage, _))) =>
-                for {
-                  _ <- ZIO.logInfo("Is waiting for language, sending signal!")
-                  _ <- execute(
-                         answerCallbackQuery(callbackQueryId = query.id)
-                       )
-                  _ <- execute(
-                         editMessageReplyMarkup(
-                           chatId = Some(ChatIntId(msg.chat.id)),
-                           messageId = Some(msg.messageId),
-                           replyMarkup = None
+      query.message match {
+        case Some(msg: Message) =>
+          subscribersService.getOrCreateByTelegramId(query.from, msg.chat, msg.date).flatMap { subscriber =>
+            getCurrentAddTopicStepIfExists(subscriber.subscriber)
+              .flatMap {
+                case Some((addTopicWorkflow, CurrentAddTopicStep(AddTopicStep.WaitingForLanguage, _))) =>
+                  for {
+                    _ <- ZIO.logInfo("Is waiting for language, sending signal!")
+                    _ <- execute(
+                           answerCallbackQuery(callbackQueryId = query.id)
                          )
-                       )
-                  _ <- execute(
-                         sendChatAction(
-                           chatId = ChatIntId(msg.chat.id),
-                           action = "typing"
+                    _ <- execute(
+                           editMessageReplyMarkup(
+                             chatId = Some(ChatIntId(msg.chat.id)),
+                             messageId = Some(msg.messageId),
+                             replyMarkup = None
+                           )
                          )
-                       )
-                  _ <- ZWorkflowStub.signal(
-                         addTopicWorkflow.specifyLanguage(
-                           proto.SpecifyLanguage(value = language)
+                    _ <- execute(
+                           sendChatAction(
+                             chatId = ChatIntId(msg.chat.id),
+                             action = "typing"
+                           )
                          )
-                       )
-                } yield ()
+                    _ <- ZWorkflowStub.signal(
+                           addTopicWorkflow.specifyLanguage(
+                             proto.SpecifyLanguage(value = language)
+                           )
+                         )
+                  } yield ()
 
-              case _ => ZIO.unit
-            }
-        }
+                case _ => ZIO.unit
+              }
+          }
+        case _ => ZIO.unit
       }
     }
 

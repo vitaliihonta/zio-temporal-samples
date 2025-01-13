@@ -3,9 +3,9 @@ package dev.vhonta.content.tgbot.api
 import dev.vhonta.content.tgbot.proto.YoutubeCallbackData
 import dev.vhonta.content.tgbot.workflow.setup.SetupYoutubeWorkflow
 import zio._
-import zio.http._
 import zio.json._
 import zio.temporal.workflow._
+import zio.http._
 
 import java.util.Base64
 import scala.util.control.NoStackTrace
@@ -31,26 +31,23 @@ case class YoutubeCallbackHandlingApi(config: YoutubeCallbackHandlingApi.ApiConf
 
   private val decoder = Base64.getDecoder
 
-  val httpApp: HttpApp[Any, Nothing] = {
-    Http.collectHttp[Request] {
-      case Method.GET -> Root / "oauth2" =>
-        callbackDataHandler
-          .catchAllZIO { error =>
-            val statusCode = error match {
-              case _: InvalidCallbackPayloadException =>
-                Status.BadRequest
-              case _ => Status.InternalServerError
-            }
-            ZIO
-              .logError(s"OAuth2 callback handler failed $error")
-              .as(Response.status(statusCode))
-          }
-      case Method.GET -> Root / "health" =>
-        Http.fromHandler(Handler.ok)
-    }
-  }
+  val routes: Routes[Any, Nothing] = Routes(
+    Method.GET / Root / "oauth2" -> callbackDataHandler.catchAll { error =>
+      val statusCode = error match {
+        case _: InvalidCallbackPayloadException =>
+          Status.BadRequest
+        case _ => Status.InternalServerError
+      }
+      Handler.fromZIO {
+        ZIO
+          .logError(s"OAuth2 callback handler failed $error")
+          .as(Response.status(statusCode))
+      }
+    },
+    Method.GET / Root / "health" -> Handler.ok
+  )
 
-  private val callbackDataHandler: Http[Any, Exception, Request, Response] = Http.fromOptionalHandler[Request] { req =>
+  private def callbackDataHandler: Handler[Any, Exception, Request, Response] = handler { (req: Request) =>
     val callbackData = for {
       rawState <- getSingleQueryParam(req.url)("state")
       code     <- getSingleQueryParam(req.url)("code")
@@ -58,33 +55,35 @@ case class YoutubeCallbackHandlingApi(config: YoutubeCallbackHandlingApi.ApiConf
     } yield {
       (rawState, code, scope)
     }
-    callbackData.map { case (rawState, code, scope) =>
-      Handler.fromZIO {
-        for {
-          stateDecoded <- ZIO.attempt(new String(decoder.decode(rawState))).refineToOrDie[IllegalArgumentException]
-          state <- ZIO
-                     .fromEither(stateDecoded.fromJson[SubscriberOAuth2State])
-                     .mapError(InvalidCallbackPayloadException)
-          _ <- ZIO.logInfo(s"Received youtube callback from subscriber=${state.subscriberId} scope=$scope")
-          youtubeWorkflow <- workflowClient.newWorkflowStub[SetupYoutubeWorkflow](
-                               workflowId = SetupYoutubeWorkflow.workflowId(state.subscriberId)
-                             )
-          _ <- ZIO.logInfo("Sending callback data...")
-          _ <- ZWorkflowStub.signal(
-                 youtubeWorkflow.provideCallbackData(
-                   YoutubeCallbackData(
-                     authorizationCode = code
+    callbackData
+      .map { case (rawState, code, scope) =>
+        Handler.fromZIO {
+          for {
+            stateDecoded <- ZIO.attempt(new String(decoder.decode(rawState))).refineToOrDie[IllegalArgumentException]
+            state <- ZIO
+                       .fromEither(stateDecoded.fromJson[SubscriberOAuth2State])
+                       .mapError(InvalidCallbackPayloadException)
+            _ <- ZIO.logInfo(s"Received youtube callback from subscriber=${state.subscriberId} scope=$scope")
+            youtubeWorkflow <- workflowClient.newWorkflowStub[SetupYoutubeWorkflow](
+                                 workflowId = SetupYoutubeWorkflow.workflowId(state.subscriberId)
+                               )
+            _ <- ZIO.logInfo("Sending callback data...")
+            _ <- ZWorkflowStub.signal(
+                   youtubeWorkflow.provideCallbackData(
+                     YoutubeCallbackData(
+                       authorizationCode = code
+                     )
                    )
                  )
-               )
-          url <- ZIO.fromEither(
-                   URL.decode(s"https://t.me/${config.botUsername}?start=")
-                 )
-        } yield Response.redirect(url)
+            url <- ZIO.fromEither(
+                     URL.decode(s"https://t.me/${config.botUsername}?start=")
+                   )
+          } yield Response.redirect(url)
+        }
       }
-    }
-  }
+      .getOrElse(Handler.notFound("Missing query parameters"))
+  }.flatten
 
   private def getSingleQueryParam(url: URL)(name: String): Option[String] =
-    url.queryParams.get(name).flatMap(_.headOption)
+    url.queryParams.queryParams(name).headOption
 }

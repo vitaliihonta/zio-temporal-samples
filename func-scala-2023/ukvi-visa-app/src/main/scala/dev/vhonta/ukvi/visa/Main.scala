@@ -1,20 +1,17 @@
 package dev.vhonta.ukvi.visa
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
-import com.fasterxml.jackson.databind.json.JsonMapper
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.github.pjfanning.enumeratum.EnumeratumModule
 import dev.vhonta.ukvi.visa.api.{AbstractApi, HomepageApi, VisitorVisaApplicantAdminApi, VisitorVisaApplicantApi}
 import dev.vhonta.ukvi.visa.service.VisitorVisaApplicationService
 import dev.vhonta.ukvi.visa.workflow.{ConfigurationActivities, TaskQueues, VisitorVisaApplicationWorkflowImpl}
 import zio._
 import zio.config.typesafe.TypesafeConfigProvider
-import zio.http.{Routes, Server}
+import zio.http.Server
 import zio.logging.backend.SLF4J
-import zio.temporal.worker._
 import zio.temporal.activity._
-import zio.temporal.json.{BoxedUnitModule, JacksonDataConverter}
+import zio.temporal.json.JacksonDataConverter
+import zio.temporal.worker._
 import zio.temporal.workflow._
 
 object Main extends ZIOAppDefault {
@@ -67,11 +64,7 @@ object Main extends ZIOAppDefault {
         ZWorkflowClientOptions.make @@
           ZWorkflowClientOptions.withDataConverter(
             JacksonDataConverter.make(
-              JsonMapper
-                .builder()
-                .addModule(DefaultScalaModule)
-                .addModule(new JavaTimeModule)
-                .addModule(BoxedUnitModule)
+              JacksonDataConverter.DefaultObjectMapperBuilder
                 .addModule(EnumeratumModule)
                 .build()
                 .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)

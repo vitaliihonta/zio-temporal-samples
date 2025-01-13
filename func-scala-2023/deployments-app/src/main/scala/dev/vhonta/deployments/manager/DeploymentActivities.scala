@@ -77,7 +77,7 @@ object DeploymentActivitiesImpl {
 }
 
 class DeploymentActivitiesImpl(
-  servicesRef:      Ref[Map[String, DeploymentActivitiesImpl.DeploymentMeta]]
+  servicesRef: Ref[Map[String, DeploymentActivitiesImpl.DeploymentMeta]]
 )(implicit options: ZActivityRunOptions[Any])
     extends DeploymentActivities {
 

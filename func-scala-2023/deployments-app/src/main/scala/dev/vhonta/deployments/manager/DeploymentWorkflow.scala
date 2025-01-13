@@ -36,7 +36,7 @@ class DeploymentWorkflowImpl extends DeploymentWorkflow {
     }.toMap
 
     val deploymentSaga: ZSaga[Unit] = ZSaga
-      .foreach(input.deployments) { req =>
+      .foreachDiscard(input.deployments) { req =>
         // Update deployment status
         deploymentState.update(
           req.id,
@@ -75,7 +75,6 @@ class DeploymentWorkflowImpl extends DeploymentWorkflow {
           _ <- monitorTraffic(req, deployment)
         } yield ()
       }
-      .unit
 
     val status: DeploymentResultStatus = deploymentSaga.run() match {
       case Right(_) => DeploymentResultStatus.Completed

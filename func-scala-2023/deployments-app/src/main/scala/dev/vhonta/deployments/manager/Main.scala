@@ -1,15 +1,12 @@
 package dev.vhonta.deployments.manager
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
-import com.fasterxml.jackson.databind.json.JsonMapper
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import com.github.pjfanning.enumeratum.EnumeratumModule
 import zio._
 import zio.logging.backend.SLF4J
-import zio.temporal.worker._
 import zio.temporal.activity._
-import zio.temporal.json.{BoxedUnitModule, JacksonDataConverter}
+import zio.temporal.json.JacksonDataConverter
+import zio.temporal.worker._
 import zio.temporal.workflow._
 
 import java.net.URL
@@ -87,11 +84,7 @@ object Main extends ZIOAppDefault {
         ZWorkflowClientOptions.make @@
           ZWorkflowClientOptions.withDataConverter(
             JacksonDataConverter.make(
-              JsonMapper
-                .builder()
-                .addModule(DefaultScalaModule)
-                .addModule(new JavaTimeModule)
-                .addModule(BoxedUnitModule)
+              JacksonDataConverter.DefaultObjectMapperBuilder
                 .addModule(EnumeratumModule)
                 .build()
                 .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
